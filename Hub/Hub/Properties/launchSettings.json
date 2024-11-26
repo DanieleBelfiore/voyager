@@ -1,0 +1,18 @@
+{
+  "profiles": {
+    "Development": {
+      "commandName": "IISExpress",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    }
+  },
+  "iisSettings": {
+    "windowsAuthentication": false,
+    "anonymousAuthentication": true,
+    "iisExpress": {
+      "applicationUrl": "http://localhost:6000/",
+      "sslPort": 0
+    }
+  }
+}

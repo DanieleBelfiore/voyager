@@ -1,0 +1,132 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=Strong!Passw0rd
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    networks:
+      - voyager-network
+    healthcheck:
+      test: /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P "$${MSSQL_SA_PASSWORD}" -Q "SELECT 1" -b -o /dev/null
+      interval: 30s
+      timeout: 30s
+      retries: 10
+
+  sqlserver-init:
+    image: mcr.microsoft.com/mssql-tools:latest
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    volumes:
+      - ./init-db.sql:/init-db.sql
+    command: /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P Strong!Passw0rd -i /init-db.sql
+    networks:
+      - voyager-network
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --save 20 1 --loglevel warning
+    networks:
+      - voyager-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 30s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=Strong!Passw0rd
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - voyager-network
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 30s
+      retries: 10
+
+  identity-api:
+    build:
+      context: .
+      dockerfile: Identity/Identity/Dockerfile
+    environment:
+      - ConnectionStrings__IdentityContext=Server=tcp:sqlserver,1433;Initial Catalog=identity;Persist Security Info=False;User ID=sa;Password=Strong!Passw0rd;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=True;Connection Timeout=30
+      - RabbitMQ__HostName=rabbitmq
+      - Identity__Issuer=http://identity-api:8080
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    ports:
+      - "5001:8080"
+    networks:
+      - voyager-network
+
+  driver-api:
+    build:
+      context: .
+      dockerfile: Driver/Driver/Dockerfile
+    environment:
+      - ConnectionStrings__DriverContext=Server=tcp:sqlserver,1433;Initial Catalog=driver;Persist Security Info=False;User ID=sa;Password=Strong!Passw0rd;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=True;Connection Timeout=30
+      - RabbitMQ__HostName=rabbitmq
+      - Identity__Issuer=http://identity-api:8080
+    depends_on:
+      - identity-api
+    ports:
+      - "5002:8080"
+    networks:
+      - voyager-network
+
+  ride-api:
+    build:
+      context: .
+      dockerfile: Ride/Ride/Dockerfile
+    environment:
+      - ConnectionStrings__RideContext=Server=tcp:sqlserver,1433;Initial Catalog=ride;Persist Security Info=False;User ID=sa;Password=Strong!Passw0rd;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=True;Connection Timeout=30
+      - RabbitMQ__HostName=rabbitmq
+      - Identity__Issuer=http://identity-api:8080
+    depends_on:
+      - identity-api
+    ports:
+      - "5003:8080"
+    networks:
+      - voyager-network
+
+  hub-api:
+    build:
+      context: .
+      dockerfile: Hub/Hub/Dockerfile
+    environment:
+      - RabbitMQ__HostName=rabbitmq
+      - Identity__Issuer=http://identity-api:8080
+    depends_on:
+      - identity-api
+    ports:
+      - "5000:8080"
+    networks:
+      - voyager-network
+
+volumes:
+  sqlserver_data:
+  redis_data:
+  rabbitmq_data:
+
+networks:
+  voyager-network:
+    driver: bridge
