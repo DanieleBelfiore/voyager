@@ -8,26 +8,26 @@ using Identity.Core.CQRS.Commands;
 using MediatR;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Ride.Core.CQRS.Commands;
 using Ride.Core.CQRS.Queries;
 using Ride.Handlers.Interfaces;
 
-namespace Ride.Core.CQRS.Commands
+namespace Ride.Handlers.CQRS.Commands;
+
+public class RateDriverHandler(IRideContext db, IMediator mediator, IHubContext<VoyagerHub, IVoyagerShareClient> hub) : IRequestHandler<RateDriver>
 {
-  public class RateDriverHandler(IRideContext db, IMediator mediator, IHubContext<VoyagerHub, IVoyagerShareClient> hub) : IRequestHandler<RateDriver>
+  public async Task Handle(RateDriver request, CancellationToken cancellationToken)
   {
-    public async Task Handle(RateDriver request, CancellationToken cancellationToken)
-    {
-      var r = await db.Rides.AsNoTracking().FirstOrDefaultAsync(f => f.Id == request.RideId, cancellationToken) ?? throw new Exception("ride_not_found");
+    var r = await db.Rides.AsNoTracking().FirstOrDefaultAsync(f => f.Id == request.RideId, cancellationToken) ?? throw new Exception("ride_not_found");
 
-      var rides = await mediator.Send(new GetRideDriverHistory { DriverId = r.DriverId, Take = -1 }, cancellationToken);
+    var rides = await mediator.Send(new GetRideDriverHistory { DriverId = r.DriverId, Take = -1 }, cancellationToken);
 
-      await mediator.Send(new UpdateUserRating { UserId = r.DriverId, Rating = request.Rating, Rides = rides.Count }, cancellationToken);
+    await mediator.Send(new UpdateUserRating { UserId = r.DriverId, Rating = request.Rating, Rides = rides.Count }, cancellationToken);
 
-      var ride = rides.FirstOrDefault();
-      if (ride == null)
-        return;
+    var ride = rides.FirstOrDefault();
+    if (ride == null)
+      return;
 
-      await hub.Clients.Group($"ride_{ride.Id}").SendToDriverNewRateReceived(request.Rating);
-    }
+    await hub.Clients.Group($"ride_{ride.Id}").SendToDriverNewRateReceived(request.Rating);
   }
 }

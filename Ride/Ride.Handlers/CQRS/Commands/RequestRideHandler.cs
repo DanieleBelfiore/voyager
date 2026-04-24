@@ -14,36 +14,35 @@ using Ride.Core.Dtos;
 using Ride.Core.Enums;
 using Ride.Handlers.Interfaces;
 
-namespace Ride.Handlers.CQRS.Commands
+namespace Ride.Handlers.CQRS.Commands;
+
+public class RequestRideHandler(IRideContext db, IMapper mapper, IHubContext<VoyagerHub, IVoyagerShareClient> hub) : IRequestHandler<RequestRide, RideDetailsResponse>
 {
-  public class RequestRideHandler(IRideContext db, IMapper mapper, IHubContext<VoyagerHub, IVoyagerShareClient> hub) : IRequestHandler<RequestRide, RideDetailsResponse>
+  public async Task<RideDetailsResponse> Handle(RequestRide request, CancellationToken cancellationToken)
   {
-    public async Task<RideDetailsResponse> Handle(RequestRide request, CancellationToken cancellationToken)
+    var status = new List<RideStatus> { RideStatus.Requested, RideStatus.DriverAssigned, RideStatus.InProgress };
+
+    var alreadyRequested = await db.Rides.AsNoTracking().AnyAsync(f => f.UserId == request.UserId && status.Contains(f.Status), cancellationToken);
+    if (alreadyRequested)
+      throw new InvalidOperationException();
+
+    var ride = new Models.Ride
     {
-      var status = new List<RideStatus> { RideStatus.Requested, RideStatus.DriverAssigned, RideStatus.InProgress };
+      UserId = request.UserId,
+      DriverId = request.DriverId,
+      Status = RideStatus.Requested,
+      PickupLocation = request.PickupLocation,
+      PickupLocationGeoJSON = new WKTWriter().Write(request.PickupLocation),
+      DropoffLocation = request.DropoffLocation,
+      DropoffLocationGeoJSON = new WKTWriter().Write(request.DropoffLocation)
+    };
 
-      var alreadyRequested = await db.Rides.AsNoTracking().AnyAsync(f => f.UserId == request.UserId && status.Contains(f.Status), cancellationToken);
-      if (alreadyRequested)
-        throw new InvalidOperationException();
+    db.Rides.Add(ride);
 
-      var ride = new Models.Ride
-      {
-        UserId = request.UserId,
-        DriverId = request.DriverId,
-        Status = RideStatus.Requested,
-        PickupLocation = request.PickupLocation,
-        PickupLocationGeoJSON = new WKTWriter().Write(request.PickupLocation),
-        DropoffLocation = request.DropoffLocation,
-        DropoffLocationGeoJSON = new WKTWriter().Write(request.DropoffLocation)
-      };
+    await db.SaveChangesAsync(cancellationToken);
 
-      db.Rides.Add(ride);
+    await hub.Clients.Group($"ride_{ride.Id}").SendToDriverNewRideRequest(ride.Id);
 
-      await db.SaveChangesAsync(cancellationToken);
-
-      await hub.Clients.Group($"ride_{ride.Id}").SendToDriverNewRideRequest(ride.Id);
-
-      return mapper.Map<RideDetailsResponse>(ride);
-    }
+    return mapper.Map<RideDetailsResponse>(ride);
   }
 }

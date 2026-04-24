@@ -1,13 +1,12 @@
 using AutoMapper;
 using Driver.Core.Dtos;
 
-namespace Driver.Handlers
+namespace Driver.Handlers;
+
+public class MappingProfile : Profile
 {
-  public class MappingProfile : Profile
+  public MappingProfile()
   {
-    public MappingProfile()
-    {
-      CreateMap<Models.Driver, DriverStatusResponse>();
-    }
+    CreateMap<Models.Driver, DriverStatusResponse>();
   }
 }

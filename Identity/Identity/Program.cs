@@ -15,8 +15,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Rewrite;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.OpenApi.Any;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
+using System.Text.Json.Nodes;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using OpenIddict.Abstractions;
@@ -61,7 +61,7 @@ builder.Services.AddOpenIddict()
   .AddServer(options =>
   {
     options.SetTokenEndpointUris("connect/token")
-           .SetLogoutEndpointUris("connect/logout");
+           .SetEndSessionEndpointUris("connect/logout");
 
     options.RegisterScopes(OpenIddictConstants.Scopes.Email, OpenIddictConstants.Scopes.Profile, OpenIddictConstants.Scopes.Roles);
 
@@ -69,7 +69,7 @@ builder.Services.AddOpenIddict()
 
     options.UseAspNetCore()
       .EnableAuthorizationEndpointPassthrough()
-      .EnableLogoutEndpointPassthrough()
+      .EnableEndSessionEndpointPassthrough()
       .EnableTokenEndpointPassthrough()
       .DisableTransportSecurityRequirement();
 
@@ -82,15 +82,15 @@ builder.Services.AddOpenIddict()
     // Only for development
     options.AddDevelopmentEncryptionCertificate().AddDevelopmentSigningCertificate();
 
-    options.Configure(options =>
+    options.Configure(openIddictServerOptions =>
     {
-      options.TokenValidationParameters.ValidIssuers =
+      openIddictServerOptions.TokenValidationParameters.ValidIssuers =
       [
         configuration["Identity:Issuer"]
       ];
     });
 
-    options.SetIssuer(configuration["Identity:Issuer"]);
+    options.SetIssuer(configuration["Identity:Issuer"]!);
   })
   .AddValidation(options =>
   {
@@ -104,7 +104,7 @@ JwtSecurityTokenHandler.DefaultOutboundClaimTypeMap.Clear();
 builder.Services.AddOpenIddict()
     .AddValidation(options =>
     {
-      options.SetIssuer(configuration["Identity:Issuer"]);
+      options.SetIssuer(configuration["Identity:Issuer"]!);
 
       options.UseSystemNetHttp();
       options.UseAspNetCore();
@@ -164,9 +164,11 @@ builder.Services.AddSwaggerGen(options =>
   var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
   options.IncludeXmlComments(xmlPath);
 
-  options.AddSecurityRequirement(new OpenApiSecurityRequirement { { new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }, Scheme = "oauth2", Name = "Bearer", In = ParameterLocation.Header }, new List<string>() } });
+  options.AddSecurityRequirement(_ => new OpenApiSecurityRequirement { { new OpenApiSecuritySchemeReference("Bearer"),
+    []
+  } });
 
-  options.MapType<object>(() => new OpenApiSchema { Type = "object" });
+  options.MapType<object>(() => new OpenApiSchema { Type = JsonSchemaType.Object });
 });
 
 builder.Services.AddSwaggerGenNewtonsoftSupport();
@@ -215,7 +217,7 @@ app.UseAuthorization();
 app.MapControllers();
 
 // Only for development
-var scheme = "http";
+const string scheme = "http";
 app.UseDeveloperExceptionPage();
 
 app.UseSwagger(options =>
@@ -260,12 +262,12 @@ public class AddPasswordGrantParams : IOperationFilter
                     {
                         Schema = new OpenApiSchema
                         {
-                            Type = "object",
+                            Type = JsonSchemaType.Object,
                             Properties = {
-                                ["client_id"] = new OpenApiSchema { Type = "string", Enum = [new OpenApiString("voyager_app")] },
-                                ["grant_type"] = new OpenApiSchema { Type = "string", Enum = [new OpenApiString("password")] },
-                                ["username"] = new OpenApiSchema { Type = "string" },
-                                ["password"] = new OpenApiSchema { Type = "string", Format = "password" }
+                                ["client_id"] = new OpenApiSchema { Type = JsonSchemaType.String, Enum = [JsonValue.Create("voyager_app")] },
+                                ["grant_type"] = new OpenApiSchema { Type = JsonSchemaType.String, Enum = [JsonValue.Create("password")] },
+                                ["username"] = new OpenApiSchema { Type = JsonSchemaType.String },
+                                ["password"] = new OpenApiSchema { Type = JsonSchemaType.String, Format = "password" }
                             },
                             Required = new HashSet<string> { "client_id", "grant_type", "username", "password" }
                         }

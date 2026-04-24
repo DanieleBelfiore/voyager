@@ -9,53 +9,52 @@ using Ride.Handlers;
 using Ride.Handlers.CQRS.Queries;
 using Xunit;
 
-namespace Ride.Tests.Handlers.Queries
+namespace Ride.Tests.Handlers.Queries;
+
+public class GetActiveRideHandlerTests
 {
-  public class GetActiveRideHandlerTests
+  private readonly IMediator _mediator;
+  private readonly TestApplicationDbContext _context;
+
+  public GetActiveRideHandlerTests()
   {
-    private readonly IMediator _mediator;
-    private readonly TestApplicationDbContext _context;
+    _context = TestBase.CreateTestDbContext();
 
-    public GetActiveRideHandlerTests()
+    var mediatorMock = Substitute.For<IMediator>();
+
+    _mediator = mediatorMock;
+
+    var config = new MapperConfiguration(cfg =>
     {
-      _context = TestBase.CreateTestDbContext();
+      cfg.AddProfile<MappingProfile>();
+    });
 
-      var mediatorMock = Substitute.For<IMediator>();
+    var mapper = config.CreateMapper();
 
-      _mediator = mediatorMock;
+    mediatorMock.Send(Arg.Any<GetActiveRide>(), Arg.Any<CancellationToken>())
+      .Returns(c => new GetActiveRideHandler(_context, mapper)
+        .Handle(c.Arg<GetActiveRide>(), c.Arg<CancellationToken>()));
+  }
 
-      var config = new MapperConfiguration(cfg =>
-      {
-        cfg.AddProfile<MappingProfile>();
-      });
+  [Fact]
+  public async Task GetActiveRideTestFact()
+  {
+    // Arrange
+    var userId = Guid.NewGuid();
 
-      var mapper = config.CreateMapper();
+    _context.Rides.Add(new Ride.Handlers.Models.Ride { UserId = userId, Status = RideStatus.Requested });
 
-      mediatorMock.Send(Arg.Any<GetActiveRide>(), Arg.Any<CancellationToken>())
-                  .Returns(c => new GetActiveRideHandler(_context, mapper)
-                  .Handle(c.Arg<GetActiveRide>(), c.Arg<CancellationToken>()));
-    }
+    await _context.SaveChangesAsync(CancellationToken.None);
 
-    [Fact]
-    public async Task GetActiveRideTestFact()
-    {
-      // Arrange
-      var userId = Guid.NewGuid();
+    var request = new GetActiveRide { UserId = userId };
 
-      _context.Rides.Add(new Ride.Handlers.Models.Ride { UserId = userId, Status = RideStatus.Requested });
+    // Act
+    await _mediator.Send(request, CancellationToken.None);
 
-      await _context.SaveChangesAsync(CancellationToken.None);
+    // Assert
+    var result = await _context.Rides.Where(f => f.UserId == userId).FirstOrDefaultAsync();
 
-      var request = new GetActiveRide { UserId = userId };
-
-      // Act
-      await _mediator.Send(request, CancellationToken.None);
-
-      // Assert
-      var result = await _context.Rides.Where(f => f.UserId == userId).FirstOrDefaultAsync();
-
-      result.Should().NotBeNull();
-      result!.Status.Should().Be(RideStatus.Requested);
-    }
+    result.Should().NotBeNull();
+    result.Status.Should().Be(RideStatus.Requested);
   }
 }

@@ -1,12 +1,11 @@
 using System.Linq;
 
-namespace Common.Core
+namespace Common.Core.Extensions;
+
+public static class LINQExtensions
 {
-  public static class LINQExtensions
+  public static IQueryable<TResult> TakeIfPositive<TResult>(this IQueryable<TResult> source, int count)
   {
-    public static IQueryable<TResult> TakeIfPositive<TResult>(this IQueryable<TResult> source, int count)
-    {
-      return count < 0 ? source : source.Take(count);
-    }
+    return count < 0 ? source : source.Take(count);
   }
 }

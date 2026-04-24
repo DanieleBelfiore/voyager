@@ -5,26 +5,26 @@ using System.Threading.Tasks;
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using Common.Core.Cache;
+using Driver.Core.CQRS.Queries;
 using Driver.Core.Dtos;
 using Driver.Handlers.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
-namespace Driver.Core.CQRS.Queries
+namespace Driver.Handlers.CQRS.Queries;
+
+public class GetDriverStatusHandler(IDriverContext db, IMapper mapper, ICacheService cache) : IRequestHandler<GetDriverStatus, DriverStatusResponse>
 {
-  public class GetDriverStatusHandler(IDriverContext db, IMapper mapper, ICacheService cache) : IRequestHandler<GetDriverStatus, DriverStatusResponse>
+  private const string CacheKeyPrefix = "driver:status:";
+  private static readonly TimeSpan CacheExpiration = TimeSpan.FromMinutes(5);
+
+  public async Task<DriverStatusResponse> Handle(GetDriverStatus request, CancellationToken cancellationToken)
   {
-    private const string CacheKeyPrefix = "driver:status:";
-    private static readonly TimeSpan CacheExpiration = TimeSpan.FromMinutes(5);
+    var cacheKey = $"{CacheKeyPrefix}{request.Id}";
 
-    public async Task<DriverStatusResponse> Handle(GetDriverStatus request, CancellationToken cancellationToken)
+    return await cache.GetOrCreateAsync(cacheKey, async () =>
     {
-      var cacheKey = $"{CacheKeyPrefix}{request.Id}";
-
-      return await cache.GetOrCreateAsync(cacheKey, async () =>
-      {
-        return await db.Drivers.AsNoTracking().Where(f => f.Id == request.Id).ProjectTo<DriverStatusResponse>(mapper.ConfigurationProvider).FirstOrDefaultAsync(cancellationToken) ?? throw new Exception("driver_not_found");
-      }, CacheExpiration);
-    }
+      return await db.Drivers.AsNoTracking().Where(f => f.Id == request.Id).ProjectTo<DriverStatusResponse>(mapper.ConfigurationProvider).FirstOrDefaultAsync(cancellationToken) ?? throw new Exception("driver_not_found");
+    }, CacheExpiration);
   }
 }

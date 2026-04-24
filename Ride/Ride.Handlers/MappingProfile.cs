@@ -1,14 +1,13 @@
 using AutoMapper;
 using Ride.Core.Dtos;
 
-namespace Ride.Handlers
+namespace Ride.Handlers;
+
+public class MappingProfile : Profile
 {
-  public class MappingProfile : Profile
+  public MappingProfile()
   {
-    public MappingProfile()
-    {
-      CreateMap<Models.Ride, ActiveRideResponse>();
-      CreateMap<Models.Ride, RideDetailsResponse>();
-    }
+    CreateMap<Models.Ride, ActiveRideResponse>();
+    CreateMap<Models.Ride, RideDetailsResponse>();
   }
 }

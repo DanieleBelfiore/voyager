@@ -1,14 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace Ride.Tests
+namespace Ride.Tests;
+
+public static class TestBase
 {
-  public static class TestBase
+  public static TestApplicationDbContext CreateTestDbContext()
   {
-    public static TestApplicationDbContext CreateTestDbContext()
-    {
-      return new TestApplicationDbContext(new DbContextOptionsBuilder<TestApplicationDbContext>()
-                                              .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-                                              .Options);
-    }
+    return new TestApplicationDbContext(new DbContextOptionsBuilder<TestApplicationDbContext>()
+      .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+      .Options);
   }
 }

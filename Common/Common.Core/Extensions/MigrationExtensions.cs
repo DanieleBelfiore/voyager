@@ -1,10 +1,12 @@
 using Microsoft.EntityFrameworkCore.Migrations;
 
-namespace Common.Core.Extensions
+namespace Common.Core.Extensions;
+
+public static class MigrationExtensions
 {
-  public static class MigrationExtensions
+  extension(MigrationBuilder migrationBuilder)
   {
-    public static void CreateSpatialIndex(this MigrationBuilder migrationBuilder, string tableName, string columnName, string indexName)
+    public void CreateSpatialIndex(string tableName, string columnName, string indexName)
     {
       migrationBuilder.Sql($"""
 
@@ -33,7 +35,7 @@ namespace Common.Core.Extensions
                             """);
     }
 
-    public static void DropSpatialIndex(this MigrationBuilder migrationBuilder, string tableName, string indexName)
+    public void DropSpatialIndex(string tableName, string indexName)
     {
       migrationBuilder.Sql($"""
 
