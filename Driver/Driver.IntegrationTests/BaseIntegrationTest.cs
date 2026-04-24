@@ -12,7 +12,7 @@ namespace Driver.IntegrationTests;
 public abstract class BaseIntegrationTest : IClassFixture<IntegrationTestWebAppFactory>
 {
   private readonly IntegrationTestWebAppFactory _factory;
-  private IServiceScope _scope;
+  private IServiceScope? _scope;
   protected DriverContext Context;
   private IUserManager UserManager;
   protected HttpClient Client;
@@ -26,7 +26,7 @@ public abstract class BaseIntegrationTest : IClassFixture<IntegrationTestWebAppF
 
   private void CreateNewScope()
   {
-    _scope.Dispose();
+    _scope?.Dispose();
     _scope = _factory.Services.CreateScope();
 
     InitializeServices(_scope.ServiceProvider);
