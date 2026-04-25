@@ -31,6 +31,8 @@ public class Module : IModule
 
     services.AddScoped<SlowQueryInterceptor>();
 
+    services.AddSingleton<DriverMapper>();
+
     services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
   }
 

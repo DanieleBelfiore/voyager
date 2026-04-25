@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoMapper;
 using Hub.API;
 using Hub.Core.Interfaces;
 using MediatR;
@@ -16,7 +15,7 @@ using Ride.Handlers.Interfaces;
 
 namespace Ride.Handlers.CQRS.Commands;
 
-public class RequestRideHandler(IRideContext db, IMapper mapper, IHubContext<VoyagerHub, IVoyagerShareClient> hub) : IRequestHandler<RequestRide, RideDetailsResponse>
+public class RequestRideHandler(IRideContext db, RideMapper mapper, IHubContext<VoyagerHub, IVoyagerShareClient> hub) : IRequestHandler<RequestRide, RideDetailsResponse>
 {
   public async Task<RideDetailsResponse> Handle(RequestRide request, CancellationToken cancellationToken)
   {
@@ -43,6 +42,6 @@ public class RequestRideHandler(IRideContext db, IMapper mapper, IHubContext<Voy
 
     await hub.Clients.Group($"ride_{ride.Id}").SendToDriverNewRideRequest(ride.Id);
 
-    return mapper.Map<RideDetailsResponse>(ride);
+    return mapper.ToRideDetails(ride);
   }
 }

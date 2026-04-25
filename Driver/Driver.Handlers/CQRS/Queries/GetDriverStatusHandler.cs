@@ -2,8 +2,6 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoMapper;
-using AutoMapper.QueryableExtensions;
 using Common.Core.Cache;
 using Driver.Core.CQRS.Queries;
 using Driver.Core.Dtos;
@@ -13,7 +11,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Driver.Handlers.CQRS.Queries;
 
-public class GetDriverStatusHandler(IDriverContext db, IMapper mapper, ICacheService cache) : IRequestHandler<GetDriverStatus, DriverStatusResponse>
+public class GetDriverStatusHandler(IDriverContext db, DriverMapper mapper, ICacheService cache) : IRequestHandler<GetDriverStatus, DriverStatusResponse>
 {
   private const string CacheKeyPrefix = "driver:status:";
   private static readonly TimeSpan CacheExpiration = TimeSpan.FromMinutes(5);
@@ -24,7 +22,7 @@ public class GetDriverStatusHandler(IDriverContext db, IMapper mapper, ICacheSer
 
     return await cache.GetOrCreateAsync(cacheKey, async () =>
     {
-      return await db.Drivers.AsNoTracking().Where(f => f.Id == request.Id).ProjectTo<DriverStatusResponse>(mapper.ConfigurationProvider).FirstOrDefaultAsync(cancellationToken) ?? throw new Exception("driver_not_found");
+      return await mapper.ProjectToDto(db.Drivers.AsNoTracking().Where(f => f.Id == request.Id)).FirstOrDefaultAsync(cancellationToken) ?? throw new Exception("driver_not_found");
     }, CacheExpiration);
   }
 }

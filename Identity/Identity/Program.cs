@@ -174,8 +174,6 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services.AddSwaggerGenNewtonsoftSupport();
 
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
-builder.Services.AddAutoMapper(Loader.Current.Assemblies);
-
 var assemblies = Loader.Current.Modules.Select(f => f.GetType().Assembly).ToList();
 assemblies.Add(Assembly.GetExecutingAssembly());
 

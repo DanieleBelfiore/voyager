@@ -1,4 +1,3 @@
-using AutoMapper;
 using FluentAssertions;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -24,12 +23,7 @@ public class GetActiveRideHandlerTests
 
     _mediator = mediatorMock;
 
-    var config = new MapperConfiguration(cfg =>
-    {
-      cfg.AddProfile<MappingProfile>();
-    });
-
-    var mapper = config.CreateMapper();
+    var mapper = new RideMapper();
 
     mediatorMock.Send(Arg.Any<GetActiveRide>(), Arg.Any<CancellationToken>())
       .Returns(c => new GetActiveRideHandler(_context, mapper)

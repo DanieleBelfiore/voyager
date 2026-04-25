@@ -1,4 +1,3 @@
-using AutoMapper;
 using Common.Core.Cache;
 using Driver.Core.CQRS.Queries;
 using Driver.Core.Dtos;
@@ -28,12 +27,7 @@ public class GetDriverStatusHandlerTests
 
     _mediator = mediatorMock;
 
-    var config = new MapperConfiguration(cfg =>
-    {
-      cfg.AddProfile<MappingProfile>();
-    });
-
-    var mapper = config.CreateMapper();
+    var mapper = new DriverMapper();
 
     mediatorMock.Send(Arg.Any<GetDriverStatus>(), Arg.Any<CancellationToken>())
       .Returns(c => new GetDriverStatusHandler(_context, mapper, _cache)
