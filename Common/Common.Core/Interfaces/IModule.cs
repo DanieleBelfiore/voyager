@@ -3,13 +3,13 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+// ReSharper disable UnusedParameter.Global
 
-namespace Common.Core.Interfaces
+namespace Common.Core.Interfaces;
+
+public interface IModule
 {
-  public interface IModule
-  {
-    void ConfigureServices(IServiceCollection services, IConfiguration configuration, IHostEnvironment hostingEnvironment);
-    void OnStartup(IApplicationBuilder app);
-    void UseEndpoints(IEndpointRouteBuilder endpoints);
-  }
+  void ConfigureServices(IServiceCollection services, IConfiguration configuration, IHostEnvironment hostingEnvironment);
+  void OnStartup(IApplicationBuilder app);
+  void UseEndpoints(IEndpointRouteBuilder endpoints);
 }

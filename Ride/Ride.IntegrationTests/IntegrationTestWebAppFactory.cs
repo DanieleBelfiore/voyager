@@ -1,129 +1,130 @@
-using System.Data;
 using Identity.Handlers.Models;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OpenIddict.Abstractions;
+using OpenIddict.Validation.AspNetCore;
+using Ride.API.Controllers;
 using Ride.Handlers.Models;
 using Testcontainers.MsSql;
+using Testcontainers.RabbitMq;
 using Xunit;
 
-namespace Ride.IntegrationTests
+namespace Ride.IntegrationTests;
+
+public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
-  public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsyncLifetime
+  private readonly MsSqlContainer _dbContainer = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2025-latest")
+    .WithEnvironment("ACCEPT_EULA", "Y")
+    .WithEnvironment("MSSQL_SA_PASSWORD", "Strong!Passw0rd")
+    .WithEnvironment("SQLCMDPASSWORD", "Strong!Passw0rd")
+    .WithPassword("Strong!Passw0rd")
+    .Build();
+
+  private readonly RabbitMqContainer _rabbitContainer = new RabbitMqBuilder("rabbitmq:4.3-management")
+    .WithUsername("testuser")
+    .WithPassword("testpass")
+    .Build();
+
+  protected override void ConfigureWebHost(IWebHostBuilder builder)
   {
-    private readonly MsSqlContainer _dbContainer = new MsSqlBuilder()
-                  .WithImage("mcr.microsoft.com/mssql/server:2022-latest")
-                  .WithEnvironment("ACCEPT_EULA", "Y")
-                  .WithEnvironment("MSSQL_SA_PASSWORD", "Strong!Passw0rd")
-                  .WithEnvironment("SQLCMDPASSWORD", "Strong!Passw0rd")
-                  .WithPassword("Strong!Passw0rd")
-                  .WithPortBinding(1533)
-                  .WithName("sqlserver_ride_integration_tests")
-                  .Build();
+    var baseConnStr = _dbContainer.GetConnectionString();
+    var rideConnStr = new SqlConnectionStringBuilder(baseConnStr) { InitialCatalog = "ride" }.ConnectionString;
+    var identityConnStr = new SqlConnectionStringBuilder(baseConnStr) { InitialCatalog = "identity" }.ConnectionString;
 
-    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    builder.ConfigureAppConfiguration(cfg =>
     {
-      builder.ConfigureTestServices(services =>
+      cfg.AddInMemoryCollection(new Dictionary<string, string?>
       {
-        var descriptor = services.SingleOrDefault(s => s.ServiceType == typeof(DbContextOptions<RideContext>));
-        if (descriptor != null)
-        {
-          services.Remove(descriptor);
-        }
+        ["ConnectionStrings:RideContext"] = rideConnStr,
+        ["ConnectionStrings:IdentityContext"] = identityConnStr,
+        ["RabbitMQ:HostName"] = _rabbitContainer.Hostname,
+        ["RabbitMQ:Port"] = _rabbitContainer.GetMappedPublicPort(5672).ToString(),
+        ["RabbitMQ:UserName"] = "testuser",
+        ["RabbitMQ:Password"] = "testpass"
+      });
+    });
 
-        services.AddDbContext<RideContext>(options =>
-              {
-                options.UseSqlServer(_dbContainer.GetConnectionString(), a => a.UseNetTopologySuite());
-              });
+    builder.ConfigureTestServices(services =>
+    {
+      services.AddIdentity<VoyagerUser, VoyagerRole>().AddEntityFrameworkStores<IdentityContext>();
 
-        services.AddDbContext<IdentityContext>(options =>
+      // AddIdentity overrides the default auth scheme to cookie; re-set to OpenIddict so [Authorize] uses Bearer
+      services.AddAuthentication(options =>
+      {
+        options.DefaultScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
+        options.DefaultAuthenticateScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
+      });
+
+      // Register test assembly (TestTokenController) and Ride.API assembly (RideController)
+      services.AddControllers()
+        .AddApplicationPart(typeof(IntegrationTestWebAppFactory).Assembly)
+        .AddApplicationPart(typeof(RidesController).Assembly);
+
+      // Remove all OpenIddict services registered by the host (remote issuer validation conflicts with local test server)
+      var openIddictDescriptors = services.Where(d => d.ServiceType.Namespace?.StartsWith("OpenIddict") == true ||
+                                                      d.ImplementationType?.Namespace?.StartsWith("OpenIddict") == true)
+        .ToList();
+      foreach (var d in openIddictDescriptors)
+      {
+        services.Remove(d);
+      }
+
+      services.AddOpenIddict()
+        .AddCore(options =>
         {
-          options.UseSqlServer(_dbContainer.GetConnectionString());
+          options.UseEntityFrameworkCore().UseDbContext<IdentityContext>();
+        })
+        .AddServer(options =>
+        {
+          options.SetTokenEndpointUris("connect/token")
+            .SetEndSessionEndpointUris("connect/logout");
+
+          options.RegisterScopes(OpenIddictConstants.Scopes.Email,
+            OpenIddictConstants.Scopes.Profile,
+            OpenIddictConstants.Scopes.Roles);
+
+          options.AllowPasswordFlow();
+
+          options.UseAspNetCore()
+            .EnableTokenEndpointPassthrough()
+            .DisableTransportSecurityRequirement();
+
+          options.AddDevelopmentEncryptionCertificate()
+            .AddDevelopmentSigningCertificate();
+
+          options.DisableAccessTokenEncryption();
+        })
+        .AddValidation(options =>
+        {
+          options.UseLocalServer();
+          options.UseAspNetCore();
         });
 
-        var sp = services.BuildServiceProvider();
-        using (var scope = sp.CreateScope())
-        {
-          var scopedServices = scope.ServiceProvider;
-          var db = scopedServices.GetRequiredService<RideContext>();
+      var sp = services.BuildServiceProvider();
+      using (var rideScope = sp.CreateScope()) {
+        rideScope.ServiceProvider.GetRequiredService<RideContext>().Database.Migrate();
+      }
 
-          var connection = new SqlConnection(_dbContainer.GetConnectionString());
-          if (connection.State == ConnectionState.Closed)
-            connection.Open();
+      // Identity.Handlers.SQLMigrationContext holds all identity migrations (including voyager_app seed)
+      using (var identityScope = sp.CreateScope()) {
+        identityScope.ServiceProvider.GetRequiredService<Identity.Handlers.Models.SQLMigrationContext>().Database.Migrate();
+      }
+    });
+  }
 
-          var command = new SqlCommand("IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'ride') CREATE DATABASE [ride];", connection);
+  public async Task InitializeAsync()
+  {
+    await Task.WhenAll(_dbContainer.StartAsync(), _rabbitContainer.StartAsync());
+  }
 
-          command.ExecuteNonQuery();
-
-          connection.Close();
-
-          db.Database.Migrate();
-        }
-
-        using (var scope = sp.CreateScope())
-        {
-          var scopedServices = scope.ServiceProvider;
-          var db = scopedServices.GetRequiredService<IdentityContext>();
-
-          var connection = new SqlConnection(_dbContainer.GetConnectionString());
-          if (connection.State == ConnectionState.Closed)
-            connection.Open();
-
-          var command = new SqlCommand("IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'identity') CREATE DATABASE [identity];", connection);
-
-          command.ExecuteNonQuery();
-
-          connection.Close();
-
-          db.Database.Migrate();
-        }
-
-        services.AddOpenIddict()
-                        .AddCore(options =>
-                        {
-                          options.UseEntityFrameworkCore()
-                                .UseDbContext<IdentityContext>();
-                        })
-                        .AddServer(options =>
-                        {
-                          options.SetTokenEndpointUris("connect/token")
-                                 .SetLogoutEndpointUris("connect/logout");
-
-                          options.RegisterScopes(OpenIddictConstants.Scopes.Email,
-                                              OpenIddictConstants.Scopes.Profile,
-                                              OpenIddictConstants.Scopes.Roles);
-
-                          options.AllowPasswordFlow();
-
-                          options.UseAspNetCore()
-                                .EnableTokenEndpointPassthrough()
-                                .DisableTransportSecurityRequirement();
-
-                          options.AddDevelopmentEncryptionCertificate()
-                                .AddDevelopmentSigningCertificate();
-
-                          options.DisableAccessTokenEncryption();
-                        })
-                        .AddValidation(options =>
-                        {
-                          options.UseLocalServer();
-                          options.UseAspNetCore();
-                        });
-      });
-    }
-
-    public Task InitializeAsync()
-    {
-      return _dbContainer.StartAsync();
-    }
-
-    public new Task DisposeAsync()
-    {
-      return _dbContainer.StopAsync();
-    }
+  public new async Task DisposeAsync()
+  {
+    await Task.WhenAll(_dbContainer.StopAsync(), _rabbitContainer.StopAsync());
   }
 }

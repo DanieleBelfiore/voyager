@@ -1,7 +1,6 @@
-namespace Identity.Handlers.Models
+namespace Identity.Handlers.Models;
+
+public static class Constants
 {
-  public static class Constants
-  {
-    public const string IS_DRIVER = "is_driver";
-  }
+  public const string IS_DRIVER = "is_driver";
 }

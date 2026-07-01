@@ -9,63 +9,62 @@ using Ride.Core.Enums;
 using Ride.Handlers.CQRS.Commands;
 using Xunit;
 
-namespace Ride.Tests.Handlers.Commands
+namespace Ride.Tests.Handlers.Commands;
+
+public class AcceptRideHandlerTests
 {
-  public class AcceptRideHandlerTests
+  private readonly IMediator _mediator;
+  private readonly TestApplicationDbContext _context;
+  private readonly IVoyagerShareClient _clientProxy;
+
+  public AcceptRideHandlerTests()
   {
-    private readonly IMediator _mediator;
-    private readonly TestApplicationDbContext _context;
-    private readonly IVoyagerShareClient _clientProxy;
+    _context = TestBase.CreateTestDbContext();
 
-    public AcceptRideHandlerTests()
+    _clientProxy = Substitute.For<IVoyagerShareClient>();
+    var clientsProxy = Substitute.For<IHubClients<IVoyagerShareClient>>();
+    var hubContext = Substitute.For<IHubContext<VoyagerHub, IVoyagerShareClient>>();
+    clientsProxy.Group(Arg.Any<string>()).Returns(_clientProxy);
+    hubContext.Clients.Returns(clientsProxy);
+
+    var mediatorMock = Substitute.For<IMediator>();
+    _mediator = mediatorMock;
+
+    mediatorMock.Send(Arg.Any<AcceptRide>(), Arg.Any<CancellationToken>())
+      .Returns(c => new AcceptRideHandler(_context, hubContext)
+        .Handle(c.Arg<AcceptRide>(), c.Arg<CancellationToken>()));
+  }
+
+  [Fact]
+  public async Task AcceptRideTestFact()
+  {
+    // Arrange
+    var rideId = Guid.NewGuid();
+    var driverId = Guid.NewGuid();
+
+    _context.Rides.Add(new Ride.Handlers.Models.Ride
     {
-      _context = TestBase.CreateTestDbContext();
+      Id = rideId
+    });
 
-      _clientProxy = Substitute.For<IVoyagerShareClient>();
-      var clientsProxy = Substitute.For<IHubClients<IVoyagerShareClient>>();
-      var hubContext = Substitute.For<IHubContext<VoyagerHub, IVoyagerShareClient>>();
-      clientsProxy.Group(Arg.Any<string>()).Returns(_clientProxy);
-      hubContext.Clients.Returns(clientsProxy);
+    await _context.SaveChangesAsync();
 
-      var mediatorMock = Substitute.For<IMediator>();
-      _mediator = mediatorMock;
-
-      mediatorMock.Send(Arg.Any<AcceptRide>(), Arg.Any<CancellationToken>())
-                  .Returns(c => new AcceptRideHandler(_context, hubContext)
-                  .Handle(c.Arg<AcceptRide>(), c.Arg<CancellationToken>()));
-    }
-
-    [Fact]
-    public async Task AcceptRideTestFact()
+    var request = new AcceptRide
     {
-      // Arrange
-      var rideId = Guid.NewGuid();
-      var driverId = Guid.NewGuid();
+      RideId = rideId,
+      DriverId = driverId
+    };
 
-      _context.Rides.Add(new Ride.Handlers.Models.Ride
-      {
-        Id = rideId
-      });
+    // Act
+    await _mediator.Send(request);
 
-      await _context.SaveChangesAsync();
+    // Assert
+    var result = await _context.Rides.FindAsync(rideId);
 
-      var request = new AcceptRide
-      {
-        RideId = rideId,
-        DriverId = driverId
-      };
+    result.Should().NotBeNull();
+    result.Status.Should().Be(RideStatus.DriverAssigned);
+    result.DriverId.Should().Be(driverId);
 
-      // Act
-      await _mediator.Send(request);
-
-      // Assert
-      var result = await _context.Rides.FindAsync(rideId);
-
-      result.Should().NotBeNull();
-      result!.Status.Should().Be(RideStatus.DriverAssigned);
-      result.DriverId.Should().Be(driverId);
-
-      await _clientProxy.Received(1).SendToRiderRideAccepted(Arg.Is<Guid>(id => id == rideId));
-    }
+    await _clientProxy.Received(1).SendToRiderRideAccepted(Arg.Is<Guid>(id => id == rideId));
   }
 }

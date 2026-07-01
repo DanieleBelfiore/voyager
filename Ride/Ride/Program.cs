@@ -11,8 +11,8 @@ using Common.Core.RateLimiting;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.OpenApi.Any;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
+using System.Text.Json.Nodes;
 using NetTopologySuite.Geometries;
 using NetTopologySuite.IO.Converters;
 using Newtonsoft.Json;
@@ -44,7 +44,7 @@ Loader.Current.ConfigureServices(builder.Services, configuration, hostingEnviron
 builder.Services.AddOpenIddict()
     .AddValidation(options =>
     {
-      options.SetIssuer(configuration["Identity:Issuer"]);
+      options.SetIssuer(configuration["Identity:Issuer"]!);
 
       options.UseSystemNetHttp();
       options.UseAspNetCore();
@@ -96,22 +96,22 @@ builder.Services.AddSwaggerGen(g =>
   var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
   g.IncludeXmlComments(xmlPath);
 
-  g.AddSecurityRequirement(new OpenApiSecurityRequirement { { new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }, Scheme = "oauth2", Name = "Bearer", In = ParameterLocation.Header }, new List<string>() } });
+  g.AddSecurityRequirement(_ => new OpenApiSecurityRequirement { { new OpenApiSecuritySchemeReference("Bearer"), [] } });
 
   g.CustomSchemaIds(x => x.FullName);
 
-  g.MapType<object>(() => new OpenApiSchema { Type = "object" });
+  g.MapType<object>(() => new OpenApiSchema { Type = JsonSchemaType.Object });
 
   g.MapType<Point>(() => new OpenApiSchema
   {
-    Type = "object",
-    Properties = new Dictionary<string, OpenApiSchema>
+    Type = JsonSchemaType.Object,
+    Properties = new Dictionary<string, IOpenApiSchema>
     {
-      ["type"] = new() { Type = "string", Default = new OpenApiString("Point") },
-      ["coordinates"] = new()
+      ["type"] = new OpenApiSchema { Type = JsonSchemaType.String, Default = JsonValue.Create("Point") },
+      ["coordinates"] = new OpenApiSchema
       {
-        Type = "array",
-        Items = new OpenApiSchema { Type = "number", Format = "double" },
+        Type = JsonSchemaType.Array,
+        Items = new OpenApiSchema { Type = JsonSchemaType.Number, Format = "double" },
         MinItems = 2,
         MaxItems = 2
       }
@@ -123,8 +123,6 @@ builder.Services.AddSwaggerGen(g =>
 builder.Services.AddSwaggerGenNewtonsoftSupport();
 
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
-builder.Services.AddAutoMapper(Loader.Current.Assemblies);
-
 var assemblies = Loader.Current.Modules.Select(f => f.GetType().Assembly).ToList();
 assemblies.Add(Assembly.GetExecutingAssembly());
 
@@ -152,7 +150,7 @@ builder.Services.AddCustomRateLimiting(builder.Configuration);
 var app = builder.Build();
 
 // Only for development
-var scheme = "http";
+const string scheme = "http";
 app.UseDeveloperExceptionPage();
 
 app.UseRouting();
@@ -199,5 +197,3 @@ foreach (var m in Loader.Current.Modules)
   m.UseEndpoints(app);
 
 app.Run();
-
-public partial class Program; // for testing purposes

@@ -1,8 +1,7 @@
-namespace Common.Core.Cache
+namespace Common.Core.Cache;
+
+public class RedisConfig
 {
-  public class RedisConfig
-  {
-    public string ConnectionString { get; set; }
-    public int DefaultExpirationMinutes { get; set; } = 60;
-  }
+  public string ConnectionString { get; set; }
+  public int DefaultExpirationMinutes { get; set; } = 60;
 }

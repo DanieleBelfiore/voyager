@@ -8,14 +8,13 @@ using Identity.Handlers.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
-namespace Ride.Handlers.CQRS.Queries
+namespace Identity.Handlers.CQRS.Queries;
+
+public class GetUsersRatingsHandler(IIdentityContext db) : IRequestHandler<GetUsersRatings, Dictionary<Guid, double>>
 {
-  public class GetUsersRatingsHandler(IIdentityContext db) : IRequestHandler<GetUsersRatings, Dictionary<Guid, double>>
+  public async Task<Dictionary<Guid, double>> Handle(GetUsersRatings request, CancellationToken cancellationToken)
   {
-    public async Task<Dictionary<Guid, double>> Handle(GetUsersRatings request, CancellationToken cancellationToken)
-    {
-      return await db.Users.AsNoTracking().Where(f => request.UserIds.Contains(f.Id))
-                                          .ToDictionaryAsync(k => k.Id, v => v.Ratings, cancellationToken);
-    }
+    return await db.Users.AsNoTracking().Where(f => request.UserIds.Contains(f.Id))
+      .ToDictionaryAsync(k => k.Id, v => v.Ratings, cancellationToken);
   }
 }
