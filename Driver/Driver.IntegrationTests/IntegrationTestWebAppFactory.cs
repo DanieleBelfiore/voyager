@@ -12,6 +12,7 @@ using OpenIddict.Abstractions;
 using OpenIddict.Validation.AspNetCore;
 using Testcontainers.MsSql;
 using Testcontainers.RabbitMq;
+using Testcontainers.Redis;
 using Xunit;
 
 namespace Driver.IntegrationTests;
@@ -30,6 +31,8 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsy
     .WithPassword("testpass")
     .Build();
 
+  private readonly RedisContainer _redisContainer = new RedisBuilder("redis:7").Build();
+
   protected override void ConfigureWebHost(IWebHostBuilder builder)
   {
     var baseConnStr = _dbContainer.GetConnectionString();
@@ -45,7 +48,8 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsy
         ["RabbitMQ:HostName"] = _rabbitContainer.Hostname,
         ["RabbitMQ:Port"] = _rabbitContainer.GetMappedPublicPort(5672).ToString(),
         ["RabbitMQ:UserName"] = "testuser",
-        ["RabbitMQ:Password"] = "testpass"
+        ["RabbitMQ:Password"] = "testpass",
+        ["Redis:ConnectionString"] = _redisContainer.GetConnectionString()
       });
     });
 
@@ -120,11 +124,11 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsy
 
   public async Task InitializeAsync()
   {
-    await Task.WhenAll(_dbContainer.StartAsync(), _rabbitContainer.StartAsync());
+    await Task.WhenAll(_dbContainer.StartAsync(), _rabbitContainer.StartAsync(), _redisContainer.StartAsync());
   }
 
   public new async Task DisposeAsync()
   {
-    await Task.WhenAll(_dbContainer.StopAsync(), _rabbitContainer.StopAsync());
+    await Task.WhenAll(_dbContainer.StopAsync(), _rabbitContainer.StopAsync(), _redisContainer.StopAsync());
   }
 }

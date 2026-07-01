@@ -10,9 +10,8 @@ public partial class DriverMapper
 {
   [MapperIgnoreTarget(nameof(DriverStatusResponse.LicenseNumber))]
   [MapperIgnoreTarget(nameof(DriverStatusResponse.VehicleInfo))]
+  [MapperIgnoreSource(nameof(DriverModel.LastLocationGeoJSON))]
   public partial DriverStatusResponse ToDto(DriverModel driver);
 
-  [MapperIgnoreTarget(nameof(DriverStatusResponse.LicenseNumber))]
-  [MapperIgnoreTarget(nameof(DriverStatusResponse.VehicleInfo))]
   public partial IQueryable<DriverStatusResponse> ProjectToDto(IQueryable<DriverModel> source);
 }

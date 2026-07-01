@@ -138,7 +138,7 @@ The system utilizes:
 - **Redis**: For distributed caching and real-time data
 - **RabbitMQ**: For message queuing and event distribution
 - **Docker**: For containerization and deployment
-- **.NET 9**: For service implementation
+- **.NET 10**: For service implementation
 - **SignalR**: For WebSocket communication
 
 ## Default User Flow
@@ -170,8 +170,6 @@ The system is designed around this primary user journey:
 Several aspects of the system require further development or were implemented at a basic level at the moment.
 
 #### Testing Coverage
-- Integration tests are currently non-functional and need fixing
-- Unit tests are minimal, serving only as examples
 - Need for comprehensive test coverage across all services
 
 #### Payment Processing
@@ -205,10 +203,10 @@ Several aspects of the system require further development or were implemented at
 You can run unit tests for individual projects using:
 
 ```bash
-# Run Driver unit tests
+# Run Driver tests
 dotnet test Driver/Driver.Tests/Driver.Tests.csproj
 
-# Run Ride unit tests
+# Run Ride tests
 dotnet test Ride/Ride.Tests/Ride.Tests.csproj
 
 # Run all tests in the solution
@@ -225,7 +223,7 @@ Note: The solution includes example unit tests for:
   - `GetActiveRideHandlerTests`
 
 ### Integration Tests
-The solution includes integration test projects (`*.IntegrationTests`), but they are currently not functional and need fixing. They were set up to demonstrate the testing approach but require additional work to be operational.
+The solution includes integration test projects (`*.IntegrationTests`), they were set up to demonstrate the testing approach.
 
 The test architecture uses:
 - xUnit as the testing framework
@@ -239,7 +237,7 @@ The test architecture uses:
 #### Prerequisites
 
 - **Docker**
-- **.NET 9 SDK** (only for running the demo project and tests projects)
+- **.NET 10 SDK** (only for running the demo project and tests projects)
 
 #### Instructions
 
