@@ -13,6 +13,37 @@ Project Voyager implements a microservices architecture designed for scalability
 
 ![Schema](./Schema.png)
 
+## Design Patterns & Architectural Style
+
+The dominant pattern is **Microservices + CQRS**, held together by a custom **plugin/module architecture** for service composition.
+
+### Plugin / Module System
+Each service's `.Handlers`/`.API` project exposes an `IModule` (`ConfigureServices`, `OnStartup`, `UseEndpoints`). At startup, `Common.Core.Loader` scans configured directories, dynamically loads assemblies via `AssemblyLoadContext`, and composes DI registrations, DB migrations and route mappings without explicit project references between host and handler projects. See `Common/Common.Core/Loader.cs` and `{Service}/{Service}.Handlers/Module.cs`.
+
+### CQRS + Mediator
+Commands and queries are defined in `.Core/CQRS/` and dispatched to handlers in `.Handlers/CQRS/` via **MediatR**. Controllers never contain business logic — they only call `IMediator.Send(...)`.
+
+### Cache-Aside
+Read-heavy queries (e.g. driver search, ratings) wrap DB access in `cache.GetOrCreateAsync(...)` with short TTLs, backed by Redis. See `Driver.Handlers/CQRS/Queries/SearchBestDriverHandler.cs`.
+
+### Publish-Subscribe / Observer
+Ride service publishes domain events to RabbitMQ; Hub service consumes them and pushes updates to connected clients over SignalR (`SendToRiderNewDriverLocation`, `SendToRiderRideAccepted`, etc.) — a real-time observer chain.
+
+### Mapper
+Compile-time object mapping (Mapperly) between entities and DTOs, e.g. `DriverMapper`, `RideMapper`.
+
+### Interceptor
+EF Core `SlowQueryInterceptor` hooks into query execution for performance diagnostics.
+
+### Middleware
+Standard ASP.NET Core middleware pipeline, plus custom middleware such as `QueryStringTokenMiddleware` (Hub service) for authenticating SignalR connections via query-string tokens.
+
+### Adapter
+Custom Newtonsoft.Json converters (e.g. `GeoJsonConverter`) adapt NetTopologySuite geometry types to/from JSON.
+
+### Notable omission: no classic Repository
+Handlers talk directly to `IDriverContext`/`IRideContext` (EF Core `DbContext` exposed via interface) instead of a Repository/Unit-of-Work abstraction — a pragmatic choice, not a full Clean Architecture setup.
+
 ## Development Roadmap
 
 The project was developed following this structured approach:
