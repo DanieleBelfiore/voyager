@@ -1,0 +1,6 @@
+namespace Ride.Application.Dtos;
+
+public class RateRideRequest
+{
+  public int Rating { get; set; }
+}

@@ -11,7 +11,7 @@ Voyager is a ride-sharing backend (Identity / Driver / Ride / Hub services). Thi
 | Folder | Style | Key idea | Status |
 |---|---|---|---|
 | [`Plugin.Microservices.CQRS/`](Plugin.Microservices.CQRS/README.md) | Plugin-composed microservices + CQRS | Services self-register via a dynamic `IModule` loader (`AssemblyLoadContext`); CQRS/MediatR inside each service; no cross-service compile-time references | ✅ done |
-| `Clean.Architecture/` | Clean / Onion Architecture | `Domain → Application → Infrastructure → Presentation`, dependencies point inward only, domain has zero framework references | 🚧 planned |
+| [`Clean.Architecture/`](Clean.Architecture/README.md) | Clean / Onion Architecture | `Domain → Application → Infrastructure → Api`, dependencies point inward only, domain has zero framework references, ports/adapters for cache/persistence/cross-service calls | ✅ done |
 | `Hexagonal.Architecture/` | Hexagonal (Ports & Adapters) | Domain core exposes ports; driving adapters (REST, SignalR) and driven adapters (EF, Redis, RabbitMQ) are symmetric, swappable at the edges | 🚧 planned |
 | `Vertical.Slice.Architecture/` | Vertical Slice Architecture | No horizontal layers — each feature (command/query) is a self-contained folder with its own request, handler, endpoint and validator | 🚧 planned |
 | `Modular.Monolith/` | Modular Monolith | Same four bounded contexts, but deployed as a single process; module boundaries enforced by visibility/namespace instead of network calls | 🚧 planned |
@@ -38,6 +38,10 @@ Reserved for code that is genuinely infra-agnostic across *all* variants — e.g
 - **RabbitMQ**: inter-service messaging
 - **SignalR**: real-time push to clients
 - **Docker Compose**: per-variant infra bring-up (each folder has its own `docker-compose.yml`)
+
+## Cross-service communication
+
+Every variant uses the same mechanism: **Arbitrer** gives MediatR implicit remote dispatch over RabbitMQ. `IMediator.Send(request)` executes locally if a handler is registered in that service; otherwise Arbitrer routes it to whichever service does, keyed by the request type's full name. This is how, for example, Driver's matching algorithm asks Identity for user ratings without a direct HTTP call or a shared database. The same mechanism also carries `IMediator.Publish(notification)` fan-out for events — e.g. Ride publishes ride-lifecycle events that Hub subscribes to and relays over SignalR (see [Clean.Architecture/README.md](Clean.Architecture/README.md#cross-service-communication) for a case where this replaced a non-functional direct cross-process call in the original implementation). The wire contracts for these calls live in `Commons/Voyager.Contracts` — see [Commons/README.md](Commons/README.md) for why that's a Commons concern and not domain logic.
 
 ## Running a variant
 

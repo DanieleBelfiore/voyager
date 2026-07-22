@@ -28,6 +28,9 @@ Commands and queries are defined in `.Core/CQRS/` and dispatched to handlers in 
 ### Cache-Aside
 Read-heavy queries (e.g. driver search, ratings) wrap DB access in `cache.GetOrCreateAsync(...)` with short TTLs, backed by Redis. See `Driver.Handlers/CQRS/Queries/SearchBestDriverHandler.cs`.
 
+### Distributed Mediator (Arbitrer)
+Cross-service queries don't go over HTTP or a shared database — **Arbitrer** (`ArbitrerBehaviourEnum.ImplicitRemote`) intercepts `IMediator.Send(...)` and, if no local handler is registered for that request type, transparently routes it to whichever service *does* register one, over RabbitMQ RPC, keyed by the request's full type name. `SearchBestDriverHandler` uses this to ask Identity for user ratings (`GetUsersRatings`) as if it were a local call. This is a more central pattern than plain pub/sub — see `Driver/Program.cs`'s `AddArbitrer`/`AddArbitrerRabbitMQMessageDispatcher` wiring.
+
 ### Publish-Subscribe / Observer
 Ride service publishes domain events to RabbitMQ; Hub service consumes them and pushes updates to connected clients over SignalR (`SendToRiderNewDriverLocation`, `SendToRiderRideAccepted`, etc.) — a real-time observer chain.
 

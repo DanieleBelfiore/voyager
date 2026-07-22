@@ -299,3 +299,5 @@ __pycache__/
 
 
 .sonarqube/
+
+.DS_Store
