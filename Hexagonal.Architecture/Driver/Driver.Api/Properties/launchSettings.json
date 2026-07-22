@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "Development": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "http://localhost:6002/"
+    }
+  }
+}

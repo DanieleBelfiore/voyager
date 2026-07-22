@@ -12,7 +12,7 @@ Voyager is a ride-sharing backend (Identity / Driver / Ride / Hub services). Thi
 |---|---|---|---|
 | [`Plugin.Microservices.CQRS/`](Plugin.Microservices.CQRS/README.md) | Plugin-composed microservices + CQRS | Services self-register via a dynamic `IModule` loader (`AssemblyLoadContext`); CQRS/MediatR inside each service; no cross-service compile-time references | ✅ done |
 | [`Clean.Architecture/`](Clean.Architecture/README.md) | Clean / Onion Architecture | `Domain → Application → Infrastructure → Api`, dependencies point inward only, domain has zero framework references, ports/adapters for cache/persistence/cross-service calls | ✅ done |
-| `Hexagonal.Architecture/` | Hexagonal (Ports & Adapters) | Domain core exposes ports; driving adapters (REST, SignalR) and driven adapters (EF, Redis, RabbitMQ) are symmetric, swappable at the edges | 🚧 planned |
+| [`Hexagonal.Architecture/`](Hexagonal.Architecture/README.md) | Hexagonal (Ports & Adapters) | One core per service (entities + primary/secondary ports + use cases); every use case is reachable both by direct local injection and by remote Arbitrer dispatch through the same primary-port interface, no `IMediator.Send` in controllers | ✅ done |
 | `Vertical.Slice.Architecture/` | Vertical Slice Architecture | No horizontal layers — each feature (command/query) is a self-contained folder with its own request, handler, endpoint and validator | 🚧 planned |
 | `Modular.Monolith/` | Modular Monolith | Same four bounded contexts, but deployed as a single process; module boundaries enforced by visibility/namespace instead of network calls | 🚧 planned |
 

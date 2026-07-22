@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Library</OutputType>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <Description>Secondary adapters: implements every port under Driver.Core/Ports/Secondary — EF Core repository, Redis cache, Arbitrer-based ratings query, config-bound matching weights.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Driver.Core\Driver.Core.csproj" />
+    <ProjectReference Include="..\..\..\Commons\Voyager.Shared\Voyager.Shared.csproj" />
+    <ProjectReference Include="..\..\..\Commons\Voyager.Contracts\Voyager.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="MediatR" Version="12.5.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.7" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.7">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.7" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer.NetTopologySuite" Version="10.0.7" />
+    <PackageReference Include="Toolbelt.EntityFrameworkCore.IndexAttribute" Version="5.0.1.3" />
+  </ItemGroup>
+</Project>
