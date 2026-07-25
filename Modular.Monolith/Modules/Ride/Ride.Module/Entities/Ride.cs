@@ -1,0 +1,75 @@
+using System;
+using System.Collections.Generic;
+using NetTopologySuite.Geometries;
+
+namespace Ride.Module.Entities;
+
+internal class Ride
+{
+  private static readonly List<RideStatus> CancellableStatuses = [RideStatus.Requested, RideStatus.DriverAssigned];
+
+  public Guid Id { get; private set; } = Guid.NewGuid();
+  public Guid UserId { get; private set; }
+  public Guid DriverId { get; private set; }
+  public DateTime RequestedAt { get; private set; } = DateTime.UtcNow;
+  public DateTime? StartAt { get; private set; }
+  public DateTime? EndAt { get; private set; }
+  public double? Price { get; private set; }
+  public RideStatus Status { get; private set; }
+  public string CancellationReason { get; private set; }
+  public Point PickupLocation { get; private set; }
+  public Point DropoffLocation { get; private set; }
+  public Point LastLocation { get; private set; }
+  public DateTime LastUpdateDate { get; private set; } = DateTime.UtcNow;
+
+  private Ride()
+  {
+    // EF Core
+  }
+
+  public Ride(Guid userId, Guid driverId, Point pickupLocation, Point dropoffLocation)
+  {
+    UserId = userId;
+    DriverId = driverId;
+    PickupLocation = pickupLocation;
+    DropoffLocation = dropoffLocation;
+    Status = RideStatus.Requested;
+  }
+
+  public void Accept(Guid driverId)
+  {
+    DriverId = driverId;
+    Status = RideStatus.DriverAssigned;
+    LastUpdateDate = DateTime.UtcNow;
+  }
+
+  public void Cancel(string cancellationReason)
+  {
+    if (!CancellableStatuses.Contains(Status))
+      throw new InvalidOperationException("operation_not_permitted");
+
+    Status = RideStatus.Cancelled;
+    CancellationReason = cancellationReason;
+    LastUpdateDate = DateTime.UtcNow;
+    EndAt = LastUpdateDate;
+  }
+
+  public void Start(Point location)
+  {
+    Status = RideStatus.InProgress;
+    PickupLocation = location;
+    LastLocation = location;
+    LastUpdateDate = DateTime.UtcNow;
+    StartAt = LastUpdateDate;
+  }
+
+  public void Complete(Point location, double price)
+  {
+    Status = RideStatus.Completed;
+    DropoffLocation = location;
+    LastLocation = DropoffLocation;
+    LastUpdateDate = DateTime.UtcNow;
+    EndAt = LastUpdateDate;
+    Price = price;
+  }
+}
