@@ -1,0 +1,18 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Hub.Core.Ports.Secondary;
+using MediatR;
+using Voyager.Contracts.Ride;
+
+namespace Hub.Adapters.Secondary.Messaging;
+
+public class ArbitrerActiveRideQuery(IMediator mediator) : IActiveRideQuery
+{
+  public async Task<ActiveRide> GetActiveRideForDriverAsync(Guid driverId, CancellationToken cancellationToken)
+  {
+    var result = await mediator.Send(new GetActiveRide { DriverId = driverId }, cancellationToken);
+
+    return result == null ? null : new ActiveRide { Id = result.Id, PickupLocation = result.PickupLocation };
+  }
+}

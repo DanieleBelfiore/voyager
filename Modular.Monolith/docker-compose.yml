@@ -1,0 +1,73 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=Strong!Passw0rd
+    ports:
+      - "1437:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    networks:
+      - voyager-monolith-network
+    healthcheck:
+      test: /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P "$${MSSQL_SA_PASSWORD}" -Q "SELECT 1" -b -o /dev/null
+      interval: 30s
+      timeout: 30s
+      retries: 10
+
+  sqlserver-init:
+    image: mcr.microsoft.com/mssql-tools:latest
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    volumes:
+      - ./init-db.sql:/init-db.sql
+    command: /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P Strong!Passw0rd -i /init-db.sql
+    networks:
+      - voyager-monolith-network
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6383:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --save 20 1 --loglevel warning
+    networks:
+      - voyager-monolith-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 30s
+      retries: 10
+
+  # No RabbitMQ / message-bus service — the whole point of this variant is that
+  # cross-module calls are in-process IMediator dispatch, not network messaging.
+  app:
+    build:
+      context: ..
+      dockerfile: Modular.Monolith/Host/Dockerfile
+    environment:
+      - ConnectionStrings__IdentityContext=Server=tcp:sqlserver,1433;Initial Catalog=identity;Persist Security Info=False;User ID=sa;Password=Strong!Passw0rd;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=True;Connection Timeout=30
+      - ConnectionStrings__DriverContext=Server=tcp:sqlserver,1433;Initial Catalog=driver;Persist Security Info=False;User ID=sa;Password=Strong!Passw0rd;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=True;Connection Timeout=30
+      - ConnectionStrings__RideContext=Server=tcp:sqlserver,1433;Initial Catalog=ride;Persist Security Info=False;User ID=sa;Password=Strong!Passw0rd;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=True;Connection Timeout=30
+      - Redis__ConnectionString=redis:6379
+      - Identity__Issuer=http://app:8080
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "5400:8080"
+    networks:
+      - voyager-monolith-network
+
+volumes:
+  sqlserver_data:
+  redis_data:
+
+networks:
+  voyager-monolith-network:
+    driver: bridge

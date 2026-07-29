@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <Description>Single ASP.NET Core process composing all four modules on one Kestrel port. Never references a module's internal types — only each module's public Add*Module/Use*Module/Map*Module extension methods.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Modules\Identity\Identity.Module\Identity.Module.csproj" />
+    <ProjectReference Include="..\Modules\Driver\Driver.Module\Driver.Module.csproj" />
+    <ProjectReference Include="..\Modules\Ride\Ride.Module\Ride.Module.csproj" />
+    <ProjectReference Include="..\Modules\Hub\Hub.Module\Hub.Module.csproj" />
+    <ProjectReference Include="..\..\Commons\Voyager.Shared\Voyager.Shared.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="MediatR" Version="12.5.0" />
+    <PackageReference Include="FluentValidation" Version="11.11.0" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.11.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="10.0.7" />
+    <PackageReference Include="NetTopologySuite.IO.GeoJSON" Version="4.0.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.7" />
+    <PackageReference Include="Swashbuckle.AspNetCore.Newtonsoft" Version="10.1.7" />
+    <PackageReference Include="Swashbuckle.AspNetCore.Swagger" Version="10.1.7" />
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="10.1.7" />
+  </ItemGroup>
+</Project>

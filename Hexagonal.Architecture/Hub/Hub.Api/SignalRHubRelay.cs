@@ -1,0 +1,45 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Hub.Core.Ports.Secondary;
+using Microsoft.AspNetCore.SignalR;
+using NetTopologySuite.Geometries;
+
+namespace Hub.Api;
+
+/// <summary>
+/// Implements Core's IHubRelay port over SignalR. Lives in Api (not Adapters.Secondary) because
+/// IHubContext&lt;VoyagerHub, IVoyagerShareClient&gt; is generic over the concrete Hub class, a
+/// presentation type — the secondary adapter project would have to depend on Api otherwise.
+/// </summary>
+public class SignalRHubRelay(IHubContext<VoyagerHub, IVoyagerShareClient> hub) : IHubRelay
+{
+  private static string GroupFor(Guid rideId) => $"ride_{rideId}";
+
+  public Task SendToDriverNewRideRequest(Guid rideId, CancellationToken cancellationToken) =>
+    hub.Clients.Group(GroupFor(rideId)).SendToDriverNewRideRequest(rideId);
+
+  public Task SendToDriverRideCancel(Guid rideId, CancellationToken cancellationToken) =>
+    hub.Clients.Group(GroupFor(rideId)).SendToDriverRideCancel(rideId);
+
+  public Task SendToDriverNewRateReceived(Guid rideId, int rating, CancellationToken cancellationToken) =>
+    hub.Clients.Group(GroupFor(rideId)).SendToDriverNewRateReceived(rating);
+
+  public Task SendToRiderNewDriverLocation(Guid rideId, Point location, CancellationToken cancellationToken) =>
+    hub.Clients.Group(GroupFor(rideId)).SendToRiderNewDriverLocation(location);
+
+  public Task SendToRiderDriverArrival(Guid rideId, CancellationToken cancellationToken) =>
+    hub.Clients.Group(GroupFor(rideId)).SendToRiderDriverArrival(rideId);
+
+  public Task SendToRiderNewETA(Guid rideId, int? estimatedArrivalMinutes, double? distanceKm, CancellationToken cancellationToken) =>
+    hub.Clients.Group(GroupFor(rideId)).SendToRiderNewETA(estimatedArrivalMinutes, distanceKm);
+
+  public Task SendToRiderNewRateReceived(Guid rideId, int rating, CancellationToken cancellationToken) =>
+    hub.Clients.Group(GroupFor(rideId)).SendToRiderNewRateReceived(rating);
+
+  public Task SendToRiderRideAccepted(Guid rideId, CancellationToken cancellationToken) =>
+    hub.Clients.Group(GroupFor(rideId)).SendToRiderRideAccepted(rideId);
+
+  public Task SendToRiderRideCompleted(Guid rideId, CancellationToken cancellationToken) =>
+    hub.Clients.Group(GroupFor(rideId)).SendToRiderRideCompleted(rideId);
+}

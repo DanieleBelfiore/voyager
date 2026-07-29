@@ -1,0 +1,54 @@
+using System;
+using Driver.Infrastructure.Caching;
+using Driver.Infrastructure.Configuration;
+using Driver.Infrastructure.Messaging;
+using Driver.Infrastructure.Persistence;
+using Driver.Infrastructure.Repositories;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Voyager.Shared.Cache;
+using ApplicationCache = Driver.Application.Ports.ICacheService;
+using IDriverRepository = Driver.Application.Ports.IDriverRepository;
+using IMatchingWeights = Driver.Application.Ports.IMatchingWeights;
+using IRatingsQueryService = Driver.Application.Ports.IRatingsQueryService;
+
+namespace Driver.Infrastructure.DependencyInjection;
+
+public static class DriverInfrastructureExtensions
+{
+  public static IServiceCollection AddDriverInfrastructure(this IServiceCollection services, IConfiguration configuration)
+  {
+    services.AddDbContext<DriverDbContext>((provider, options) =>
+    {
+      options.UseSqlServer(configuration.GetConnectionString("DriverContext"), a => a.UseNetTopologySuite());
+      options.AddInterceptors(provider.GetRequiredService<SlowQueryInterceptor>());
+    });
+
+    services.AddScoped<SlowQueryInterceptor>();
+
+    services.AddScoped<IDriverRepository, DriverRepository>();
+
+    services.AddRedisCache(configuration);
+    services.AddScoped<ApplicationCache, CacheServiceAdapter>();
+
+    services.AddScoped<IRatingsQueryService, ArbitrerRatingsQueryService>();
+
+    services.AddSingleton<IMatchingWeights>(_ => new MatchingWeights
+    {
+      DistanceWeight = configuration.GetValue<double>("DistanceWeight"),
+      RatingWeight = configuration.GetValue<double>("RatingWeight"),
+      UserMinRating = configuration.GetValue<double>("UserMinRating"),
+      UserMaxRating = configuration.GetValue<double>("UserMaxRating")
+    });
+
+    return services;
+  }
+
+  public static void MigrateDriverDatabase(this IServiceProvider services)
+  {
+    using var scope = services.CreateScope();
+    using var context = scope.ServiceProvider.GetRequiredService<DriverDbContext>();
+    context.Database.Migrate();
+  }
+}

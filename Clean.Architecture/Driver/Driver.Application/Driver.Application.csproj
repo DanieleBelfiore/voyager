@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Library</OutputType>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <Description>Driver use cases: CQRS commands/queries, handlers, and the ports (interfaces) Infrastructure must implement. Depends only on Driver.Domain and infra-agnostic abstractions — no EF Core, no ASP.NET Core, no message-bus package.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Driver.Domain\Driver.Domain.csproj" />
+    <ProjectReference Include="..\..\..\Commons\Voyager.Contracts\Voyager.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="MediatR" Version="12.5.0" />
+    <PackageReference Include="Riok.Mapperly" Version="4.1.1" />
+  </ItemGroup>
+</Project>

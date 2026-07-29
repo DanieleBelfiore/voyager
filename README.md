@@ -1,294 +1,54 @@
-# Project Voyager - Ride-Sharing Backend System
+# Voyager — Architecture Portfolio
 
-## Architecture Overview
-
-Project Voyager implements a microservices architecture designed for scalability, reliability and real-time features. The system is divided into four main services that handle distinct aspects of the ride-sharing platform:
-
-1. **Identity Service**: Manages user authentication, authorization and profile management
-2. **Driver Service**: Handles driver availability, location updates and matching algorithms
-3. **Ride Service**: Manages ride lifecycle from request to completion
-4. **Hub Service**: Enables real-time communication between riders and drivers
+Voyager is a ride-sharing backend (Identity / Driver / Ride / Hub services). This repo implements the **same domain and feature set multiple times, once per architectural style**, so each approach can be inspected, run and compared in isolation. The goal is demonstrative: showing how the same business problem is structured differently under different architectural constraints.
 
 ### System Architecture Diagram
 
 ![Schema](./Schema.png)
 
-## Design Patterns & Architectural Style
+## Variants
 
-The dominant pattern is **Microservices + CQRS**, held together by a custom **plugin/module architecture** for service composition.
+| Folder | Style | Key idea | Status |
+|---|---|---|---|
+| [`Plugin.Microservices.CQRS/`](Plugin.Microservices.CQRS/README.md) | Plugin-composed microservices + CQRS | Services self-register via a dynamic `IModule` loader (`AssemblyLoadContext`); CQRS/MediatR inside each service; no cross-service compile-time references | ✅ done |
+| [`Clean.Architecture/`](Clean.Architecture/README.md) | Clean / Onion Architecture | `Domain → Application → Infrastructure → Api`, dependencies point inward only, domain has zero framework references, ports/adapters for cache/persistence/cross-service calls | ✅ done |
+| [`Hexagonal.Architecture/`](Hexagonal.Architecture/README.md) | Hexagonal (Ports & Adapters) | One core per service (entities + primary/secondary ports + use cases); every use case is reachable both by direct local injection and by remote Arbitrer dispatch through the same primary-port interface, no `IMediator.Send` in controllers | ✅ done |
+| [`Vertical.Slice.Architecture/`](Vertical.Slice.Architecture/README.md) | Vertical Slice Architecture | No horizontal layers, no ports — each feature is a self-contained folder with its own request, handler, validator and controller; handlers touch EF Core/cache/IMediator directly | ✅ done |
+| [`Modular.Monolith/`](Modular.Monolith/README.md) | Modular Monolith | Same four bounded contexts, deployed as a single process on one port; module boundaries enforced by C# `internal` visibility (CS0050), no message bus — `IMediator` dispatches in-process across module assemblies | ✅ done |
 
-### Plugin / Module System
-Each service's `.Handlers`/`.API` project exposes an `IModule` (`ConfigureServices`, `OnStartup`, `UseEndpoints`). At startup, `Common.Core.Loader` scans configured directories, dynamically loads assemblies via `AssemblyLoadContext`, and composes DI registrations, DB migrations and route mappings without explicit project references between host and handler projects. See `Common/Common.Core/Loader.cs` and `{Service}/{Service}.Handlers/Module.cs`.
+Each folder is a **self-contained .NET solution** with its own `README.md` (architecture rationale, patterns used) and `CLAUDE.md` (commands, layout). Don't assume commands or paths from one variant apply to another — `cd` into the folder first.
 
-### CQRS + Mediator
-Commands and queries are defined in `.Core/CQRS/` and dispatched to handlers in `.Handlers/CQRS/` via **MediatR**. Controllers never contain business logic — they only call `IMediator.Send(...)`.
+## `Commons/`
 
-### Cache-Aside
-Read-heavy queries (e.g. driver search, ratings) wrap DB access in `cache.GetOrCreateAsync(...)` with short TTLs, backed by Redis. See `Driver.Handlers/CQRS/Queries/SearchBestDriverHandler.cs`.
+Reserved for code that is genuinely infra-agnostic across *all* variants — e.g. shared Docker/test-container infrastructure, cross-cutting contracts. It intentionally holds **no domain or CQRS logic**: each architecture folder has to stand on its own, or the comparison is meaningless.
 
-### Publish-Subscribe / Observer
-Ride service publishes domain events to RabbitMQ; Hub service consumes them and pushes updates to connected clients over SignalR (`SendToRiderNewDriverLocation`, `SendToRiderRideAccepted`, etc.) — a real-time observer chain.
+## Services (same across every variant)
 
-### Mapper
-Compile-time object mapping (Mapperly) between entities and DTOs, e.g. `DriverMapper`, `RideMapper`.
+| Service | Port | Responsibility |
+|---------|------|----------------|
+| Identity | 5001 | Auth, user registration, OAuth2/OpenID (OpenIddict) |
+| Driver | 5002 | Driver registration, location updates, availability, matching |
+| Ride | 5003 | Ride lifecycle: request → accept → start → complete → rate |
+| Hub | 5000 | Real-time SignalR hub: broadcasts location/status events to riders |
 
-### Interceptor
-EF Core `SlowQueryInterceptor` hooks into query execution for performance diagnostics.
+## Infrastructure
 
-### Middleware
-Standard ASP.NET Core middleware pipeline, plus custom middleware such as `QueryStringTokenMiddleware` (Hub service) for authenticating SignalR connections via query-string tokens.
+- **SQL Server**: persistent storage with spatial (geography) support
+- **Redis**: distributed caching
+- **RabbitMQ**: inter-service messaging
+- **SignalR**: real-time push to clients
+- **Docker Compose**: per-variant infra bring-up (each folder has its own `docker-compose.yml`)
 
-### Adapter
-Custom Newtonsoft.Json converters (e.g. `GeoJsonConverter`) adapt NetTopologySuite geometry types to/from JSON.
+## Cross-service communication
 
-### Notable omission: no classic Repository
-Handlers talk directly to `IDriverContext`/`IRideContext` (EF Core `DbContext` exposed via interface) instead of a Repository/Unit-of-Work abstraction — a pragmatic choice, not a full Clean Architecture setup.
+Every multi-process variant uses the same mechanism: **Arbitrer** gives MediatR implicit remote dispatch over RabbitMQ. `IMediator.Send(request)` executes locally if a handler is registered in that service; otherwise Arbitrer routes it to whichever service does, keyed by the request type's full name. This is how, for example, Driver's matching algorithm asks Identity for user ratings without a direct HTTP call or a shared database. The same mechanism also carries `IMediator.Publish(notification)` fan-out for events — e.g. Ride publishes ride-lifecycle events that Hub subscribes to and relays over SignalR (see [Clean.Architecture/README.md](Clean.Architecture/README.md#cross-service-communication) for a case where this replaced a non-functional direct cross-process call in the original implementation). The wire contracts for these calls live in `Commons/Voyager.Contracts` — see [Commons/README.md](Commons/README.md) for why that's a Commons concern and not domain logic. **Modular.Monolith is the one exception**: it reuses the exact same `Voyager.Contracts` request/notification types and the same `IMediator.Send`/`.Publish` calls, but with no Arbitrer and no RabbitMQ — everything runs in one process, so the mediator resolves the target handler directly out of one shared DI container instead of routing it over a message bus.
 
-## Development Roadmap
-
-The project was developed following this structured approach:
-
-1. **Architecture Design**
-   - Microservices identification
-   - Infrastructure components selection
-   - Communication patterns definition
-
-2. **Entities and Business Logic**
-   - Domain model definition
-   - Command and Query Responsibility Segregation (CQRS) implementation
-   - Service interfaces design
-
-3. **Real-time Events**
-   - SignalR hub implementation
-   - Location tracking system
-   - Real-time notifications
-
-4. **Initial Bugfix and Validation Flow**
-   - Authentication flow verification
-   - API endpoints validation
-   - Basic errors handling
-
-5. **Performance/Security Improvements**
-   - Rate limiting implementation
-   - Redis caching integration
-   - Database indexes optimization
-   - Spatial data handling
-
-6. **Testing Implementation**
-   - Basic unit tests setup
-   - Integration tests setup
-   - Testing infrastructure preparation
-
-7. **Global Analysis and Assessment**
-   - System review
-   - Missing features identification
-
-8. **Demo Project**
-   - End-to-end flow implementation
-   - Real scenario simulation
-
-9. **Final Review and Bugfix**
-   - Last errors handling
-   - Code cleanup
-   - Performance verification
-   - Security checks
-
-10. **Documentation**
-    - Code documentation
-    - Architecture documentation
-
-## Core Components Implementation
-
-### Ride Requests & Driver Availability
-
-The system handles ride requests and driver availability through these key mechanisms:
-
-1. **Driver Status Management**
-   - Real-time tracking of driver status (Available, OnRide, Offline)
-   - Geospatial indexing for efficient location queries
-   - Redis caching for high-performance status lookups
-
-2. **Location Tracking**
-   - Real-time location updates via WebSocket connections
-   - Efficient spatial data storage using SQL Server's geography type
-   - Location data caching with automatic invalidation
-
-### Matching Algorithm
-
-The driver-rider matching system implements a scoring algorithm that considers multiple factors:
-
-```csharp
-score = (distanceWeight * normalizedDistance) + (ratingWeight * (1 - normalizedRating))
-```
-
-Key features:
-- Geographic proximity prioritization
-- Driver rating consideration
-- Historical performance factors
-- Real-time availability checks
-- Cache-optimized implementation
-
-### Ride Tracking
-
-Real-time ride tracking is implemented through:
-
-1. **Location Updates**
-   - WebSocket connections for instant location broadcasting
-   - Efficient pub/sub system using SignalR
-   - Automatic reconnection handling
-
-2. **ETA Calculation**
-   - Stimated dynamic traffic pattern consideration
-
-## Technical Considerations
-
-### Scalability
-- Microservices architecture enables independent scaling
-- Redis caching for high-performance data access
-- Efficient database indexing strategies
-- Rate limiting implementation for API protection
-
-### Real-time Communication
-- SignalR for WebSocket connections
-- RabbitMQ for service-to-service communication
-- Optimized for minimal latency
-
-### Data Consistency
-- Distributed caching with Redis
-- Optimistic concurrency control
-- Automatic cache invalidation
-
-### Security
-- OpenIddict implementation
-- Rate limiting protection
-
-## Infrastructure Components
-
-The system utilizes:
-- **SQL Server Express**: For persistent data storage with spatial capabilities
-- **Redis**: For distributed caching and real-time data
-- **RabbitMQ**: For message queuing and event distribution
-- **Docker**: For containerization and deployment
-- **.NET 10**: For service implementation
-- **SignalR**: For WebSocket communication
-
-## Default User Flow
-
-The system is designed around this primary user journey:
-
-1. **Rider Journey**
-   - User registers/authenticates
-   - Requests a ride with location details
-   - Chooses a driver
-   - Gets real-time driver location updates
-   - Pickups by the driver
-   - Receives ride completion notification
-   - Rates the driver
-
-2. **Driver Journey**
-   - Driver registers/authenticates
-   - Sets availability status
-   - Provides location updates in real-time
-   - Receives ride requests
-   - Accepts/ignore rides
-   - Arrives to ride requested location
-   - Completes rides
-   - Receives rider ratings
-   - Rates the rider
-
-## Current Limitations and Future Improvements
-
-Several aspects of the system require further development or were implemented at a basic level at the moment.
-
-#### Testing Coverage
-- Need for comprehensive test coverage across all services
-
-#### Payment Processing
-- Payment gateway integration
-- Fare calculation system
-- Payment dispute handling
-
-#### Security Enhancements
-- Additional input validation
-- Enhanced rate limiting strategies
-- Comprehensive security auditing
-
-#### Monitoring and Logging
-- Centralized logging system
-- Performance monitoring
-- Alert system for issues
-
-#### Administration Features
-- Admin endpoints based on role
-- System configuration tools
-
-#### Service Enhancements
-- Multiple vehicle types
-- Scheduled rides
-- Surge pricing implementation
-- Enhanced matching algorithms using the real-time traffic data
-
-## Running Tests
-
-### Unit Tests
-You can run unit tests for individual projects using:
+## Running a variant
 
 ```bash
-# Run Driver tests
-dotnet test Driver/Driver.Tests/Driver.Tests.csproj
-
-# Run Ride tests
-dotnet test Ride/Ride.Tests/Ride.Tests.csproj
-
-# Run all tests in the solution
-dotnet test Voyager.sln
-```
-
-Note: The solution includes example unit tests for:
-- Driver service
-  - `AddDriverHandlerTests`
-  - `GetDriverStatusHandlerTests`
-- Ride service
-  - `AcceptRideHandlerTests`
-  - `StartRideHandlerTests`
-  - `GetActiveRideHandlerTests`
-
-### Integration Tests
-The solution includes integration test projects (`*.IntegrationTests`), they were set up to demonstrate the testing approach.
-
-The test architecture uses:
-- xUnit as the testing framework
-- FluentAssertions for assertions
-- NSubstitute for mocking
-- InMemory database for unit tests
-- TestContainers for integration tests
-
-## How to Running the Project
-
-#### Prerequisites
-
-- **Docker**
-- **.NET 10 SDK** (only for running the demo project and tests projects)
-
-#### Instructions
-
-1. Start the infrastructure:
-```bash
+cd Plugin.Microservices.CQRS   # or whichever variant you want
 docker-compose up -d
-```
-
-2. Access the services:
-- Hub API: http://localhost:5000
-- Identity API: http://localhost:5001
-- Driver API: http://localhost:5002
-- Ride API: http://localhost:5003
-
-3. Run the demo:
-```bash
 dotnet run --project Demo/Demo.csproj
 ```
 
-4. Stopping and cleaning up (stop all containers, remove containers and volumes, remove locally created images):
-```
-docker-compose down -v --rmi local
-```
+See the variant's own README for details, limitations, and test instructions.
