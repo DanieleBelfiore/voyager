@@ -1,4 +1,3 @@
-using FluentAssertions;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using NetTopologySuite.Geometries;
@@ -34,8 +33,8 @@ public class AcceptRideHandlerTests
 
     await handler.Handle(new AcceptRide { RideId = ride.Id, DriverId = driverId }, CancellationToken.None);
 
-    ride.DriverId.Should().Be(driverId);
-    ride.Status.Should().Be(RideStatus.DriverAssigned);
+    Assert.Equal(driverId, ride.DriverId);
+    Assert.Equal(RideStatus.DriverAssigned, ride.Status);
     await mediator.Received(1).Publish(Arg.Is<RideAccepted>(e => e.RideId == ride.Id), Arg.Any<CancellationToken>());
   }
 }

@@ -2,7 +2,6 @@ using NetTopologySuite.Geometries;
 using Hub.Core.Ports.Secondary;
 using Hub.Core.Ports.Primary;
 using Hub.Core.UseCases;
-using FluentAssertions;
 using NSubstitute;
 using Xunit;
 

@@ -1,6 +1,5 @@
 using Driver.Api.Features.AddDriver;
 using Driver.Api.Persistence;
-using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
 
@@ -26,7 +25,7 @@ public class AddDriverHandlerTests
 
     await handler.Handle(new Voyager.Contracts.Driver.AddDriver { DriverId = id }, CancellationToken.None);
 
-    (await db.Drivers.FindAsync(id)).Should().NotBeNull();
+    Assert.NotNull((await db.Drivers.FindAsync(id)));
   }
 
   [Fact]
@@ -40,6 +39,6 @@ public class AddDriverHandlerTests
     var handler = new AddDriverHandler(db);
     await handler.Handle(new Voyager.Contracts.Driver.AddDriver { DriverId = id }, CancellationToken.None);
 
-    db.Drivers.Count(d => d.Id == id).Should().Be(1);
+    Assert.Equal(1, db.Drivers.Count(d => d.Id == id));
   }
 }

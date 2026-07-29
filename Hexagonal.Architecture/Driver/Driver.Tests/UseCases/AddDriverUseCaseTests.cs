@@ -1,7 +1,6 @@
 using Driver.Core.Ports.Secondary;
 using Driver.Core.UseCases;
 using DriverEntity = Driver.Core.Domain.Driver;
-using FluentAssertions;
 using NSubstitute;
 using Voyager.Contracts.Driver;
 using Xunit;

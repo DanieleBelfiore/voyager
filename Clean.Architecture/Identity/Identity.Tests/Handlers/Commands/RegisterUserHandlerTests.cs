@@ -1,7 +1,6 @@
 using Identity.Application.CQRS.Commands;
 using Identity.Application.Ports;
 using UserEntity = Identity.Domain.Entities.User;
-using FluentAssertions;
 using NSubstitute;
 using Xunit;
 
@@ -62,7 +61,8 @@ public class RegisterUserHandlerTests
 
     var act = () => _handler.Handle(ValidCommand(), CancellationToken.None);
 
-    (await act.Should().ThrowAsync<Exception>()).WithMessage("already_exist");
+    var ex = await Assert.ThrowsAsync<Exception>(act);
+    Assert.Equal("already_exist", ex.Message);
   }
 
   [Fact]
@@ -73,6 +73,7 @@ public class RegisterUserHandlerTests
 
     var act = () => _handler.Handle(command, CancellationToken.None);
 
-    (await act.Should().ThrowAsync<Exception>()).WithMessage("confirm_password_not_matching");
+    var ex = await Assert.ThrowsAsync<Exception>(act);
+    Assert.Equal("confirm_password_not_matching", ex.Message);
   }
 }

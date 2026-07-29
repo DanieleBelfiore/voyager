@@ -103,6 +103,7 @@ Ride service publishes events to RabbitMQ → Hub service consumes and pushes to
 ## Key Notes
 
 - Uses **Newtonsoft.Json** throughout (not `System.Text.Json`). Geometry types are serialized via NetTopologySuite's own `GeometryConverter` (`NetTopologySuite.IO.Converters`), not a hand-rolled converter.
-- Integration tests currently non-functional; unit tests are illustrative, not exhaustive.
+- Integration tests (Testcontainers: MsSql/RabbitMq/Redis) exist for Driver and Ride only, and are excluded from CI (`--filter "FullyQualifiedName!~IntegrationTests"`) — run them locally.
+- CI enforces an **80% line-coverage gate** on business logic (`{Service}.Core`, `{Service}.Handlers`, `Hub.API`) via `scripts/check-coverage.py`. `Common.Core` (cache, rate limiting, the AssemblyLoadContext plugin loader) is infra shared across this variant's own services — same "no domain logic" role as the root `Commons/` folder — so it's excluded from the gate, same as Api/Controllers and generated EF migrations/DbContext/`Module` (`IModule` registration)/`UserManagerService` (thin `UserManager<T>` pass-through). The coverage collector only sees assemblies actually loaded by a test process — a service with no `{Service}.Tests` project silently vanishes from the gate's denominator instead of dragging the score down. Every service must have one, or its real coverage (likely near 0%) never gets measured at all.
 - Nullable reference types are **disabled** in main projects, enabled only in test projects.
 - `../.editorconfig` enforces 2-space indentation and LF line endings.

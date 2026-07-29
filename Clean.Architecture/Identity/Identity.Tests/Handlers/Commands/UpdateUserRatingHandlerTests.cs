@@ -1,7 +1,6 @@
 using Identity.Application.CQRS.Commands;
 using Identity.Application.Ports;
 using UserEntity = Identity.Domain.Entities.User;
-using FluentAssertions;
 using NSubstitute;
 using Voyager.Contracts.Identity;
 using Xunit;
@@ -21,8 +20,8 @@ public class UpdateUserRatingHandlerTests
 
     var result = await handler.Handle(new UpdateUserRating { UserId = user.Id, Rating = 5, Rides = 1 }, CancellationToken.None);
 
-    result.Should().Be(5);
-    user.Ratings.Should().Be(5);
+    Assert.Equal(5, result);
+    Assert.Equal(5, user.Ratings);
     await repository.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
   }
 }

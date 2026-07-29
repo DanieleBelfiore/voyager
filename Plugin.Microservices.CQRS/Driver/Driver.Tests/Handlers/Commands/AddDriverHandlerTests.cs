@@ -1,7 +1,6 @@
 using Driver.Core.CQRS.Commands;
 using Driver.Core.Enums;
 using Driver.Handlers.CQRS.Commands;
-using FluentAssertions;
 using MediatR;
 using NSubstitute;
 using Xunit;
@@ -51,8 +50,8 @@ public class AddDriverHandlerTests
     // Assert
     var result = await _context.Drivers.FindAsync(id);
 
-    result.Should().NotBeNull();
-    result.Status.Should().Be(DriverStatus.Available);
-    result.Id.Should().Be(id);
+    Assert.NotNull(result);
+    Assert.Equal(DriverStatus.Available, result.Status);
+    Assert.Equal(id, result.Id);
   }
 }

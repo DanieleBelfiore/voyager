@@ -1,0 +1,105 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # coverage_packages: business-logic assemblies only (see each variant's
+          # CLAUDE.md). Api/Infrastructure/Adapters.Secondary/Host/Demo hosts and
+          # the shared Commons/* projects are intentionally out of scope.
+          # Common.Core is infra shared across this variant's own services (cache,
+          # rate limiting, the AssemblyLoadContext plugin loader) -- same "no domain
+          # logic" role as the root Commons/ folder, so it's out of scope too. Hub
+          # has no separate Handlers project: its only logic is VoyagerHub (Hub.API).
+          # class_exclude drops generated EF migrations/model snapshots, DbContext/
+          # ContextFactory/SlowQueryInterceptor (persistence), the IModule plugin
+          # registration classes, and UserManagerService (a thin UserManager<T> pass-through).
+          - name: Plugin.Microservices.CQRS
+            solution: Plugin.Microservices.CQRS/Voyager.sln
+            coverage_packages: Driver.Core,Driver.Handlers,Hub.API,Identity.Core,Identity.Handlers,Ride.Core,Ride.Handlers
+            class_exclude: '\.Migrations\.|Context|SlowQueryInterceptor|^.*\.Module$|\.Module\.|\.Services\.'
+          - name: Clean.Architecture
+            solution: Clean.Architecture/Voyager.CleanArchitecture.sln
+            coverage_packages: Driver.Application,Driver.Domain,Hub.Application,Identity.Application,Identity.Domain,Ride.Application,Ride.Domain
+          - name: Hexagonal.Architecture
+            solution: Hexagonal.Architecture/Voyager.HexagonalArchitecture.sln
+            coverage_packages: Driver.Core,Hub.Core,Identity.Core,Ride.Core
+          # Vertical.Slice.Architecture and Modular.Monolith have no separate project
+          # boundary between business logic and composition-root code (Program.cs,
+          # Controllers, EF Persistence, validators, SignalR hub) -- class_exclude
+          # filters those out by class name so the gate still measures business
+          # logic only, same as the other three variants get via project boundaries.
+          - name: Vertical.Slice.Architecture
+            solution: Vertical.Slice.Architecture/Voyager.VerticalSliceArchitecture.sln
+            coverage_packages: Driver.Api,Hub.Api,Identity.Api,Ride.Api
+            class_exclude: '^Program|Controller|\.Persistence\.|Validator$|VoyagerHub|Middleware|^AddPasswordGrantParams'
+          - name: Modular.Monolith
+            solution: Modular.Monolith/Voyager.ModularMonolith.sln
+            coverage_packages: Driver.Module,Hub.Module,Identity.Module,Ride.Module
+            class_exclude: '^Program|Controller|\.Persistence\.|Validator$|VoyagerHub|Middleware|^AddPasswordGrantParams|\.DependencyInjection\.'
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore "${{ matrix.solution }}"
+
+      - name: Build
+        run: dotnet build "${{ matrix.solution }}" -c Release --no-restore
+
+      # Integration tests (Testcontainers: MsSql/RabbitMq/Redis) are excluded here
+      # to keep CI fast and deterministic. Run them locally without the filter.
+      - name: Test
+        run: >
+          dotnet test "${{ matrix.solution }}" -c Release --no-build
+          --filter "FullyQualifiedName!~IntegrationTests"
+          --logger trx
+          --collect:"Code Coverage;Format=cobertura"
+          --results-directory ./TestResults
+
+      - name: Coverage gate (80% on business-logic layers)
+        run: >
+          python3 scripts/check-coverage.py
+          "./TestResults/**/*.cobertura.xml"
+          --packages "${{ matrix.coverage_packages }}"
+          --class-exclude "${{ matrix.class_exclude }}"
+          --threshold 80
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-${{ matrix.name }}
+          path: ./TestResults
+          if-no-files-found: ignore

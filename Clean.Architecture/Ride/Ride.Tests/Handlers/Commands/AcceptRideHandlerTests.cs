@@ -2,7 +2,6 @@ using NetTopologySuite.Geometries;
 using Ride.Application.CQRS.Commands;
 using Ride.Application.Ports;
 using RideEntity = Ride.Domain.Entities.Ride;
-using FluentAssertions;
 using NSubstitute;
 using Xunit;
 
@@ -25,8 +24,8 @@ public class AcceptRideHandlerTests
 
     await handler.Handle(new AcceptRide { RideId = ride.Id, DriverId = driverId }, CancellationToken.None);
 
-    ride.DriverId.Should().Be(driverId);
-    ride.Status.Should().Be(Ride.Domain.Enums.RideStatus.DriverAssigned);
+    Assert.Equal(driverId, ride.DriverId);
+    Assert.Equal(Ride.Domain.Enums.RideStatus.DriverAssigned, ride.Status);
     await repository.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     await events.Received(1).RideAcceptedAsync(ride.Id, Arg.Any<CancellationToken>());
   }
@@ -42,6 +41,7 @@ public class AcceptRideHandlerTests
 
     var act = () => handler.Handle(new AcceptRide { RideId = Guid.NewGuid(), DriverId = Guid.NewGuid() }, CancellationToken.None);
 
-    await act.Should().ThrowAsync<Exception>().WithMessage("no_ride_found");
+    var ex = await Assert.ThrowsAsync<Exception>(act);
+    Assert.Equal("no_ride_found", ex.Message);
   }
 }

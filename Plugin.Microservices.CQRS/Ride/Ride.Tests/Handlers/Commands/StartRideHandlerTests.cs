@@ -1,4 +1,3 @@
-using FluentAssertions;
 using MediatR;
 using NetTopologySuite.Geometries;
 using NSubstitute;
@@ -45,7 +44,7 @@ public class StartRideHandlerTests
     // Assert
     var result = await _context.Rides.FindAsync(id);
 
-    result.Should().NotBeNull();
-    result.Status.Should().Be(RideStatus.InProgress);
+    Assert.NotNull(result);
+    Assert.Equal(RideStatus.InProgress, result.Status);
   }
 }

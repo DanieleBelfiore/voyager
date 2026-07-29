@@ -3,7 +3,6 @@ using Ride.Core.Ports.Secondary;
 using Ride.Core.Ports.Primary;
 using Ride.Core.UseCases;
 using RideEntity = Ride.Core.Domain.Ride;
-using FluentAssertions;
 using NSubstitute;
 using Xunit;
 
@@ -23,9 +22,9 @@ public class StartRideUseCaseTests
 
     await useCase.Handle(new StartRide { Id = ride.Id, Location = startLocation }, CancellationToken.None);
 
-    ride.Status.Should().Be(Ride.Core.Domain.RideStatus.InProgress);
-    ride.PickupLocation.Should().Be(startLocation);
-    ride.StartAt.Should().NotBeNull();
+    Assert.Equal(Ride.Core.Domain.RideStatus.InProgress, ride.Status);
+    Assert.Equal(startLocation, ride.PickupLocation);
+    Assert.NotNull(ride.StartAt);
     await repository.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
   }
 }

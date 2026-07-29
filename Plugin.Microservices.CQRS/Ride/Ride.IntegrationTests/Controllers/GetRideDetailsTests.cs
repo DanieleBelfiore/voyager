@@ -1,5 +1,4 @@
 using System.Net;
-using FluentAssertions;
 using Xunit;
 
 namespace Ride.IntegrationTests.Controllers;
@@ -32,6 +31,6 @@ public class GetRideDetailsTests(IntegrationTestWebAppFactory factory) : BaseInt
     var response = await Client.GetAsync($"api/v1/rides/{id}");
 
     // Assert
-    response.StatusCode.Should().Be(HttpStatusCode.OK);
+    Assert.Equal(HttpStatusCode.OK, response.StatusCode);
   }
 }

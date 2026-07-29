@@ -1,6 +1,5 @@
 using Driver.Api.Features.GetDriverStatus;
 using Driver.Api.Persistence;
-using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
 
@@ -30,7 +29,7 @@ public class GetDriverStatusHandlerTests
 
     var second = await handler.Handle(new GetDriverStatus { Id = id }, CancellationToken.None);
 
-    second.Should().BeEquivalentTo(first);
-    second.Status.Should().Be(Driver.Api.Entities.DriverStatus.Available);
+    Assert.Equivalent(first, second);
+    Assert.Equal(Driver.Api.Entities.DriverStatus.Available, second.Status);
   }
 }

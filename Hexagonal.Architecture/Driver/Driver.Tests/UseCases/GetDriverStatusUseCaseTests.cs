@@ -3,7 +3,6 @@ using Driver.Core.Ports.Secondary;
 using Driver.Core.Ports.Primary;
 using Driver.Core.UseCases;
 using DriverEntity = Driver.Core.Domain.Driver;
-using FluentAssertions;
 using NSubstitute;
 using Xunit;
 
@@ -28,8 +27,8 @@ public class GetDriverStatusUseCaseTests
 
     var second = await useCase.Handle(new GetDriverStatus { Id = id }, CancellationToken.None);
 
-    second.Should().BeEquivalentTo(first);
-    second.Status.Should().Be(Driver.Core.Domain.DriverStatus.Available);
+    Assert.Equivalent(first, second);
+    Assert.Equal(Driver.Core.Domain.DriverStatus.Available, second.Status);
     await repository.Received(1).GetByIdAsync(id, Arg.Any<CancellationToken>());
   }
 }

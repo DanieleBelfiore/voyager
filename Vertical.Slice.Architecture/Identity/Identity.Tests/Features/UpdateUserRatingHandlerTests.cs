@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Identity.Api.Features.UpdateUserRating;
 using Identity.Api.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -25,7 +24,7 @@ public class UpdateUserRatingHandlerTests
 
     var result = await handler.Handle(new Voyager.Contracts.Identity.UpdateUserRating { UserId = user.Id, Rating = 5, Rides = 1 }, CancellationToken.None);
 
-    result.Should().Be(5);
-    user.Ratings.Should().Be(5);
+    Assert.Equal(5, result);
+    Assert.Equal(5, user.Ratings);
   }
 }

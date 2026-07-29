@@ -4,7 +4,6 @@ using Driver.Core.Dtos;
 using Driver.Core.Enums;
 using Driver.Handlers;
 using Driver.Handlers.CQRS.Queries;
-using FluentAssertions;
 using MediatR;
 using NSubstitute;
 using Xunit;
@@ -47,14 +46,14 @@ public class GetDriverStatusHandlerTests
     var result = await _mediator.Send(new GetDriverStatus { Id = id });
 
     // Assert
-    result.Should().NotBeNull();
-    result.Id.Should().Be(id);
-    result.Status.Should().Be(DriverStatus.Available);
+    Assert.NotNull(result);
+    Assert.Equal(id, result.Id);
+    Assert.Equal(DriverStatus.Available, result.Status);
 
     // Verify cache
     var cachedResult = await _cache.GetAsync<DriverStatusResponse>($"driver:status:{id}");
-    cachedResult.Should().NotBeNull();
-    cachedResult.Id.Should().Be(id);
+    Assert.NotNull(cachedResult);
+    Assert.Equal(id, cachedResult.Id);
   }
 
   [Fact]
@@ -77,7 +76,7 @@ public class GetDriverStatusHandlerTests
     var secondResult = await _mediator.Send(new GetDriverStatus { Id = id });
 
     // Assert
-    secondResult.Should().BeEquivalentTo(firstResult);
-    secondResult.Status.Should().Be(DriverStatus.Available); // Still has cached value
+    Assert.Equivalent(firstResult, secondResult);
+    Assert.Equal(DriverStatus.Available, secondResult.Status); // Still has cached value
   }
 }

@@ -2,7 +2,6 @@ using NetTopologySuite.Geometries;
 using Ride.Application.CQRS.Commands;
 using Ride.Application.Ports;
 using RideEntity = Ride.Domain.Entities.Ride;
-using FluentAssertions;
 using NSubstitute;
 using Xunit;
 
@@ -22,10 +21,10 @@ public class StartRideHandlerTests
 
     await handler.Handle(new StartRide { Id = ride.Id, Location = startLocation }, CancellationToken.None);
 
-    ride.Status.Should().Be(Ride.Domain.Enums.RideStatus.InProgress);
-    ride.PickupLocation.Should().Be(startLocation);
-    ride.LastLocation.Should().Be(startLocation);
-    ride.StartAt.Should().NotBeNull();
+    Assert.Equal(Ride.Domain.Enums.RideStatus.InProgress, ride.Status);
+    Assert.Equal(startLocation, ride.PickupLocation);
+    Assert.Equal(startLocation, ride.LastLocation);
+    Assert.NotNull(ride.StartAt);
     await repository.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
   }
 }

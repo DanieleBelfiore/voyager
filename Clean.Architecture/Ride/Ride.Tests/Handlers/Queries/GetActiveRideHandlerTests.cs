@@ -3,7 +3,6 @@ using Ride.Application.CQRS.Queries;
 using Ride.Application.Mapping;
 using Ride.Application.Ports;
 using RideEntity = Ride.Domain.Entities.Ride;
-using FluentAssertions;
 using NSubstitute;
 using Xunit;
 
@@ -23,9 +22,9 @@ public class GetActiveRideHandlerTests
 
     var result = await handler.Handle(new GetActiveRide { UserId = userId }, CancellationToken.None);
 
-    result.Should().NotBeNull();
-    result!.Id.Should().Be(ride.Id);
-    result.UserId.Should().Be(userId);
+    Assert.NotNull(result);
+    Assert.Equal(ride.Id, result!.Id);
+    Assert.Equal(userId, result.UserId);
   }
 
   [Fact]
@@ -38,6 +37,6 @@ public class GetActiveRideHandlerTests
 
     var result = await handler.Handle(new GetActiveRide { UserId = Guid.NewGuid() }, CancellationToken.None);
 
-    result.Should().BeNull();
+    Assert.Null(result);
   }
 }

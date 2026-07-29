@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Identity.Api.Features.RegisterUser;
 using Identity.Api.Persistence;
 using MediatR;
@@ -41,8 +40,8 @@ public class RegisterUserHandlerTests
     await handler.Handle(ValidCommand(), CancellationToken.None);
 
     var user = await db.Users.FirstOrDefaultAsync(u => u.Email == "ada@example.com");
-    user.Should().NotBeNull();
-    user!.PasswordHash.Should().NotBeNullOrEmpty();
+    Assert.NotNull(user);
+    Assert.False(string.IsNullOrEmpty(user!.PasswordHash));
   }
 
   [Fact]
@@ -68,6 +67,7 @@ public class RegisterUserHandlerTests
 
     var act = () => handler.Handle(ValidCommand(), CancellationToken.None);
 
-    (await act.Should().ThrowAsync<Exception>()).WithMessage("already_exist");
+    var ex = await Assert.ThrowsAsync<Exception>(act);
+    Assert.Equal("already_exist", ex.Message);
   }
 }

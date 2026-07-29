@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using NetTopologySuite.Geometries;
 using Ride.Api.Features.StartRide;
@@ -28,8 +27,8 @@ public class StartRideHandlerTests
 
     await handler.Handle(new StartRide { Id = ride.Id, Location = startLocation }, CancellationToken.None);
 
-    ride.Status.Should().Be(RideStatus.InProgress);
-    ride.PickupLocation.Should().Be(startLocation);
-    ride.StartAt.Should().NotBeNull();
+    Assert.Equal(RideStatus.InProgress, ride.Status);
+    Assert.Equal(startLocation, ride.PickupLocation);
+    Assert.NotNull(ride.StartAt);
   }
 }

@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Hub.Api.Features.UpdateDriverLocation;
 using Hub.Api.Shared;
 using MediatR;

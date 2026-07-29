@@ -2,7 +2,6 @@ using Identity.Core.Ports.Secondary;
 using Identity.Core.Ports.Primary;
 using Identity.Core.UseCases;
 using UserEntity = Identity.Core.Domain.User;
-using FluentAssertions;
 using NSubstitute;
 using Xunit;
 
@@ -63,6 +62,7 @@ public class RegisterUserUseCaseTests
 
     var act = () => _useCase.Handle(ValidCommand(), CancellationToken.None);
 
-    (await act.Should().ThrowAsync<Exception>()).WithMessage("already_exist");
+    var ex = await Assert.ThrowsAsync<Exception>(act);
+    Assert.Equal("already_exist", ex.Message);
   }
 }

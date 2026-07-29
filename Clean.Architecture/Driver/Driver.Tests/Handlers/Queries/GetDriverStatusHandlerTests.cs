@@ -2,7 +2,6 @@ using Driver.Application.CQRS.Queries;
 using Driver.Application.Mapping;
 using Driver.Application.Ports;
 using DriverEntity = Driver.Domain.Entities.Driver;
-using FluentAssertions;
 using NSubstitute;
 using Xunit;
 
@@ -32,13 +31,13 @@ public class GetDriverStatusHandlerTests
     var result = await _handler.Handle(new GetDriverStatus { Id = id }, CancellationToken.None);
 
     // Assert
-    result.Should().NotBeNull();
-    result.Id.Should().Be(id);
-    result.Status.Should().Be(Driver.Domain.Enums.DriverStatus.Available);
+    Assert.NotNull(result);
+    Assert.Equal(id, result.Id);
+    Assert.Equal(Driver.Domain.Enums.DriverStatus.Available, result.Status);
 
     var cached = await _cache.GetAsync<Driver.Application.Dtos.DriverStatusResponse>($"driver:status:{id}");
-    cached.Should().NotBeNull();
-    cached.Id.Should().Be(id);
+    Assert.NotNull(cached);
+    Assert.Equal(id, cached.Id);
   }
 
   [Fact]
@@ -57,8 +56,8 @@ public class GetDriverStatusHandlerTests
     var secondResult = await _handler.Handle(new GetDriverStatus { Id = id }, CancellationToken.None);
 
     // Assert
-    secondResult.Should().BeEquivalentTo(firstResult);
-    secondResult.Status.Should().Be(Driver.Domain.Enums.DriverStatus.Available); // still the cached value
+    Assert.Equivalent(firstResult, secondResult);
+    Assert.Equal(Driver.Domain.Enums.DriverStatus.Available, secondResult.Status); // still the cached value
     await _repository.Received(1).GetByIdAsync(id, Arg.Any<CancellationToken>()); // repository hit only once
   }
 }

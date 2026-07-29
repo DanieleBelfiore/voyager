@@ -1,7 +1,6 @@
 using NetTopologySuite.Geometries;
 using Hub.Application.CQRS.Commands;
 using Hub.Application.Ports;
-using FluentAssertions;
 using NSubstitute;
 using Xunit;
 

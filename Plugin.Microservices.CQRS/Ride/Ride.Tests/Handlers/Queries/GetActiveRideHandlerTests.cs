@@ -1,4 +1,3 @@
-using FluentAssertions;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using NSubstitute;
@@ -48,7 +47,7 @@ public class GetActiveRideHandlerTests
     // Assert
     var result = await _context.Rides.Where(f => f.UserId == userId).FirstOrDefaultAsync();
 
-    result.Should().NotBeNull();
-    result.Status.Should().Be(RideStatus.Requested);
+    Assert.NotNull(result);
+    Assert.Equal(RideStatus.Requested, result.Status);
   }
 }

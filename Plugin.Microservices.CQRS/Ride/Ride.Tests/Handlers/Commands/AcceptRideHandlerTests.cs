@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Hub.API;
 using Hub.Core.Interfaces;
 using MediatR;
@@ -61,9 +60,9 @@ public class AcceptRideHandlerTests
     // Assert
     var result = await _context.Rides.FindAsync(rideId);
 
-    result.Should().NotBeNull();
-    result.Status.Should().Be(RideStatus.DriverAssigned);
-    result.DriverId.Should().Be(driverId);
+    Assert.NotNull(result);
+    Assert.Equal(RideStatus.DriverAssigned, result.Status);
+    Assert.Equal(driverId, result.DriverId);
 
     await _clientProxy.Received(1).SendToRiderRideAccepted(Arg.Is<Guid>(id => id == rideId));
   }

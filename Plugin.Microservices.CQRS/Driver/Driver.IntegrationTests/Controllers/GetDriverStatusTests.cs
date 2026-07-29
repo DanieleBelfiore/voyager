@@ -1,5 +1,4 @@
 using System.Net;
-using FluentAssertions;
 using Xunit;
 
 namespace Driver.IntegrationTests.Controllers;
@@ -32,6 +31,6 @@ public class GetDriverStatusTests(IntegrationTestWebAppFactory factory) : BaseIn
     var response = await Client.GetAsync($"api/v1/drivers/{id}");
 
     // Assert
-    response.StatusCode.Should().Be(HttpStatusCode.OK);
+    Assert.Equal(HttpStatusCode.OK, response.StatusCode);
   }
 }

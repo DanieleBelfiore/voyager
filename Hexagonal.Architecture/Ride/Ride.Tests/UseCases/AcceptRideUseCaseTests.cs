@@ -3,7 +3,6 @@ using Ride.Core.Ports.Secondary;
 using Ride.Core.Ports.Primary;
 using Ride.Core.UseCases;
 using RideEntity = Ride.Core.Domain.Ride;
-using FluentAssertions;
 using NSubstitute;
 using Xunit;
 
@@ -26,8 +25,8 @@ public class AcceptRideUseCaseTests
 
     await useCase.Handle(new AcceptRide { RideId = ride.Id, DriverId = driverId }, CancellationToken.None);
 
-    ride.DriverId.Should().Be(driverId);
-    ride.Status.Should().Be(Ride.Core.Domain.RideStatus.DriverAssigned);
+    Assert.Equal(driverId, ride.DriverId);
+    Assert.Equal(Ride.Core.Domain.RideStatus.DriverAssigned, ride.Status);
     await repository.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     await events.Received(1).RideAcceptedAsync(ride.Id, Arg.Any<CancellationToken>());
   }

@@ -1,7 +1,6 @@
 using Identity.Core.Ports.Secondary;
 using Identity.Core.UseCases;
 using UserEntity = Identity.Core.Domain.User;
-using FluentAssertions;
 using NSubstitute;
 using Voyager.Contracts.Identity;
 using Xunit;
@@ -21,8 +20,8 @@ public class UpdateUserRatingUseCaseTests
 
     var result = await useCase.Handle(new UpdateUserRating { UserId = user.Id, Rating = 5, Rides = 1 }, CancellationToken.None);
 
-    result.Should().Be(5);
-    user.Ratings.Should().Be(5);
+    Assert.Equal(5, result);
+    Assert.Equal(5, user.Ratings);
     await repository.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
   }
 }

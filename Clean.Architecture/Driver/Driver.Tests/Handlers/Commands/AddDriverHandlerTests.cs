@@ -1,7 +1,6 @@
 using Driver.Application.CQRS.Commands;
 using Driver.Application.Ports;
 using DriverEntity = Driver.Domain.Entities.Driver;
-using FluentAssertions;
 using NSubstitute;
 using Voyager.Contracts.Driver;
 using Xunit;
