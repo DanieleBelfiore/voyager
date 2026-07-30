@@ -13,6 +13,9 @@ public class GetRideCurrentLocationHandler(IRideRepository repository) : IReques
   {
     var ride = await repository.GetByIdReadOnlyAsync(request.Id, cancellationToken) ?? throw new Exception("ride_not_found");
 
+    if (ride.UserId != request.CallerId && ride.DriverId != request.CallerId)
+      throw new UnauthorizedAccessException("not_ride_participant");
+
     return new RideCurrentLocationResponse { LastLocation = ride.LastLocation, LastUpdateDate = ride.LastUpdateDate };
   }
 }

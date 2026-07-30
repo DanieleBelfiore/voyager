@@ -25,11 +25,13 @@ public class CompleteRideUseCaseTests
   {
     // Arrange
     var ride = new RideEntity(Guid.NewGuid(), Guid.NewGuid(), SomePoint, SomePoint);
+    ride.Accept(ride.DriverId);
+    ride.Start(SomePoint);
     var dropoff = new Point(3, 3);
     _repository.GetByIdAsync(ride.Id, Arg.Any<CancellationToken>()).Returns(ride);
 
     // Act
-    await _useCase.Handle(new CompleteRide { Id = ride.Id, Location = dropoff, Price = 42.5 }, CancellationToken.None);
+    await _useCase.Handle(new CompleteRide { Id = ride.Id, Location = dropoff, Price = 42.5, CallerId = ride.DriverId }, CancellationToken.None);
 
     // Assert
     Assert.Equal(Ride.Core.Domain.RideStatus.Completed, ride.Status);

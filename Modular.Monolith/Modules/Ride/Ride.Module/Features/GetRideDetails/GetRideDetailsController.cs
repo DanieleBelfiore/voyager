@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Ride.Module.Shared;
+using Voyager.Shared.Extensions;
 
 namespace Ride.Module.Features.GetRideDetails;
 
@@ -17,6 +18,6 @@ public class GetRideDetailsController(IMediator mediator) : ControllerBase
   [HttpGet("{rideId:guid}")]
   public async Task<ActionResult<RideDetailsResponse>> Get(Guid rideId, CancellationToken cancellationToken)
   {
-    return Ok(await mediator.Send(new GetRideDetails { Id = rideId }, cancellationToken));
+    return Ok(await mediator.Send(new GetRideDetails { Id = rideId, CallerId = this.GetUserId() }, cancellationToken));
   }
 }

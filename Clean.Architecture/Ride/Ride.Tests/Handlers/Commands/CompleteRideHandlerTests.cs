@@ -24,11 +24,13 @@ public class CompleteRideHandlerTests
   {
     // Arrange
     var ride = new RideEntity(Guid.NewGuid(), Guid.NewGuid(), SomePoint, SomePoint);
+    ride.Accept(ride.DriverId);
+    ride.Start(SomePoint);
     var dropoff = new Point(3, 3);
     _repository.GetByIdAsync(ride.Id, Arg.Any<CancellationToken>()).Returns(ride);
 
     // Act
-    await _handler.Handle(new CompleteRide { Id = ride.Id, Location = dropoff, Price = 42.5 }, CancellationToken.None);
+    await _handler.Handle(new CompleteRide { Id = ride.Id, Location = dropoff, Price = 42.5, CallerId = ride.DriverId }, CancellationToken.None);
 
     // Assert
     Assert.Equal(Ride.Domain.Enums.RideStatus.Completed, ride.Status);
@@ -48,5 +50,19 @@ public class CompleteRideHandlerTests
     // Act & Assert
     var ex = await Assert.ThrowsAsync<Exception>(act);
     Assert.Equal("no_ride_found", ex.Message);
+  }
+
+  [Fact]
+  public async Task Handle_Throws_Unauthorized_WhenCallerIsNotDriver()
+  {
+    // Arrange
+    var ride = new RideEntity(Guid.NewGuid(), Guid.NewGuid(), SomePoint, SomePoint);
+    ride.Accept(ride.DriverId);
+    ride.Start(SomePoint);
+    _repository.GetByIdAsync(ride.Id, Arg.Any<CancellationToken>()).Returns(ride);
+    var act = () => _handler.Handle(new CompleteRide { Id = ride.Id, Location = SomePoint, Price = 10, CallerId = Guid.NewGuid() }, CancellationToken.None);
+
+    // Act & Assert
+    await Assert.ThrowsAsync<UnauthorizedAccessException>(act);
   }
 }

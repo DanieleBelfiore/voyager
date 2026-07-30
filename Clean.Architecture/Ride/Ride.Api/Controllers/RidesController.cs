@@ -27,14 +27,14 @@ public class RidesController(IMediator mediator) : ControllerBase
   [HttpGet("{rideId:guid}")]
   public async Task<ActionResult<RideDetailsResponse>> GetRideDetails(Guid rideId)
   {
-    return Ok(await mediator.Send(new GetRideDetails { Id = rideId }));
+    return Ok(await mediator.Send(new GetRideDetails { Id = rideId, CallerId = this.GetUserId() }));
   }
 
   [EnableRateLimiting("ride_cancellation")]
   [HttpPut("{rideId:guid}/cancel")]
   public async Task<ActionResult> CancelRide(Guid rideId, [FromBody] CancelRideRequest request)
   {
-    await mediator.Send(new CancelRide { Id = rideId, CancellationReason = request.CancellationReason });
+    await mediator.Send(new CancelRide { Id = rideId, CancellationReason = request.CancellationReason, CallerId = this.GetUserId() });
 
     return Ok();
   }
@@ -43,19 +43,19 @@ public class RidesController(IMediator mediator) : ControllerBase
   [HttpGet("{rideId:guid}/location")]
   public async Task<ActionResult<RideCurrentLocationResponse>> GetRideCurrentLocation(Guid rideId)
   {
-    return Ok(await mediator.Send(new GetRideCurrentLocation { Id = rideId }));
+    return Ok(await mediator.Send(new GetRideCurrentLocation { Id = rideId, CallerId = this.GetUserId() }));
   }
 
   [HttpGet("{rideId:guid}/eta")]
   public async Task<ActionResult<ETAResponse>> GetRideETA(Guid rideId)
   {
-    return Ok(await mediator.Send(new GetRideETA { Id = rideId }));
+    return Ok(await mediator.Send(new GetRideETA { Id = rideId, CallerId = this.GetUserId() }));
   }
 
   [HttpPut("{rideId:guid}/rate")]
   public async Task<ActionResult> RateRide(Guid rideId, [FromBody] RateRideRequest request)
   {
-    await mediator.Send(new RateRide { RideId = rideId, Rating = request.Rating });
+    await mediator.Send(new RateRide { RideId = rideId, Rating = request.Rating, CallerId = this.GetUserId() });
 
     return Ok();
   }
@@ -63,7 +63,7 @@ public class RidesController(IMediator mediator) : ControllerBase
   [HttpPut("{rideId:guid}/rate/driver")]
   public async Task<ActionResult> RateDriver(Guid rideId, [FromBody] RateRideRequest request)
   {
-    await mediator.Send(new RateDriver { RideId = rideId, Rating = request.Rating });
+    await mediator.Send(new RateDriver { RideId = rideId, Rating = request.Rating, CallerId = this.GetUserId() });
 
     return Ok();
   }
@@ -71,6 +71,8 @@ public class RidesController(IMediator mediator) : ControllerBase
   [HttpGet("history")]
   public async Task<ActionResult<List<RideDetailsResponse>>> GetRideHistory(int take = 25, int page = 0)
   {
+    take = Math.Min(take, 100);
+
     return Ok(await mediator.Send(new GetRideHistory { UserId = this.GetUserId(), Take = take, Page = page }));
   }
 
@@ -91,7 +93,7 @@ public class RidesController(IMediator mediator) : ControllerBase
   [HttpPut("{rideId:guid}/start")]
   public async Task<ActionResult> StartRide(Guid rideId, [FromBody] StartRideRequest request)
   {
-    await mediator.Send(new StartRide { Id = rideId, Location = request.Location });
+    await mediator.Send(new StartRide { Id = rideId, Location = request.Location, CallerId = this.GetUserId() });
 
     return Ok();
   }
@@ -99,7 +101,7 @@ public class RidesController(IMediator mediator) : ControllerBase
   [HttpPut("{rideId:guid}/complete")]
   public async Task<ActionResult> CompleteRide(Guid rideId, [FromBody] CompleteRideRequest request)
   {
-    await mediator.Send(new CompleteRide { Id = rideId, Location = request.Location, Price = request.Price });
+    await mediator.Send(new CompleteRide { Id = rideId, Location = request.Location, Price = request.Price, CallerId = this.GetUserId() });
 
     return Ok();
   }

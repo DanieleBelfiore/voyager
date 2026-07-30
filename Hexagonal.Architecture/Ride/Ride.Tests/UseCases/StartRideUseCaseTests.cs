@@ -15,12 +15,13 @@ public class StartRideUseCaseTests
   {
     var repository = Substitute.For<IRideRepository>();
     var ride = new RideEntity(Guid.NewGuid(), Guid.NewGuid(), new Point(0, 0), new Point(1, 1));
+    ride.Accept(ride.DriverId);
     repository.GetByIdAsync(ride.Id, Arg.Any<CancellationToken>()).Returns(ride);
 
     var useCase = new StartRideUseCase(repository);
     var startLocation = new Point(2, 2);
 
-    await useCase.Handle(new StartRide { Id = ride.Id, Location = startLocation }, CancellationToken.None);
+    await useCase.Handle(new StartRide { Id = ride.Id, Location = startLocation, CallerId = ride.DriverId }, CancellationToken.None);
 
     Assert.Equal(Ride.Core.Domain.RideStatus.InProgress, ride.Status);
     Assert.Equal(startLocation, ride.PickupLocation);

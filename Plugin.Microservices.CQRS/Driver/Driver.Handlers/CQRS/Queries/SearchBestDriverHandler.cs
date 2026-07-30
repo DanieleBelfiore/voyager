@@ -62,16 +62,6 @@ public class SearchBestDriverHandler(IDriverContext db, IMediator mediator, ICon
 
   private async Task<Dictionary<Guid, double>> GetDriverRatings(List<Guid> driverIds, CancellationToken cancellationToken)
   {
-    var tasks = driverIds.Select(async id =>
-    {
-      var rating = await cache.GetOrCreateAsync($"driver:rating:{id}",
-        async () => await mediator.Send(new GetUsersRatings { UserIds = [id] }, cancellationToken),
-        TimeSpan.FromMinutes(15));
-      return (id, rating?.FirstOrDefault().Value ?? 0.0);
-    });
-
-    var results = await Task.WhenAll(tasks);
-
-    return results.ToDictionary(x => x.id, x => x.Item2);
+    return await mediator.Send(new GetUsersRatings { UserIds = driverIds }, cancellationToken) ?? new Dictionary<Guid, double>();
   }
 }

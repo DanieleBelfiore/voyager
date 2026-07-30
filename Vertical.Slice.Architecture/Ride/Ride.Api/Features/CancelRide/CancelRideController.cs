@@ -5,6 +5,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Voyager.Shared.Extensions;
 
 namespace Ride.Api.Features.CancelRide;
 
@@ -17,7 +18,7 @@ public class CancelRideController(IMediator mediator) : ControllerBase
   [HttpPut("{rideId:guid}/cancel")]
   public async Task<ActionResult> Cancel(Guid rideId, [FromBody] CancelRideRequest request, CancellationToken cancellationToken)
   {
-    await mediator.Send(new CancelRide { Id = rideId, CancellationReason = request.CancellationReason }, cancellationToken);
+    await mediator.Send(new CancelRide { Id = rideId, CancellationReason = request.CancellationReason, CallerId = this.GetUserId() }, cancellationToken);
 
     return Ok();
   }

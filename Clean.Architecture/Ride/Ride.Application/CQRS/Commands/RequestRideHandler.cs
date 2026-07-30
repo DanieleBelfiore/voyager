@@ -21,6 +21,9 @@ public class RequestRideHandler(IRideRepository repository, RideMapper mapper, I
 
     repository.Add(ride);
 
+    // SaveChangesAsync translates a DB-level unique-constraint violation (a race losing to
+    // IX_Rides_UserId_ActiveOnly) into the same InvalidOperationException thrown above for the
+    // in-memory check, so callers see a consistent error either way. See RideRepository.
     await repository.SaveChangesAsync(cancellationToken);
 
     await events.NewRideRequestedAsync(ride.Id, cancellationToken);

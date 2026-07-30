@@ -14,6 +14,9 @@ public class GetRideDetailsHandler(IRideRepository repository, RideMapper mapper
   {
     var ride = await repository.GetByIdReadOnlyAsync(request.Id, cancellationToken) ?? throw new Exception("ride_not_found");
 
+    if (ride.UserId != request.CallerId && ride.DriverId != request.CallerId)
+      throw new UnauthorizedAccessException("not_ride_participant");
+
     return mapper.ToRideDetails(ride);
   }
 }

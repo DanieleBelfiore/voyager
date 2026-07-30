@@ -19,13 +19,14 @@ public class StartRideHandlerTests
 
     await using var db = new RideDbContext(options);
     var ride = new RideEntity(Guid.NewGuid(), Guid.NewGuid(), new Point(0, 0), new Point(1, 1));
+    ride.Accept(ride.DriverId);
     db.Rides.Add(ride);
     await db.SaveChangesAsync();
 
     var handler = new StartRideHandler(db);
     var startLocation = new Point(2, 2);
 
-    await handler.Handle(new StartRide { Id = ride.Id, Location = startLocation }, CancellationToken.None);
+    await handler.Handle(new StartRide { Id = ride.Id, Location = startLocation, CallerId = ride.DriverId }, CancellationToken.None);
 
     Assert.Equal(RideStatus.InProgress, ride.Status);
     Assert.Equal(startLocation, ride.PickupLocation);

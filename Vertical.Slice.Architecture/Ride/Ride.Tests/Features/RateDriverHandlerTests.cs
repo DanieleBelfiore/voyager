@@ -29,8 +29,10 @@ public class RateDriverHandlerTests
   {
     // Arrange
     await using var db = NewContext();
+    var userId = Guid.NewGuid();
     var driverId = Guid.NewGuid();
-    var ride = new RideEntity(Guid.NewGuid(), driverId, SomePoint, SomePoint);
+    var ride = new RideEntity(userId, driverId, SomePoint, SomePoint);
+    ride.Accept(driverId);
     ride.Start(SomePoint);
     ride.Complete(SomePoint, 10);
     db.Rides.Add(ride);
@@ -39,7 +41,7 @@ public class RateDriverHandlerTests
     var handler = new RateDriverHandler(db, mediator);
 
     // Act
-    await handler.Handle(new RateDriver { RideId = ride.Id, Rating = 5 }, CancellationToken.None);
+    await handler.Handle(new RateDriver { RideId = ride.Id, Rating = 5, CallerId = userId }, CancellationToken.None);
 
     // Assert
     await mediator.Received(1).Send(Arg.Is<UpdateUserRating>(c => c.UserId == driverId && c.Rating == 5 && c.Rides == 1), Arg.Any<CancellationToken>());
@@ -51,15 +53,16 @@ public class RateDriverHandlerTests
   {
     // Arrange
     await using var db = NewContext();
+    var userId = Guid.NewGuid();
     var driverId = Guid.NewGuid();
-    var ride = new RideEntity(Guid.NewGuid(), driverId, SomePoint, SomePoint); // still Requested, not Completed
+    var ride = new RideEntity(userId, driverId, SomePoint, SomePoint); // still Requested, not Completed
     db.Rides.Add(ride);
     await db.SaveChangesAsync();
     var mediator = Substitute.For<IMediator>();
     var handler = new RateDriverHandler(db, mediator);
 
     // Act
-    await handler.Handle(new RateDriver { RideId = ride.Id, Rating = 5 }, CancellationToken.None);
+    await handler.Handle(new RateDriver { RideId = ride.Id, Rating = 5, CallerId = userId }, CancellationToken.None);
 
     // Assert
     await mediator.DidNotReceive().Publish(Arg.Any<DriverRatingReceived>(), Arg.Any<CancellationToken>());

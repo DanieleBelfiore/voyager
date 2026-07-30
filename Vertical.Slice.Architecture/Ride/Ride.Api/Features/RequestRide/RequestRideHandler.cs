@@ -26,7 +26,16 @@ public class RequestRideHandler(RideDbContext db, IMediator mediator) : IRequest
 
     db.Rides.Add(ride);
 
-    await db.SaveChangesAsync(cancellationToken);
+    try
+    {
+      await db.SaveChangesAsync(cancellationToken);
+    }
+    catch (DbUpdateException)
+    {
+      // The in-memory check above can't fully close the race under concurrent requests — the
+      // unique filtered index (IX_Rides_UserId_ActiveRide) is the actual guarantee.
+      throw new InvalidOperationException();
+    }
 
     await mediator.Publish(new NewRideRequested { RideId = ride.Id }, cancellationToken);
 

@@ -30,7 +30,7 @@ public class RateDriverHandlerTests
     _repository.GetDriverHistoryAsync(driverId, -1, 0, Arg.Any<CancellationToken>()).Returns([ride]);
 
     // Act
-    await _handler.Handle(new RateDriver { RideId = ride.Id, Rating = 5 }, CancellationToken.None);
+    await _handler.Handle(new RateDriver { RideId = ride.Id, Rating = 5, CallerId = ride.UserId }, CancellationToken.None);
 
     // Assert
     await _ratings.Received(1).UpdateRatingAsync(driverId, 5, 1, Arg.Any<CancellationToken>());
@@ -47,7 +47,7 @@ public class RateDriverHandlerTests
     _repository.GetDriverHistoryAsync(driverId, -1, 0, Arg.Any<CancellationToken>()).Returns([]);
 
     // Act
-    await _handler.Handle(new RateDriver { RideId = ride.Id, Rating = 5 }, CancellationToken.None);
+    await _handler.Handle(new RateDriver { RideId = ride.Id, Rating = 5, CallerId = ride.UserId }, CancellationToken.None);
 
     // Assert
     await _events.DidNotReceive().DriverRatingReceivedAsync(Arg.Any<Guid>(), Arg.Any<int>(), Arg.Any<CancellationToken>());
@@ -63,5 +63,18 @@ public class RateDriverHandlerTests
     // Act & Assert
     var ex = await Assert.ThrowsAsync<Exception>(act);
     Assert.Equal("ride_not_found", ex.Message);
+  }
+
+  [Fact]
+  public async Task Handle_Throws_Unauthorized_WhenCallerIsNotRider()
+  {
+    // Arrange
+    var driverId = Guid.NewGuid();
+    var ride = new RideEntity(Guid.NewGuid(), driverId, SomePoint, SomePoint);
+    _repository.GetByIdReadOnlyAsync(ride.Id, Arg.Any<CancellationToken>()).Returns(ride);
+    var act = () => _handler.Handle(new RateDriver { RideId = ride.Id, Rating = 5, CallerId = driverId }, CancellationToken.None);
+
+    // Act & Assert
+    await Assert.ThrowsAsync<UnauthorizedAccessException>(act);
   }
 }

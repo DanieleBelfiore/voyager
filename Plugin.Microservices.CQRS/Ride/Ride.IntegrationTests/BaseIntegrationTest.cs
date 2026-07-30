@@ -74,7 +74,7 @@ public abstract class BaseIntegrationTest : IClassFixture<IntegrationTestWebAppF
     return tokenResponse == null ? throw new Exception("failed_to_get_token") : tokenResponse.AccessToken;
   }
 
-  protected async Task InitializeAuthenticatedClient()
+  protected async Task<Guid> InitializeAuthenticatedClient()
   {
     var user = new VoyagerUser
     {
@@ -94,6 +94,8 @@ public abstract class BaseIntegrationTest : IClassFixture<IntegrationTestWebAppF
     var token = await GetTokenAsync(user.UserName, password);
 
     Client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+    return user.Id;
   }
 
   public class TokenResponse

@@ -18,7 +18,7 @@ namespace Ride.Module.Persistence.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.7")
+                .HasAnnotation("ProductVersion", "10.0.10")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -56,6 +56,11 @@ namespace Ride.Module.Persistence.Migrations
                     b.Property<DateTime>("RequestedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.Property<DateTime?>("StartAt")
                         .HasColumnType("datetime2");
 
@@ -66,6 +71,11 @@ namespace Ride.Module.Persistence.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Rides_UserId_Active_Unique")
+                        .HasFilter("[Status] IN (0, 1, 2)");
 
                     b.HasIndex("DriverId", "Status", "RequestedAt")
                         .IsDescending(false, false, true)

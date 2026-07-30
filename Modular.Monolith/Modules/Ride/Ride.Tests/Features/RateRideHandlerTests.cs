@@ -31,6 +31,7 @@ public class RateRideHandlerTests
     await using var db = NewContext();
     var userId = Guid.NewGuid();
     var ride = new RideEntity(userId, Guid.NewGuid(), SomePoint, SomePoint);
+    ride.Accept(ride.DriverId);
     ride.Start(SomePoint);
     ride.Complete(SomePoint, 10);
     db.Rides.Add(ride);
@@ -39,7 +40,7 @@ public class RateRideHandlerTests
     var handler = new RateRideHandler(db, mediator);
 
     // Act
-    await handler.Handle(new RateRide { RideId = ride.Id, Rating = 4 }, CancellationToken.None);
+    await handler.Handle(new RateRide { RideId = ride.Id, Rating = 4, CallerId = userId }, CancellationToken.None);
 
     // Assert
     await mediator.Received(1).Send(Arg.Is<UpdateUserRating>(c => c.UserId == userId && c.Rating == 4 && c.Rides == 1), Arg.Any<CancellationToken>());

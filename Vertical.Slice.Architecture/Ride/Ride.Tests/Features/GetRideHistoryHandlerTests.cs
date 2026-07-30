@@ -20,7 +20,9 @@ public class GetRideHistoryHandlerTests
       .Options;
     await using var db = new RideDbContext(options);
     var userId = Guid.NewGuid();
-    var ride = new RideEntity(userId, Guid.NewGuid(), SomePoint, SomePoint);
+    var driverId = Guid.NewGuid();
+    var ride = new RideEntity(userId, driverId, SomePoint, SomePoint);
+    ride.Accept(driverId);
     ride.Start(SomePoint);
     ride.Complete(SomePoint, 10);
     db.Rides.Add(ride);

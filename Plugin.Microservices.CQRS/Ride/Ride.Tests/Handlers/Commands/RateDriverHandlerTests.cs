@@ -40,16 +40,17 @@ public class RateDriverHandlerTests
   public async Task Handle_UpdatesRatingAndPushesToHub_WhenDriverHasRides()
   {
     // Arrange
+    var userId = Guid.NewGuid();
     var driverId = Guid.NewGuid();
     var rideId = Guid.NewGuid();
-    _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, DriverId = driverId });
+    _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, UserId = userId, DriverId = driverId });
     await _context.SaveChangesAsync();
     var latestRide = new RideDetailsResponse { Id = rideId, DriverId = driverId };
     _mediator.Send(Arg.Any<GetRideDriverHistory>(), Arg.Any<CancellationToken>())
       .Returns([latestRide]);
 
     // Act
-    await _mediator.Send(new RateDriver { RideId = rideId, Rating = 5 });
+    await _mediator.Send(new RateDriver { RideId = rideId, CallerId = userId, Rating = 5 });
 
     // Assert
     await _mediator.Received(1).Send(Arg.Is<UpdateUserRating>(c => c.UserId == driverId && c.Rating == 5 && c.Rides == 1), Arg.Any<CancellationToken>());
@@ -60,15 +61,16 @@ public class RateDriverHandlerTests
   public async Task Handle_DoesNotPushToHub_WhenDriverHasNoRides()
   {
     // Arrange
+    var userId = Guid.NewGuid();
     var driverId = Guid.NewGuid();
     var rideId = Guid.NewGuid();
-    _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, DriverId = driverId });
+    _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, UserId = userId, DriverId = driverId });
     await _context.SaveChangesAsync();
     _mediator.Send(Arg.Any<GetRideDriverHistory>(), Arg.Any<CancellationToken>())
       .Returns(new List<RideDetailsResponse>());
 
     // Act
-    await _mediator.Send(new RateDriver { RideId = rideId, Rating = 5 });
+    await _mediator.Send(new RateDriver { RideId = rideId, CallerId = userId, Rating = 5 });
 
     // Assert
     await _clientProxy.DidNotReceive().SendToDriverNewRateReceived(Arg.Any<int>());
@@ -83,5 +85,21 @@ public class RateDriverHandlerTests
     // Act & Assert
     var ex = await Assert.ThrowsAsync<Exception>(act);
     Assert.Equal("ride_not_found", ex.Message);
+  }
+
+  [Fact]
+  public async Task Handle_Throws_WhenCallerIsNotRideOwner()
+  {
+    // Arrange
+    var userId = Guid.NewGuid();
+    var driverId = Guid.NewGuid();
+    var rideId = Guid.NewGuid();
+    _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, UserId = userId, DriverId = driverId });
+    await _context.SaveChangesAsync();
+    var act = () => _mediator.Send(new RateDriver { RideId = rideId, CallerId = Guid.NewGuid(), Rating = 5 });
+
+    // Act & Assert
+    var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(act);
+    Assert.Equal("not_ride_participant", ex.Message);
   }
 }

@@ -17,9 +17,18 @@ public class RideConfiguration : IEntityTypeConfiguration<RideEntity>
     builder.Property(r => r.PickupLocation).HasColumnType("geography");
     builder.Property(r => r.DropoffLocation).HasColumnType("geography");
     builder.Property(r => r.LastLocation).HasColumnType("geography");
+    builder.Property(r => r.RowVersion).IsRowVersion();
 
     builder.HasIndex(r => new { r.Status, r.UserId, r.DriverId })
       .HasDatabaseName("IX_Rides_Status_UserId_DriverId");
+
+    // Enforces "one active ride per user" at the DB level, mirroring the in-memory check in
+    // RequestRideHandler (HasInFlightRideAsync) so a race between two concurrent requests can't
+    // both pass the in-memory check and insert two in-flight rides for the same user.
+    builder.HasIndex(r => r.UserId)
+      .HasDatabaseName("IX_Rides_UserId_ActiveOnly")
+      .IsUnique()
+      .HasFilter("[Status] IN (0, 1, 2)");
 
     builder.HasIndex(r => new { r.UserId, r.Status, r.RequestedAt })
       .HasDatabaseName("IX_Rides_UserId_Status_RequestedAt")

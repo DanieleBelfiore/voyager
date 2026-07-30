@@ -44,12 +44,13 @@ public class User
   }
 
   /// <summary>
-  /// Same formula as the Plugin.Microservices.CQRS variant: (currentRating + newRating) / totalRides.
-  /// Not a proper running average, kept as-is for feature parity rather than "fixed" here.
+  /// Weighted running average: (previousAverage * (rides - 1) + newRating) / rides.
+  /// The Plugin.Microservices.CQRS variant uses (currentRating + newRating) / totalRides, which
+  /// is not a valid running average for rides > 1; fixed here rather than copied verbatim.
   /// </summary>
   public void UpdateRating(int rating, int rides)
   {
-    Ratings = (Ratings + rating) / rides;
+    Ratings = rides <= 1 ? rating : (Ratings * (rides - 1) + rating) / (double)rides;
     Modified = DateTime.UtcNow;
   }
 }

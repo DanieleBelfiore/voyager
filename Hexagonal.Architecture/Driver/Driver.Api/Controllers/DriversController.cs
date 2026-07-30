@@ -67,6 +67,6 @@ public class DriversController(
   [HttpPost("search")]
   public async Task<ActionResult<List<SearchBestDriverResponse>>> SearchBestDriver([FromBody] SearchBestDriverRequest request, CancellationToken cancellationToken)
   {
-    return Ok(await searchBestDriver.Handle(new SearchBestDriver { UserId = this.GetUserId(), Location = request.Location, DistanceThresholdInMeters = request.DistanceThresholdInKm }, cancellationToken));
+    return Ok(await searchBestDriver.Handle(new SearchBestDriver { UserId = this.GetUserId(), Location = request.Location, DistanceThresholdInMeters = request.DistanceThresholdInKm * 1000 }, cancellationToken));
   }
 }

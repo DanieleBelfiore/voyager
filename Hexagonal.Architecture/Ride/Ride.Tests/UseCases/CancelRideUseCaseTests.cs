@@ -28,7 +28,7 @@ public class CancelRideUseCaseTests
     _repository.GetByIdAsync(ride.Id, Arg.Any<CancellationToken>()).Returns(ride);
 
     // Act
-    await _useCase.Handle(new CancelRide { Id = ride.Id, CancellationReason = "changed_mind" }, CancellationToken.None);
+    await _useCase.Handle(new CancelRide { Id = ride.Id, CancellationReason = "changed_mind", CallerId = ride.UserId }, CancellationToken.None);
 
     // Assert
     Assert.Equal(Ride.Core.Domain.RideStatus.Cancelled, ride.Status);
@@ -54,9 +54,10 @@ public class CancelRideUseCaseTests
   {
     // Arrange
     var ride = new RideEntity(Guid.NewGuid(), Guid.NewGuid(), SomePoint, SomePoint);
+    ride.Accept(ride.DriverId);
     ride.Start(SomePoint);
     _repository.GetByIdAsync(ride.Id, Arg.Any<CancellationToken>()).Returns(ride);
-    var act = () => _useCase.Handle(new CancelRide { Id = ride.Id, CancellationReason = "x" }, CancellationToken.None);
+    var act = () => _useCase.Handle(new CancelRide { Id = ride.Id, CancellationReason = "x", CallerId = ride.UserId }, CancellationToken.None);
 
     // Act & Assert
     await Assert.ThrowsAsync<InvalidOperationException>(act);

@@ -23,10 +23,13 @@ var builder = WebApplication.CreateBuilder(args);
 
 var configuration = builder.Configuration;
 
+var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+  ?? ["http://localhost:3000", "http://localhost:5173"];
+
 builder.Services.AddCors(options =>
 {
   options.AddDefaultPolicy(opt =>
-    opt.AllowAnyMethod().AllowAnyHeader().SetIsOriginAllowed(_ => true).AllowCredentials());
+    opt.AllowAnyMethod().AllowAnyHeader().WithOrigins(allowedOrigins).AllowCredentials());
 });
 
 // No repository, no event-publisher/rating/driver-location port: every feature's handler takes

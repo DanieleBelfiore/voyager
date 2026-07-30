@@ -26,13 +26,14 @@ public class GetRideCurrentLocationHandlerTests
     // Arrange
     await using var db = NewContext();
     var ride = new RideEntity(Guid.NewGuid(), Guid.NewGuid(), SomePoint, SomePoint);
+    ride.Accept(ride.DriverId);
     ride.Start(new Point(5, 5));
     db.Rides.Add(ride);
     await db.SaveChangesAsync();
     var handler = new GetRideCurrentLocationHandler(db);
 
     // Act
-    var result = await handler.Handle(new GetRideCurrentLocation { Id = ride.Id }, CancellationToken.None);
+    var result = await handler.Handle(new GetRideCurrentLocation { Id = ride.Id, CallerId = ride.UserId }, CancellationToken.None);
 
     // Assert
     Assert.Equal(ride.LastLocation, result.LastLocation);

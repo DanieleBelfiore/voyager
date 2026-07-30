@@ -15,6 +15,9 @@ public class GetRideDetailsHandler(RideDbContext db) : IRequestHandler<GetRideDe
     var ride = await db.Rides.AsNoTracking().FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken)
       ?? throw new Exception("ride_not_found");
 
+    if (ride.UserId != request.CallerId && ride.DriverId != request.CallerId)
+      throw new UnauthorizedAccessException("not_ride_participant");
+
     return RideDetailsResponse.From(ride);
   }
 }

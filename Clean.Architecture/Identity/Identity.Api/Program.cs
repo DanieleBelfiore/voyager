@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -57,8 +58,17 @@ builder.Services.AddOpenIddict()
 
     options.DisableAccessTokenEncryption();
 
-    // Only for development
-    options.AddDevelopmentEncryptionCertificate().AddDevelopmentSigningCertificate();
+    if (builder.Environment.IsDevelopment())
+    {
+      options.AddDevelopmentEncryptionCertificate().AddDevelopmentSigningCertificate();
+    }
+    else
+    {
+      // No persisted-certificate loading path exists yet in this codebase (no config-bound
+      // thumbprint/path pattern to follow). Fail fast rather than silently falling back to
+      // ephemeral development certificates outside Development.
+      throw new InvalidOperationException("Signing certificate must be configured for non-development environments");
+    }
 
     options.Configure(openIddictServerOptions =>
     {

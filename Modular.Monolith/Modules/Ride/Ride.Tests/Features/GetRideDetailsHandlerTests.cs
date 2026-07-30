@@ -31,7 +31,7 @@ public class GetRideDetailsHandlerTests
     var handler = new GetRideDetailsHandler(db);
 
     // Act
-    var result = await handler.Handle(new GetRideDetails { Id = ride.Id }, CancellationToken.None);
+    var result = await handler.Handle(new GetRideDetails { Id = ride.Id, CallerId = ride.UserId }, CancellationToken.None);
 
     // Assert
     Assert.Equal(ride.Id, result.Id);

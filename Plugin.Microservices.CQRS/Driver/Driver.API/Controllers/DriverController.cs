@@ -79,7 +79,7 @@ public class DriverController(IMediator mediator) : ControllerBase
   [HttpPost("search")]
   public async Task<ActionResult<List<SearchBestDriverResponse>>> SearchBestDriver([FromBody] SearchBestDriverRequest request)
   {
-    return Ok(await mediator.Send(new SearchBestDriver { UserId = this.GetUserId(), Location = request.Location, DistanceThresholdInMeters = request.DistanceThresholdInKm }));
+    return Ok(await mediator.Send(new SearchBestDriver { UserId = this.GetUserId(), Location = request.Location, DistanceThresholdInMeters = request.DistanceThresholdInKm * 1000 }));
   }
 
   /// <summary>
@@ -99,6 +99,8 @@ public class DriverController(IMediator mediator) : ControllerBase
   [HttpGet("rides/history")]
   public async Task<ActionResult<List<RideDetailsResponse>>> GetRideDriverHistory(int take = 25, int page = 0)
   {
+    take = take < 0 ? 25 : Math.Min(take, 100);
+
     return Ok(await mediator.Send(new GetRideDriverHistory { DriverId = this.GetUserId(), Take = take, Page = page }));
   }
 }

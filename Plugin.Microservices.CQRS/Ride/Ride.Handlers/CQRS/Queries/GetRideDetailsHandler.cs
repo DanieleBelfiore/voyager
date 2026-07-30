@@ -15,8 +15,11 @@ public class GetRideDetailsHandler(IRideContext db, RideMapper mapper) : IReques
   public async Task<RideDetailsResponse> Handle(GetRideDetails request, CancellationToken cancellationToken)
   {
     var ride = await mapper.ProjectToRideDetails(db.Rides.AsNoTracking().Where(f => f.Id == request.Id))
-      .FirstOrDefaultAsync(cancellationToken);
+      .FirstOrDefaultAsync(cancellationToken) ?? throw new Exception("ride_not_found");
 
-    return ride ?? throw new Exception("ride_not_found");
+    if (ride.UserId != request.CallerId && ride.DriverId != request.CallerId)
+      throw new UnauthorizedAccessException("not_ride_participant");
+
+    return ride;
   }
 }

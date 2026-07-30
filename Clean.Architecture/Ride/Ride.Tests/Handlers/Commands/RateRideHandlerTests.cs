@@ -30,7 +30,7 @@ public class RateRideHandlerTests
     _repository.GetUserHistoryAsync(userId, -1, 0, Arg.Any<CancellationToken>()).Returns([ride]);
 
     // Act
-    await _handler.Handle(new RateRide { RideId = ride.Id, Rating = 4 }, CancellationToken.None);
+    await _handler.Handle(new RateRide { RideId = ride.Id, Rating = 4, CallerId = userId }, CancellationToken.None);
 
     // Assert
     await _ratings.Received(1).UpdateRatingAsync(userId, 4, 1, Arg.Any<CancellationToken>());
@@ -47,5 +47,17 @@ public class RateRideHandlerTests
     // Act & Assert
     var ex = await Assert.ThrowsAsync<Exception>(act);
     Assert.Equal("ride_not_found", ex.Message);
+  }
+
+  [Fact]
+  public async Task Handle_Throws_Unauthorized_WhenCallerIsNotRider()
+  {
+    // Arrange
+    var ride = new RideEntity(Guid.NewGuid(), Guid.NewGuid(), SomePoint, SomePoint);
+    _repository.GetByIdReadOnlyAsync(ride.Id, Arg.Any<CancellationToken>()).Returns(ride);
+    var act = () => _handler.Handle(new RateRide { RideId = ride.Id, Rating = 4, CallerId = ride.DriverId }, CancellationToken.None);
+
+    // Act & Assert
+    await Assert.ThrowsAsync<UnauthorizedAccessException>(act);
   }
 }

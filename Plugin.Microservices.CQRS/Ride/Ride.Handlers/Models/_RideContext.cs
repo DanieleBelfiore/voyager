@@ -30,6 +30,8 @@ public class RideContext(DbContextOptions<RideContext> options) : DbContext(opti
     base.OnModelCreating(modelBuilder);
 
     modelBuilder.BuildIndexesFromAnnotations();
+
+    modelBuilder.Entity<Ride>().Property(r => r.RowVersion).IsRowVersion();
   }
 
   public new void Add<TEntity>(TEntity entity) where TEntity : class

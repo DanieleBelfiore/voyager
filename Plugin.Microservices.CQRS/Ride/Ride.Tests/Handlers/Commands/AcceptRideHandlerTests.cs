@@ -66,4 +66,18 @@ public class AcceptRideHandlerTests
 
     await _clientProxy.Received(1).SendToRiderRideAccepted(Arg.Is<Guid>(id => id == rideId));
   }
+
+  [Fact]
+  public async Task Handle_Throws_WhenRideNotRequested()
+  {
+    // Arrange
+    var rideId = Guid.NewGuid();
+    _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, Status = RideStatus.DriverAssigned });
+    await _context.SaveChangesAsync();
+    var act = () => _mediator.Send(new AcceptRide { RideId = rideId, DriverId = Guid.NewGuid() });
+
+    // Act & Assert
+    var ex = await Assert.ThrowsAsync<Exception>(act);
+    Assert.Equal("operation_not_permitted", ex.Message);
+  }
 }

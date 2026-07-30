@@ -63,6 +63,18 @@ public class RideRepository(RideDbContext db) : IRideRepository
 
   public async Task<int> SaveChangesAsync(CancellationToken cancellationToken)
   {
-    return await db.SaveChangesAsync(cancellationToken);
+    try
+    {
+      return await db.SaveChangesAsync(cancellationToken);
+    }
+    catch (DbUpdateException ex) when (ex.InnerException is Microsoft.Data.SqlClient.SqlException { Number: 2601 or 2627 })
+    {
+      // Race with another concurrent RequestRide: the in-memory HasInFlightRideAsync check
+      // passed for both callers, but only one insert can satisfy the unique filtered index
+      // IX_Rides_UserId_ActiveOnly (RideConfiguration). Translate to the same exception
+      // RequestRideHandler already throws for the in-memory check, so callers get a
+      // consistent error either way.
+      throw new InvalidOperationException("duplicate_active_ride", ex);
+    }
   }
 }

@@ -13,6 +13,9 @@ public class GetRideETAHandler(IRideRepository repository, IDriverLocationQuery 
   {
     var ride = await repository.GetByIdReadOnlyAsync(request.Id, cancellationToken) ?? throw new Exception("ride_not_found");
 
+    if (ride.UserId != request.CallerId && ride.DriverId != request.CallerId)
+      throw new UnauthorizedAccessException("not_ride_participant");
+
     var location = await driverLocation.GetLocationAsync(ride.DriverId, cancellationToken);
 
     if (ride.PickupLocation == null || location == null)

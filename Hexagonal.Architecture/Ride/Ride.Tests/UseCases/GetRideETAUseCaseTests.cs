@@ -31,7 +31,7 @@ public class GetRideETAUseCaseTests
     _driverLocation.GetLocationAsync(ride.DriverId, Arg.Any<CancellationToken>()).Returns(new Point(0, 1));
 
     // Act
-    var result = await _useCase.Handle(new GetRideETA { Id = ride.Id }, CancellationToken.None);
+    var result = await _useCase.Handle(new GetRideETA { Id = ride.Id, CallerId = ride.UserId }, CancellationToken.None);
 
     // Assert
     Assert.NotNull(result.DistanceKm);
@@ -48,7 +48,7 @@ public class GetRideETAUseCaseTests
     _driverLocation.GetLocationAsync(ride.DriverId, Arg.Any<CancellationToken>()).Returns((Point?)null);
 
     // Act
-    var result = await _useCase.Handle(new GetRideETA { Id = ride.Id }, CancellationToken.None);
+    var result = await _useCase.Handle(new GetRideETA { Id = ride.Id, CallerId = ride.UserId }, CancellationToken.None);
 
     // Assert
     Assert.Null(result.DistanceKm);

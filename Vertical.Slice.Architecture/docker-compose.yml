@@ -3,7 +3,7 @@ services:
     image: mcr.microsoft.com/mssql/server:2022-latest
     environment:
       - ACCEPT_EULA=Y
-      - MSSQL_SA_PASSWORD=Strong!Passw0rd
+      - MSSQL_SA_PASSWORD=${DB_SA_PASSWORD:-Strong!Passw0rd}
     ports:
       - "1436:1433"
     volumes:
@@ -46,7 +46,7 @@ services:
     image: rabbitmq:3-management
     environment:
       - RABBITMQ_DEFAULT_USER=admin
-      - RABBITMQ_DEFAULT_PASS=Strong!Passw0rd
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD:-Strong!Passw0rd}
     ports:
       - "5675:5672"
       - "15675:15672"
@@ -65,8 +65,10 @@ services:
       context: ..
       dockerfile: Vertical.Slice.Architecture/Identity/Identity.Api/Dockerfile
     environment:
-      - ConnectionStrings__IdentityContext=Server=tcp:sqlserver,1433;Initial Catalog=identity;Persist Security Info=False;User ID=sa;Password=Strong!Passw0rd;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=True;Connection Timeout=30
+      - ConnectionStrings__IdentityContext=Server=tcp:sqlserver,1433;Initial Catalog=identity;Persist Security Info=False;User ID=sa;Password=${DB_SA_PASSWORD:-Strong!Passw0rd};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=True;Connection Timeout=30
       - RabbitMQ__HostName=rabbitmq
+      - RabbitMQ__UserName=admin
+      - RabbitMQ__Password=${RABBITMQ_PASSWORD:-Strong!Passw0rd}
       - Identity__Issuer=http://identity-api:8080
     depends_on:
       sqlserver:
@@ -83,8 +85,10 @@ services:
       context: ..
       dockerfile: Vertical.Slice.Architecture/Driver/Driver.Api/Dockerfile
     environment:
-      - ConnectionStrings__DriverContext=Server=tcp:sqlserver,1433;Initial Catalog=driver;Persist Security Info=False;User ID=sa;Password=Strong!Passw0rd;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=True;Connection Timeout=30
+      - ConnectionStrings__DriverContext=Server=tcp:sqlserver,1433;Initial Catalog=driver;Persist Security Info=False;User ID=sa;Password=${DB_SA_PASSWORD:-Strong!Passw0rd};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=True;Connection Timeout=30
       - RabbitMQ__HostName=rabbitmq
+      - RabbitMQ__UserName=admin
+      - RabbitMQ__Password=${RABBITMQ_PASSWORD:-Strong!Passw0rd}
       - Redis__ConnectionString=redis:6379
       - Identity__Issuer=http://identity-api:8080
     depends_on:
@@ -104,8 +108,10 @@ services:
       context: ..
       dockerfile: Vertical.Slice.Architecture/Ride/Ride.Api/Dockerfile
     environment:
-      - ConnectionStrings__RideContext=Server=tcp:sqlserver,1433;Initial Catalog=ride;Persist Security Info=False;User ID=sa;Password=Strong!Passw0rd;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=True;Connection Timeout=30
+      - ConnectionStrings__RideContext=Server=tcp:sqlserver,1433;Initial Catalog=ride;Persist Security Info=False;User ID=sa;Password=${DB_SA_PASSWORD:-Strong!Passw0rd};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=True;Connection Timeout=30
       - RabbitMQ__HostName=rabbitmq
+      - RabbitMQ__UserName=admin
+      - RabbitMQ__Password=${RABBITMQ_PASSWORD:-Strong!Passw0rd}
       - Identity__Issuer=http://identity-api:8080
     depends_on:
       sqlserver:
@@ -125,6 +131,8 @@ services:
       dockerfile: Vertical.Slice.Architecture/Hub/Hub.Api/Dockerfile
     environment:
       - RabbitMQ__HostName=rabbitmq
+      - RabbitMQ__UserName=admin
+      - RabbitMQ__Password=${RABBITMQ_PASSWORD:-Strong!Passw0rd}
       - Identity__Issuer=http://identity-api:8080
     depends_on:
       rabbitmq:

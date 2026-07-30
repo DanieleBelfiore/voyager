@@ -18,14 +18,8 @@ public class ArbitrerRatingsQueryService(IMediator mediator) : IRatingsQueryServ
 {
   public async Task<Dictionary<Guid, double>> GetRatingsAsync(List<Guid> userIds, CancellationToken cancellationToken)
   {
-    var tasks = userIds.Select(async id =>
-    {
-      var ratings = await mediator.Send(new GetUsersRatings { UserIds = [id] }, cancellationToken);
-      return (id, ratings?.FirstOrDefault().Value ?? 0.0);
-    });
+    var ratings = await mediator.Send(new GetUsersRatings { UserIds = userIds }, cancellationToken);
 
-    var results = await Task.WhenAll(tasks);
-
-    return results.ToDictionary(x => x.id, x => x.Item2);
+    return userIds.ToDictionary(id => id, id => ratings?.GetValueOrDefault(id, 0.0) ?? 0.0);
   }
 }

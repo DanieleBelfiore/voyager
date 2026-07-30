@@ -18,6 +18,9 @@ public class AcceptRideHandler(IRideContext db, IHubContext<VoyagerHub, IVoyager
   {
     var ride = await db.Rides.FirstOrDefaultAsync(f => f.Id == request.RideId, cancellationToken) ?? throw new Exception("no_ride_found");
 
+    if (ride.Status != RideStatus.Requested)
+      throw new Exception("operation_not_permitted");
+
     ride.DriverId = request.DriverId;
     ride.Status = RideStatus.DriverAssigned;
     ride.LastUpdateDate = DateTime.UtcNow;

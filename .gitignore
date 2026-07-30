@@ -301,3 +301,6 @@ __pycache__/
 .sonarqube/
 
 .DS_Store
+
+# Local secrets
+.env

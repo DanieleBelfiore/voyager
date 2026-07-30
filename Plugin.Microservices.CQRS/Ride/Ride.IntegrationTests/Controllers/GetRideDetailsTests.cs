@@ -8,13 +8,13 @@ public class GetRideDetailsTests(IntegrationTestWebAppFactory factory) : BaseInt
   private async Task InitializeTestAsync(Guid id)
   {
     await ResetDatabaseAsync();
-    await InitializeAuthenticatedClient();
-    await InitializeTestSeedDataAsync(id);
+    var userId = await InitializeAuthenticatedClient();
+    await InitializeTestSeedDataAsync(id, userId);
   }
 
-  private async Task InitializeTestSeedDataAsync(Guid id)
+  private async Task InitializeTestSeedDataAsync(Guid id, Guid userId)
   {
-    Context.Rides.Add(new Handlers.Models.Ride { Id = id });
+    Context.Rides.Add(new Handlers.Models.Ride { Id = id, UserId = userId });
 
     await Context.SaveChangesAsync(CancellationToken.None);
   }

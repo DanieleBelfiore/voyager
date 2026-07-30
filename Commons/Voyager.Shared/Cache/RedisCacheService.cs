@@ -15,11 +15,10 @@ public class RedisCacheService(IConnectionMultiplexer redis, ILogger<RedisCacheS
 
   public async Task<T> GetOrCreateAsync<T>(string key, Func<Task<T>> factory, TimeSpan expiration)
   {
-    var value = await GetAsync<T>(key);
-    if (value != null)
-      return value;
+    if (await ExistsAsync(key))
+      return await GetAsync<T>(key);
 
-    value = await factory();
+    var value = await factory();
 
     await SetAsync(key, value, expiration);
 

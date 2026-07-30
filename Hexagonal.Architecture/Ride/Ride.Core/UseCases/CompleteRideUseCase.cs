@@ -12,6 +12,9 @@ public class CompleteRideUseCase(IRideRepository repository, IRideEventPublisher
   {
     var ride = await repository.GetByIdAsync(request.Id, cancellationToken) ?? throw new Exception("no_ride_found");
 
+    if (ride.DriverId != request.CallerId)
+      throw new UnauthorizedAccessException("not_ride_participant");
+
     ride.Complete(request.Location, request.Price);
 
     await repository.SaveChangesAsync(cancellationToken);

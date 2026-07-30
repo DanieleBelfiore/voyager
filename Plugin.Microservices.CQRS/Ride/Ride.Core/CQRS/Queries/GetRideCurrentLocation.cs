@@ -7,5 +7,6 @@ namespace Ride.Core.CQRS.Queries
   public class GetRideCurrentLocation : IRequest<RideCurrentLocationResponse>
   {
     public Guid Id { get; set; }
+    public Guid CallerId { get; set; }
   }
 }

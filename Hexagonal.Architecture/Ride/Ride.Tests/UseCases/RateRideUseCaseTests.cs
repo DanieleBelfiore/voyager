@@ -31,7 +31,7 @@ public class RateRideUseCaseTests
     _repository.GetUserHistoryAsync(userId, -1, 0, Arg.Any<CancellationToken>()).Returns([ride]);
 
     // Act
-    await _useCase.Handle(new RateRide { RideId = ride.Id, Rating = 4 }, CancellationToken.None);
+    await _useCase.Handle(new RateRide { RideId = ride.Id, Rating = 4, CallerId = userId }, CancellationToken.None);
 
     // Assert
     await _ratings.Received(1).UpdateRatingAsync(userId, 4, 1, Arg.Any<CancellationToken>());

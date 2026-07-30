@@ -13,6 +13,9 @@ public class RateDriverUseCase(IRideRepository repository, IRatingUpdateService 
   {
     var ride = await repository.GetByIdReadOnlyAsync(request.RideId, cancellationToken) ?? throw new Exception("ride_not_found");
 
+    if (ride.UserId != request.CallerId)
+      throw new UnauthorizedAccessException("not_ride_participant");
+
     var driverRides = await repository.GetDriverHistoryAsync(ride.DriverId, -1, 0, cancellationToken);
 
     await ratings.UpdateRatingAsync(ride.DriverId, request.Rating, driverRides.Count, cancellationToken);

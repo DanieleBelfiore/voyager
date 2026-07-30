@@ -17,6 +17,9 @@ internal class GetRideETAHandler(RideDbContext db, IMediator mediator, IOptions<
     var ride = await db.Rides.AsNoTracking().FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken)
       ?? throw new Exception("ride_not_found");
 
+    if (ride.UserId != request.CallerId && ride.DriverId != request.CallerId)
+      throw new UnauthorizedAccessException("not_ride_participant");
+
     var driverLocation = await mediator.Send(new GetDriverLocation { DriverId = ride.DriverId }, cancellationToken);
     var location = driverLocation?.LastLocation;
 

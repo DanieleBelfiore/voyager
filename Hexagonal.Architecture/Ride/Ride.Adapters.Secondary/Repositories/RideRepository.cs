@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Ride.Adapters.Secondary.Persistence;
 using Ride.Core.Domain;
 using Ride.Core.Ports.Secondary;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using RideEntity = Ride.Core.Domain.Ride;
 
@@ -63,6 +64,15 @@ public class RideRepository(RideDbContext db) : IRideRepository
 
   public async Task<int> SaveChangesAsync(CancellationToken cancellationToken)
   {
-    return await db.SaveChangesAsync(cancellationToken);
+    try
+    {
+      return await db.SaveChangesAsync(cancellationToken);
+    }
+    catch (DbUpdateException ex) when (ex.InnerException is SqlException { Number: 2601 or 2627 })
+    {
+      // Unique constraint violation on IX_Rides_UserId_ActiveRide: another request won the race
+      // to insert the user's active ride between our in-memory check and this insert.
+      throw new InvalidOperationException();
+    }
   }
 }

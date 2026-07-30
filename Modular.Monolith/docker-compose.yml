@@ -3,7 +3,7 @@ services:
     image: mcr.microsoft.com/mssql/server:2022-latest
     environment:
       - ACCEPT_EULA=Y
-      - MSSQL_SA_PASSWORD=Strong!Passw0rd
+      - MSSQL_SA_PASSWORD=${DB_SA_PASSWORD:-Strong!Passw0rd}
     ports:
       - "1437:1433"
     volumes:
@@ -23,7 +23,7 @@ services:
         condition: service_healthy
     volumes:
       - ./init-db.sql:/init-db.sql
-    command: /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P Strong!Passw0rd -i /init-db.sql
+    command: /opt/mssql-tools/bin/sqlcmd -S sqlserver -U sa -P ${DB_SA_PASSWORD:-Strong!Passw0rd} -i /init-db.sql
     networks:
       - voyager-monolith-network
 
@@ -49,9 +49,9 @@ services:
       context: ..
       dockerfile: Modular.Monolith/Host/Dockerfile
     environment:
-      - ConnectionStrings__IdentityContext=Server=tcp:sqlserver,1433;Initial Catalog=identity;Persist Security Info=False;User ID=sa;Password=Strong!Passw0rd;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=True;Connection Timeout=30
-      - ConnectionStrings__DriverContext=Server=tcp:sqlserver,1433;Initial Catalog=driver;Persist Security Info=False;User ID=sa;Password=Strong!Passw0rd;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=True;Connection Timeout=30
-      - ConnectionStrings__RideContext=Server=tcp:sqlserver,1433;Initial Catalog=ride;Persist Security Info=False;User ID=sa;Password=Strong!Passw0rd;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=True;Connection Timeout=30
+      - ConnectionStrings__IdentityContext=Server=tcp:sqlserver,1433;Initial Catalog=identity;Persist Security Info=False;User ID=sa;Password=${DB_SA_PASSWORD:-Strong!Passw0rd};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=True;Connection Timeout=30
+      - ConnectionStrings__DriverContext=Server=tcp:sqlserver,1433;Initial Catalog=driver;Persist Security Info=False;User ID=sa;Password=${DB_SA_PASSWORD:-Strong!Passw0rd};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=True;Connection Timeout=30
+      - ConnectionStrings__RideContext=Server=tcp:sqlserver,1433;Initial Catalog=ride;Persist Security Info=False;User ID=sa;Password=${DB_SA_PASSWORD:-Strong!Passw0rd};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=True;Connection Timeout=30
       - Redis__ConnectionString=redis:6379
       - Identity__Issuer=http://app:8080
     depends_on:

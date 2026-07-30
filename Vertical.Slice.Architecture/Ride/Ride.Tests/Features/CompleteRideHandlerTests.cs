@@ -29,7 +29,10 @@ public class CompleteRideHandlerTests
   {
     // Arrange
     await using var db = NewContext();
-    var ride = new RideEntity(Guid.NewGuid(), Guid.NewGuid(), SomePoint, SomePoint);
+    var driverId = Guid.NewGuid();
+    var ride = new RideEntity(Guid.NewGuid(), driverId, SomePoint, SomePoint);
+    ride.Accept(driverId);
+    ride.Start(SomePoint);
     db.Rides.Add(ride);
     await db.SaveChangesAsync();
     var mediator = Substitute.For<IMediator>();
@@ -37,7 +40,7 @@ public class CompleteRideHandlerTests
     var dropoff = new Point(3, 3);
 
     // Act
-    await handler.Handle(new CompleteRide { Id = ride.Id, Location = dropoff, Price = 42.5 }, CancellationToken.None);
+    await handler.Handle(new CompleteRide { Id = ride.Id, Location = dropoff, Price = 42.5, CallerId = driverId }, CancellationToken.None);
 
     // Assert
     Assert.Equal(RideStatus.Completed, ride.Status);

@@ -29,14 +29,15 @@ public class CancelRideHandlerTests
   {
     // Arrange
     await using var db = NewContext();
-    var ride = new RideEntity(Guid.NewGuid(), Guid.NewGuid(), SomePoint, SomePoint);
+    var userId = Guid.NewGuid();
+    var ride = new RideEntity(userId, Guid.NewGuid(), SomePoint, SomePoint);
     db.Rides.Add(ride);
     await db.SaveChangesAsync();
     var mediator = Substitute.For<IMediator>();
     var handler = new CancelRideHandler(db, mediator);
 
     // Act
-    await handler.Handle(new CancelRide { Id = ride.Id, CancellationReason = "changed_mind" }, CancellationToken.None);
+    await handler.Handle(new CancelRide { Id = ride.Id, CancellationReason = "changed_mind", CallerId = userId }, CancellationToken.None);
 
     // Assert
     Assert.Equal(RideStatus.Cancelled, ride.Status);
@@ -62,12 +63,14 @@ public class CancelRideHandlerTests
   {
     // Arrange
     await using var db = NewContext();
-    var ride = new RideEntity(Guid.NewGuid(), Guid.NewGuid(), SomePoint, SomePoint);
+    var driverId = Guid.NewGuid();
+    var ride = new RideEntity(Guid.NewGuid(), driverId, SomePoint, SomePoint);
+    ride.Accept(driverId);
     ride.Start(SomePoint);
     db.Rides.Add(ride);
     await db.SaveChangesAsync();
     var handler = new CancelRideHandler(db, Substitute.For<IMediator>());
-    var act = () => handler.Handle(new CancelRide { Id = ride.Id, CancellationReason = "x" }, CancellationToken.None);
+    var act = () => handler.Handle(new CancelRide { Id = ride.Id, CancellationReason = "x", CallerId = driverId }, CancellationToken.None);
 
     // Act & Assert
     await Assert.ThrowsAsync<InvalidOperationException>(act);

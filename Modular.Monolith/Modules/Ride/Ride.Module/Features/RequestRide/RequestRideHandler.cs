@@ -25,7 +25,16 @@ internal class RequestRideHandler(RideDbContext db, IMediator mediator) : IReque
 
     db.Rides.Add(ride);
 
-    await db.SaveChangesAsync(cancellationToken);
+    try
+    {
+      await db.SaveChangesAsync(cancellationToken);
+    }
+    catch (DbUpdateException)
+    {
+      // Two concurrent requests can both pass the check above; the unique filtered index on
+      // Rides.UserId (active statuses only) is the DB-enforced backstop for that race.
+      throw new InvalidOperationException();
+    }
 
     await mediator.Publish(new NewRideRequested { RideId = ride.Id }, cancellationToken);
 

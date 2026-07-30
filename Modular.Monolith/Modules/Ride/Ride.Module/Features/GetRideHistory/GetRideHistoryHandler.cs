@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -14,11 +15,14 @@ internal class GetRideHistoryHandler(RideDbContext db) : IRequestHandler<GetRide
 {
   public async Task<List<RideDetailsResponse>> Handle(GetRideHistory request, CancellationToken cancellationToken)
   {
+    var take = request.Take <= 0 ? 25 : Math.Min(request.Take, 100);
+
     var query = db.Rides.AsNoTracking().Where(r => r.UserId == request.UserId && r.Status == RideStatus.Completed)
       .OrderByDescending(r => r.RequestedAt)
-      .Skip(request.Take * request.Page);
+      .Skip(take * request.Page)
+      .Take(take);
 
-    var rides = await (request.Take < 0 ? query : query.Take(request.Take)).ToListAsync(cancellationToken);
+    var rides = await query.ToListAsync(cancellationToken);
 
     return rides.Select(RideDetailsResponse.From).ToList();
   }

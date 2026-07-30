@@ -19,6 +19,9 @@ public class CancelRideHandler(IRideContext db, IHubContext<VoyagerHub, IVoyager
   {
     var ride = await db.Rides.FirstOrDefaultAsync(f => f.Id == request.Id, cancellationToken) ?? throw new Exception("no_ride_found");
 
+    if (ride.UserId != request.CallerId && ride.DriverId != request.CallerId)
+      throw new UnauthorizedAccessException("not_ride_participant");
+
     var status = new List<RideStatus> { RideStatus.Requested, RideStatus.DriverAssigned };
     if (!status.Contains(ride.Status))
       throw new Exception("operation_not_permitted");

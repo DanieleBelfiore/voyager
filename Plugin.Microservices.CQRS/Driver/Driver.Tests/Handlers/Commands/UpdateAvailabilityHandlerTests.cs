@@ -11,27 +11,30 @@ public class UpdateAvailabilityHandlerTests
 {
   private readonly IMediator _mediator;
   private readonly TestApplicationDbContext _context;
+  private readonly Common.Core.Cache.ICacheService _cache;
 
   public UpdateAvailabilityHandlerTests()
   {
-    var (context, _) = TestBase.CreateTestServices();
+    var (context, cache) = TestBase.CreateTestServices();
     _context = context;
+    _cache = cache;
 
     var mediatorMock = Substitute.For<IMediator>();
     _mediator = mediatorMock;
 
     mediatorMock.Send(Arg.Any<UpdateAvailability>(), Arg.Any<CancellationToken>())
-      .Returns(c => new UpdateAvailabilityHandler(_context)
+      .Returns(c => new UpdateAvailabilityHandler(_context, _cache)
         .Handle(c.Arg<UpdateAvailability>(), c.Arg<CancellationToken>()));
   }
 
   [Fact]
-  public async Task Handle_UpdatesStatus_WhenDriverExists()
+  public async Task Handle_UpdatesStatusAndInvalidatesCache_WhenDriverExists()
   {
     // Arrange
     var id = Guid.NewGuid();
     _context.Drivers.Add(new Driver.Handlers.Models.Driver { Id = id });
     await _context.SaveChangesAsync();
+    await _cache.GetOrCreateAsync($"driver:status:{id}", () => Task.FromResult("cached"), TimeSpan.FromMinutes(1));
 
     // Act
     await _mediator.Send(new UpdateAvailability { Id = id, Status = DriverStatus.OnRide });
@@ -39,6 +42,7 @@ public class UpdateAvailabilityHandlerTests
     // Assert
     var driver = await _context.Drivers.FindAsync(id);
     Assert.Equal(DriverStatus.OnRide, driver!.Status);
+    Assert.Null(await _cache.GetAsync<string>($"driver:status:{id}"));
   }
 
   [Fact]

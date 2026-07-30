@@ -31,7 +31,7 @@ public class RateDriverUseCaseTests
     _repository.GetDriverHistoryAsync(driverId, -1, 0, Arg.Any<CancellationToken>()).Returns([ride]);
 
     // Act
-    await _useCase.Handle(new RateDriver { RideId = ride.Id, Rating = 5 }, CancellationToken.None);
+    await _useCase.Handle(new RateDriver { RideId = ride.Id, Rating = 5, CallerId = ride.UserId }, CancellationToken.None);
 
     // Assert
     await _ratings.Received(1).UpdateRatingAsync(driverId, 5, 1, Arg.Any<CancellationToken>());
@@ -48,7 +48,7 @@ public class RateDriverUseCaseTests
     _repository.GetDriverHistoryAsync(driverId, -1, 0, Arg.Any<CancellationToken>()).Returns([]);
 
     // Act
-    await _useCase.Handle(new RateDriver { RideId = ride.Id, Rating = 5 }, CancellationToken.None);
+    await _useCase.Handle(new RateDriver { RideId = ride.Id, Rating = 5, CallerId = ride.UserId }, CancellationToken.None);
 
     // Assert
     await _events.DidNotReceive().DriverRatingReceivedAsync(Arg.Any<Guid>(), Arg.Any<int>(), Arg.Any<CancellationToken>());

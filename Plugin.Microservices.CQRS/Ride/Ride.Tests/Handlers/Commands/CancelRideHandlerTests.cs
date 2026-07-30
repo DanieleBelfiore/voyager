@@ -39,11 +39,12 @@ public class CancelRideHandlerTests
   {
     // Arrange
     var rideId = Guid.NewGuid();
-    _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, Status = RideStatus.Requested });
+    var userId = Guid.NewGuid();
+    _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, UserId = userId, Status = RideStatus.Requested });
     await _context.SaveChangesAsync();
 
     // Act
-    await _mediator.Send(new CancelRide { Id = rideId, CancellationReason = "changed_mind" });
+    await _mediator.Send(new CancelRide { Id = rideId, CallerId = userId, CancellationReason = "changed_mind" });
 
     // Assert
     var ride = await _context.Rides.FindAsync(rideId);
@@ -68,12 +69,27 @@ public class CancelRideHandlerTests
   {
     // Arrange
     var rideId = Guid.NewGuid();
-    _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, Status = RideStatus.InProgress });
+    var userId = Guid.NewGuid();
+    _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, UserId = userId, Status = RideStatus.InProgress });
     await _context.SaveChangesAsync();
-    var act = () => _mediator.Send(new CancelRide { Id = rideId, CancellationReason = "x" });
+    var act = () => _mediator.Send(new CancelRide { Id = rideId, CallerId = userId, CancellationReason = "x" });
 
     // Act & Assert
     var ex = await Assert.ThrowsAsync<Exception>(act);
     Assert.Equal("operation_not_permitted", ex.Message);
+  }
+
+  [Fact]
+  public async Task Handle_Throws_WhenCallerIsNotRideParticipant()
+  {
+    // Arrange
+    var rideId = Guid.NewGuid();
+    _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, UserId = Guid.NewGuid(), DriverId = Guid.NewGuid(), Status = RideStatus.Requested });
+    await _context.SaveChangesAsync();
+    var act = () => _mediator.Send(new CancelRide { Id = rideId, CallerId = Guid.NewGuid(), CancellationReason = "x" });
+
+    // Act & Assert
+    var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(act);
+    Assert.Equal("not_ride_participant", ex.Message);
   }
 }

@@ -28,6 +28,9 @@ public class GetRideETAHandler(IRideContext db, IMediator mediator, IConfigurati
   {
     var ride = await db.Rides.AsNoTracking().FirstOrDefaultAsync(f => f.Id == request.Id, cancellationToken) ?? throw new Exception("ride_not_found");
 
+    if (ride.UserId != request.CallerId && ride.DriverId != request.CallerId)
+      throw new UnauthorizedAccessException("not_ride_participant");
+
     var driver = await mediator.Send(new GetDriverStatus { Id = ride.DriverId }, cancellationToken) ?? throw new Exception("driver_not_found");
 
     if (ride.PickupLocation == null || driver.LastLocation == null)
@@ -40,7 +43,7 @@ public class GetRideETAHandler(IRideContext db, IMediator mediator, IConfigurati
 
     return new ETAResponse
     {
-      EstimatedArrivalMinutes = DateTime.UtcNow.AddMinutes(adjustedMinutes).Minute,
+      EstimatedArrivalMinutes = (int)Math.Round(adjustedMinutes),
       DistanceKm = Math.Round(distanceInMeters, 2)
     };
   }

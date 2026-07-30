@@ -5,6 +5,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Voyager.Shared.Extensions;
 
 namespace Ride.Module.Features.CompleteRide;
 
@@ -16,7 +17,7 @@ public class CompleteRideController(IMediator mediator) : ControllerBase
   [HttpPut("{rideId:guid}/complete")]
   public async Task<ActionResult> Complete(Guid rideId, [FromBody] CompleteRideRequest request, CancellationToken cancellationToken)
   {
-    await mediator.Send(new CompleteRide { Id = rideId, Location = request.Location, Price = request.Price }, cancellationToken);
+    await mediator.Send(new CompleteRide { Id = rideId, Location = request.Location, Price = request.Price, CallerId = this.GetUserId() }, cancellationToken);
 
     return Ok();
   }

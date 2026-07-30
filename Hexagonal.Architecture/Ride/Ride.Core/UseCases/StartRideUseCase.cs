@@ -12,6 +12,9 @@ public class StartRideUseCase(IRideRepository repository) : IStartRideUseCase
   {
     var ride = await repository.GetByIdAsync(request.Id, cancellationToken) ?? throw new Exception("no_ride_found");
 
+    if (ride.DriverId != request.CallerId)
+      throw new UnauthorizedAccessException("not_ride_participant");
+
     ride.Start(request.Location);
 
     await repository.SaveChangesAsync(cancellationToken);

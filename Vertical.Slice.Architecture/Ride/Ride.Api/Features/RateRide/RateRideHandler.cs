@@ -19,6 +19,9 @@ public class RateRideHandler(RideDbContext db, IMediator mediator) : IRequestHan
     var ride = await db.Rides.AsNoTracking().FirstOrDefaultAsync(r => r.Id == request.RideId, cancellationToken)
       ?? throw new Exception("ride_not_found");
 
+    if (ride.UserId != request.CallerId)
+      throw new UnauthorizedAccessException("not_ride_participant");
+
     var rideCount = await db.Rides.AsNoTracking()
       .Where(r => r.UserId == ride.UserId && r.Status == RideStatus.Completed)
       .CountAsync(cancellationToken);

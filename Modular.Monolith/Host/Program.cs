@@ -23,10 +23,13 @@ var builder = WebApplication.CreateBuilder(args);
 
 var configuration = builder.Configuration;
 
+var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+  ?? ["http://localhost:3000", "http://localhost:5173"];
+
 builder.Services.AddCors(options =>
 {
   options.AddDefaultPolicy(opt =>
-    opt.AllowAnyMethod().AllowAnyHeader().SetIsOriginAllowed(_ => true).AllowCredentials());
+    opt.AllowAnyMethod().AllowAnyHeader().WithOrigins(allowedOrigins).AllowCredentials());
 });
 
 // Composition root: each module wires its own infrastructure through its own public

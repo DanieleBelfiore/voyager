@@ -16,6 +16,12 @@ public class StartRideHandler(IRideContext db) : IRequestHandler<StartRide>
   {
     var ride = await db.Rides.FirstOrDefaultAsync(f => f.Id == request.Id, cancellationToken) ?? throw new Exception("no_ride_found");
 
+    if (ride.DriverId != request.CallerId)
+      throw new UnauthorizedAccessException("not_ride_participant");
+
+    if (ride.Status != RideStatus.DriverAssigned)
+      throw new Exception("operation_not_permitted");
+
     ride.Status = RideStatus.InProgress;
     ride.PickupLocation = request.Location;
     ride.PickupLocationGeoJSON = new WKTWriter().Write(ride.PickupLocation);

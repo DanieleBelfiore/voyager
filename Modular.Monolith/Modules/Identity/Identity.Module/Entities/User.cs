@@ -39,7 +39,7 @@ internal class User
 
   public void UpdateRating(int rating, int rides)
   {
-    Ratings = (Ratings + rating) / rides;
+    Ratings = rides <= 1 ? rating : (Ratings * (rides - 1) + rating) / (double)rides;
     Modified = DateTime.UtcNow;
   }
 }

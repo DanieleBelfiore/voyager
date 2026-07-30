@@ -14,6 +14,12 @@ internal class CompleteRideHandler(RideDbContext db, IMediator mediator) : IRequ
   {
     var ride = await db.Rides.FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken) ?? throw new Exception("no_ride_found");
 
+    if (ride.DriverId != request.CallerId)
+      throw new UnauthorizedAccessException("not_ride_participant");
+
+    if (request.Price <= 0)
+      throw new ArgumentException("invalid_price");
+
     ride.Complete(request.Location, request.Price);
 
     await db.SaveChangesAsync(cancellationToken);

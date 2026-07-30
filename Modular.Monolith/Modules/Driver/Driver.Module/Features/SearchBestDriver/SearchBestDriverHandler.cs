@@ -38,7 +38,7 @@ internal class SearchBestDriverHandler(
       return [];
 
     var driverIds = drivers.Select(d => d.Id).ToList();
-    var userRatings = await GetRatingsAsync(driverIds, mediator, cancellationToken);
+    var userRatings = await mediator.Send(new GetUsersRatings { UserIds = driverIds }, cancellationToken);
 
     var w = weights.Value;
 
@@ -59,18 +59,5 @@ internal class SearchBestDriverHandler(
       }).ToList();
 
     return [.. result.OrderBy(f => f.Score)];
-  }
-
-  private static async Task<Dictionary<Guid, double>> GetRatingsAsync(List<Guid> userIds, IMediator mediator, CancellationToken cancellationToken)
-  {
-    var tasks = userIds.Select(async id =>
-    {
-      var ratings = await mediator.Send(new GetUsersRatings { UserIds = [id] }, cancellationToken);
-      return (id, ratings?.FirstOrDefault().Value ?? 0.0);
-    });
-
-    var results = await Task.WhenAll(tasks);
-
-    return results.ToDictionary(x => x.id, x => x.Item2);
   }
 }

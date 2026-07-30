@@ -13,6 +13,9 @@ public class StartRideHandler(RideDbContext db) : IRequestHandler<StartRide>
   {
     var ride = await db.Rides.FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken) ?? throw new Exception("no_ride_found");
 
+    if (ride.DriverId != request.CallerId)
+      throw new UnauthorizedAccessException("not_ride_participant");
+
     ride.Start(request.Location);
 
     await db.SaveChangesAsync(cancellationToken);

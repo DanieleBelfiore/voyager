@@ -40,7 +40,7 @@ public class GetRideETAHandlerTests
     var handler = new GetRideETAHandler(db, _mediator, _config);
 
     // Act
-    var result = await handler.Handle(new GetRideETA { Id = ride.Id }, CancellationToken.None);
+    var result = await handler.Handle(new GetRideETA { Id = ride.Id, CallerId = ride.UserId }, CancellationToken.None);
 
     // Assert
     Assert.NotNull(result.DistanceKm);
@@ -61,7 +61,7 @@ public class GetRideETAHandlerTests
     var handler = new GetRideETAHandler(db, _mediator, _config);
 
     // Act
-    var result = await handler.Handle(new GetRideETA { Id = ride.Id }, CancellationToken.None);
+    var result = await handler.Handle(new GetRideETA { Id = ride.Id, CallerId = ride.UserId }, CancellationToken.None);
 
     // Assert
     Assert.Null(result.DistanceKm);

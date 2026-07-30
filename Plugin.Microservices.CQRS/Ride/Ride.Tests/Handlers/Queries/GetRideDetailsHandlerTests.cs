@@ -35,7 +35,7 @@ public class GetRideDetailsHandlerTests
     await _context.SaveChangesAsync();
 
     // Act
-    var result = await _mediator.Send(new GetRideDetails { Id = rideId });
+    var result = await _mediator.Send(new GetRideDetails { Id = rideId, CallerId = userId });
 
     // Assert
     Assert.Equal(rideId, result.Id);
@@ -52,5 +52,19 @@ public class GetRideDetailsHandlerTests
     // Act & Assert
     var ex = await Assert.ThrowsAsync<Exception>(act);
     Assert.Equal("ride_not_found", ex.Message);
+  }
+
+  [Fact]
+  public async Task Handle_Throws_WhenCallerIsNotRideParticipant()
+  {
+    // Arrange
+    var rideId = Guid.NewGuid();
+    _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, UserId = Guid.NewGuid(), DriverId = Guid.NewGuid() });
+    await _context.SaveChangesAsync();
+    var act = () => _mediator.Send(new GetRideDetails { Id = rideId, CallerId = Guid.NewGuid() });
+
+    // Act & Assert
+    var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(act);
+    Assert.Equal("not_ride_participant", ex.Message);
   }
 }

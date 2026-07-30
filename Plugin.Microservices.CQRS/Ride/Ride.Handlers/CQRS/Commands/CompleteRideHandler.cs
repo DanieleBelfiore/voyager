@@ -18,6 +18,12 @@ public class CompleteRideHandler(IRideContext db, IHubContext<VoyagerHub, IVoyag
   {
     var ride = await db.Rides.FirstOrDefaultAsync(f => f.Id == request.Id, cancellationToken) ?? throw new Exception("no_ride_found");
 
+    if (ride.DriverId != request.CallerId)
+      throw new UnauthorizedAccessException("not_ride_participant");
+
+    if (ride.Status != RideStatus.InProgress)
+      throw new Exception("operation_not_permitted");
+
     ride.Status = RideStatus.Completed;
     ride.DropoffLocation = request.Location;
     ride.LastLocation = ride.DropoffLocation;

@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using NetTopologySuite.Geometries;
 using NSubstitute;
+using System.Linq;
 using Voyager.Contracts.Identity;
 using Xunit;
 
@@ -91,7 +92,7 @@ public class SearchBestDriverHandlerTests
       .Returns(callInfo =>
       {
         var request = callInfo.Arg<GetUsersRatings>();
-        return new Dictionary<Guid, double> { [request.UserIds[0]] = 5.0 };
+        return request.UserIds.ToDictionary(id => id, _ => 5.0);
       });
     var handler = new SearchBestDriverHandler(db, new FakeCacheService(), _weights, _mediator);
 

@@ -18,6 +18,9 @@ internal class RateDriverHandler(RideDbContext db, IMediator mediator) : IReques
     var ride = await db.Rides.AsNoTracking().FirstOrDefaultAsync(r => r.Id == request.RideId, cancellationToken)
       ?? throw new Exception("ride_not_found");
 
+    if (ride.UserId != request.CallerId)
+      throw new UnauthorizedAccessException("not_ride_participant");
+
     var driverRides = await db.Rides.AsNoTracking()
       .Where(r => r.DriverId == ride.DriverId && r.Status == RideStatus.Completed)
       .OrderByDescending(r => r.RequestedAt)

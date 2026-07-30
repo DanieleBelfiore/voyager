@@ -24,11 +24,12 @@ public class GetRideCurrentLocationUseCaseTests
   {
     // Arrange
     var ride = new RideEntity(Guid.NewGuid(), Guid.NewGuid(), SomePoint, SomePoint);
+    ride.Accept(ride.DriverId);
     ride.Start(new Point(5, 5));
     _repository.GetByIdReadOnlyAsync(ride.Id, Arg.Any<CancellationToken>()).Returns(ride);
 
     // Act
-    var result = await _useCase.Handle(new GetRideCurrentLocation { Id = ride.Id }, CancellationToken.None);
+    var result = await _useCase.Handle(new GetRideCurrentLocation { Id = ride.Id, CallerId = ride.UserId }, CancellationToken.None);
 
     // Assert
     Assert.Equal(ride.LastLocation, result.LastLocation);

@@ -28,7 +28,7 @@ public class GetRideDetailsUseCaseTests
     _repository.GetByIdReadOnlyAsync(ride.Id, Arg.Any<CancellationToken>()).Returns(ride);
 
     // Act
-    var result = await _useCase.Handle(new GetRideDetails { Id = ride.Id }, CancellationToken.None);
+    var result = await _useCase.Handle(new GetRideDetails { Id = ride.Id, CallerId = ride.UserId }, CancellationToken.None);
 
     // Assert
     Assert.Equal(ride.Id, result.Id);

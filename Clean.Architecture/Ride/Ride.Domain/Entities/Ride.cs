@@ -28,6 +28,7 @@ public class Ride
   public Point DropoffLocation { get; private set; }
   public Point LastLocation { get; private set; }
   public DateTime LastUpdateDate { get; private set; } = DateTime.UtcNow;
+  public byte[] RowVersion { get; private set; }
 
   private Ride()
   {
@@ -49,6 +50,9 @@ public class Ride
 
   public void Accept(Guid driverId)
   {
+    if (Status != RideStatus.Requested)
+      throw new InvalidOperationException("operation_not_permitted");
+
     DriverId = driverId;
     Status = RideStatus.DriverAssigned;
     LastUpdateDate = DateTime.UtcNow;
@@ -67,6 +71,9 @@ public class Ride
 
   public void Start(Point location)
   {
+    if (Status != RideStatus.DriverAssigned)
+      throw new InvalidOperationException("operation_not_permitted");
+
     Status = RideStatus.InProgress;
     PickupLocation = location;
     LastLocation = location;
@@ -76,6 +83,9 @@ public class Ride
 
   public void Complete(Point location, double price)
   {
+    if (Status != RideStatus.InProgress)
+      throw new InvalidOperationException("operation_not_permitted");
+
     Status = RideStatus.Completed;
     DropoffLocation = location;
     LastLocation = DropoffLocation;

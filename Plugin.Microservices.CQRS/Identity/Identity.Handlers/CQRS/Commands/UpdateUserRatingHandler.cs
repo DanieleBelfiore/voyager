@@ -15,7 +15,7 @@ public class UpdateUserRatingHandler(IIdentityContext db) : IRequestHandler<Upda
   {
     var user = await db.Users.Where(f => f.Id == request.UserId).FirstOrDefaultAsync(cancellationToken) ?? throw new InvalidOperationException("user_not_found");
 
-    var newRating = (user.Ratings + request.Rating) / request.Rides;
+    var newRating = request.Rides <= 1 ? request.Rating : (user.Ratings * (request.Rides - 1) + request.Rating) / (double)request.Rides;
 
     user.Ratings = newRating;
 

@@ -40,12 +40,13 @@ public class CompleteRideHandlerTests
   {
     // Arrange
     var rideId = Guid.NewGuid();
-    _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId });
+    var driverId = Guid.NewGuid();
+    _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, DriverId = driverId, Status = RideStatus.InProgress });
     await _context.SaveChangesAsync();
     var dropoff = new Point(3, 3);
 
     // Act
-    await _mediator.Send(new CompleteRide { Id = rideId, Location = dropoff, Price = 42.5 });
+    await _mediator.Send(new CompleteRide { Id = rideId, CallerId = driverId, Location = dropoff, Price = 42.5 });
 
     // Assert
     var ride = await _context.Rides.FindAsync(rideId);
@@ -64,5 +65,35 @@ public class CompleteRideHandlerTests
     // Act & Assert
     var ex = await Assert.ThrowsAsync<Exception>(act);
     Assert.Equal("no_ride_found", ex.Message);
+  }
+
+  [Fact]
+  public async Task Handle_Throws_WhenCallerIsNotAssignedDriver()
+  {
+    // Arrange
+    var rideId = Guid.NewGuid();
+    var driverId = Guid.NewGuid();
+    _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, DriverId = driverId, Status = RideStatus.InProgress });
+    await _context.SaveChangesAsync();
+    var act = () => _mediator.Send(new CompleteRide { Id = rideId, CallerId = Guid.NewGuid(), Location = new Point(0, 0), Price = 0 });
+
+    // Act & Assert
+    var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(act);
+    Assert.Equal("not_ride_participant", ex.Message);
+  }
+
+  [Fact]
+  public async Task Handle_Throws_WhenRideNotInProgress()
+  {
+    // Arrange
+    var rideId = Guid.NewGuid();
+    var driverId = Guid.NewGuid();
+    _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, DriverId = driverId, Status = RideStatus.DriverAssigned });
+    await _context.SaveChangesAsync();
+    var act = () => _mediator.Send(new CompleteRide { Id = rideId, CallerId = driverId, Location = new Point(0, 0), Price = 0 });
+
+    // Act & Assert
+    var ex = await Assert.ThrowsAsync<Exception>(act);
+    Assert.Equal("operation_not_permitted", ex.Message);
   }
 }

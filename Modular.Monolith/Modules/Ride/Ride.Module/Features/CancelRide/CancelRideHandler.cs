@@ -14,6 +14,9 @@ internal class CancelRideHandler(RideDbContext db, IMediator mediator) : IReques
   {
     var ride = await db.Rides.FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken) ?? throw new Exception("no_ride_found");
 
+    if (ride.UserId != request.CallerId && ride.DriverId != request.CallerId)
+      throw new UnauthorizedAccessException("not_ride_participant");
+
     ride.Cancel(request.CancellationReason);
 
     await db.SaveChangesAsync(cancellationToken);

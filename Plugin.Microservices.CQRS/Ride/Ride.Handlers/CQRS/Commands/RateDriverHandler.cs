@@ -20,6 +20,9 @@ public class RateDriverHandler(IRideContext db, IMediator mediator, IHubContext<
   {
     var r = await db.Rides.AsNoTracking().FirstOrDefaultAsync(f => f.Id == request.RideId, cancellationToken) ?? throw new Exception("ride_not_found");
 
+    if (r.UserId != request.CallerId)
+      throw new UnauthorizedAccessException("not_ride_participant");
+
     var rides = await mediator.Send(new GetRideDriverHistory { DriverId = r.DriverId, Take = -1 }, cancellationToken);
 
     await mediator.Send(new UpdateUserRating { UserId = r.DriverId, Rating = request.Rating, Rides = rides.Count }, cancellationToken);

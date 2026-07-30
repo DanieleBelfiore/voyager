@@ -17,6 +17,7 @@ public class RideConfiguration : IEntityTypeConfiguration<RideEntity>
     builder.Property(r => r.PickupLocation).HasColumnType("geography");
     builder.Property(r => r.DropoffLocation).HasColumnType("geography");
     builder.Property(r => r.LastLocation).HasColumnType("geography");
+    builder.Property(r => r.RowVersion).IsRowVersion();
 
     builder.HasIndex(r => new { r.Status, r.UserId, r.DriverId })
       .HasDatabaseName("IX_Rides_Status_UserId_DriverId");
@@ -28,5 +29,13 @@ public class RideConfiguration : IEntityTypeConfiguration<RideEntity>
     builder.HasIndex(r => new { r.DriverId, r.Status, r.RequestedAt })
       .HasDatabaseName("IX_Rides_DriverId_Status_RequestedAt")
       .IsDescending(false, false, true);
+
+    // Mirrors the in-memory HasInFlightRideAsync check (Requested=0, DriverAssigned=1, InProgress=2)
+    // as a DB-level constraint to close the race condition where two concurrent requests both pass
+    // the in-memory check before either insert commits.
+    builder.HasIndex(r => r.UserId)
+      .HasDatabaseName("IX_Rides_UserId_ActiveRide")
+      .IsUnique()
+      .HasFilter("[Status] IN (0, 1, 2)");
   }
 }

@@ -14,6 +14,9 @@ public class CompleteRideHandler(RideDbContext db, IMediator mediator) : IReques
   {
     var ride = await db.Rides.FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken) ?? throw new Exception("no_ride_found");
 
+    if (ride.DriverId != request.CallerId)
+      throw new UnauthorizedAccessException("not_ride_participant");
+
     ride.Complete(request.Location, request.Price);
 
     await db.SaveChangesAsync(cancellationToken);

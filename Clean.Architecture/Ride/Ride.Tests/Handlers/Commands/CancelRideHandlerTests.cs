@@ -27,7 +27,7 @@ public class CancelRideHandlerTests
     _repository.GetByIdAsync(ride.Id, Arg.Any<CancellationToken>()).Returns(ride);
 
     // Act
-    await _handler.Handle(new CancelRide { Id = ride.Id, CancellationReason = "changed_mind" }, CancellationToken.None);
+    await _handler.Handle(new CancelRide { Id = ride.Id, CancellationReason = "changed_mind", CallerId = ride.UserId }, CancellationToken.None);
 
     // Assert
     Assert.Equal(Ride.Domain.Enums.RideStatus.Cancelled, ride.Status);
@@ -53,11 +53,24 @@ public class CancelRideHandlerTests
   {
     // Arrange
     var ride = new RideEntity(Guid.NewGuid(), Guid.NewGuid(), SomePoint, SomePoint);
+    ride.Accept(ride.DriverId);
     ride.Start(SomePoint);
     _repository.GetByIdAsync(ride.Id, Arg.Any<CancellationToken>()).Returns(ride);
-    var act = () => _handler.Handle(new CancelRide { Id = ride.Id, CancellationReason = "x" }, CancellationToken.None);
+    var act = () => _handler.Handle(new CancelRide { Id = ride.Id, CancellationReason = "x", CallerId = ride.UserId }, CancellationToken.None);
 
     // Act & Assert
     await Assert.ThrowsAsync<InvalidOperationException>(act);
+  }
+
+  [Fact]
+  public async Task Handle_Throws_Unauthorized_WhenCallerNotParticipant()
+  {
+    // Arrange
+    var ride = new RideEntity(Guid.NewGuid(), Guid.NewGuid(), SomePoint, SomePoint);
+    _repository.GetByIdAsync(ride.Id, Arg.Any<CancellationToken>()).Returns(ride);
+    var act = () => _handler.Handle(new CancelRide { Id = ride.Id, CancellationReason = "x", CallerId = Guid.NewGuid() }, CancellationToken.None);
+
+    // Act & Assert
+    await Assert.ThrowsAsync<UnauthorizedAccessException>(act);
   }
 }

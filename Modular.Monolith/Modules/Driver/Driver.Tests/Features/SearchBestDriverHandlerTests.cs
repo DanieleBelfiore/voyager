@@ -91,7 +91,7 @@ public class SearchBestDriverHandlerTests
       .Returns(callInfo =>
       {
         var request = callInfo.Arg<GetUsersRatings>();
-        return new Dictionary<Guid, double> { [request.UserIds[0]] = 5.0 };
+        return request!.UserIds!.ToDictionary(id => id, _ => 5.0);
       });
     var handler = new SearchBestDriverHandler(db, new FakeCacheService(), _weights, _mediator);
 

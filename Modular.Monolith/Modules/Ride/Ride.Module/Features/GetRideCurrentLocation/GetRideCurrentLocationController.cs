@@ -5,6 +5,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Voyager.Shared.Extensions;
 
 namespace Ride.Module.Features.GetRideCurrentLocation;
 
@@ -17,6 +18,6 @@ public class GetRideCurrentLocationController(IMediator mediator) : ControllerBa
   [HttpGet("{rideId:guid}/location")]
   public async Task<ActionResult<RideCurrentLocationResponse>> Get(Guid rideId, CancellationToken cancellationToken)
   {
-    return Ok(await mediator.Send(new GetRideCurrentLocation { Id = rideId }, cancellationToken));
+    return Ok(await mediator.Send(new GetRideCurrentLocation { Id = rideId, CallerId = this.GetUserId() }, cancellationToken));
   }
 }

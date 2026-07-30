@@ -36,7 +36,7 @@ public class CancelRideHandlerTests
     var handler = new CancelRideHandler(db, mediator);
 
     // Act
-    await handler.Handle(new CancelRide { Id = ride.Id, CancellationReason = "changed_mind" }, CancellationToken.None);
+    await handler.Handle(new CancelRide { Id = ride.Id, CancellationReason = "changed_mind", CallerId = ride.UserId }, CancellationToken.None);
 
     // Assert
     Assert.Equal(RideStatus.Cancelled, ride.Status);
@@ -63,11 +63,12 @@ public class CancelRideHandlerTests
     // Arrange
     await using var db = NewContext();
     var ride = new RideEntity(Guid.NewGuid(), Guid.NewGuid(), SomePoint, SomePoint);
+    ride.Accept(ride.DriverId);
     ride.Start(SomePoint);
     db.Rides.Add(ride);
     await db.SaveChangesAsync();
     var handler = new CancelRideHandler(db, Substitute.For<IMediator>());
-    var act = () => handler.Handle(new CancelRide { Id = ride.Id, CancellationReason = "x" }, CancellationToken.None);
+    var act = () => handler.Handle(new CancelRide { Id = ride.Id, CancellationReason = "x", CallerId = ride.UserId }, CancellationToken.None);
 
     // Act & Assert
     await Assert.ThrowsAsync<InvalidOperationException>(act);
