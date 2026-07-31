@@ -25,8 +25,8 @@ internal class GetRideETAForHubHandler(RideDbContext db, IMediator mediator, IOp
     if (ride.PickupLocation == null || location == null)
       return new RideETAInfo();
 
-    var distanceInMeters = ride.PickupLocation.Distance(location);
-    var (minutes, distanceKm) = RideEtaCalculator.Calculate(distanceInMeters, config.Value.AverageSpeedKmh);
+    var distanceInMeters = RideEtaCalculator.DistanceInMeters(ride.PickupLocation, location);
+    var (minutes, distanceKm) = RideEtaCalculator.Calculate(distanceInMeters, config.Value);
 
     return new RideETAInfo { EstimatedArrivalMinutes = minutes, DistanceKm = distanceKm };
   }

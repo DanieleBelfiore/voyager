@@ -30,8 +30,12 @@ public static class RateLimitingExtensions
       {
         options.AddPolicy(limit.Key, context =>
         {
+          // User-Agent is attacker-controlled and trivially rotated per request — it doesn't
+          // actually partition anonymous callers, it just lets each request claim to be a new
+          // one. Remote IP (respecting X-Forwarded-For via UseForwardedHeaders) is what
+          // anonymous rate limiting has to key on instead.
           return RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: context.User.Identity?.Name ?? context.Request.Headers.UserAgent.ToString(),
+            partitionKey: context.User.Identity?.Name ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             factory: _ => new FixedWindowRateLimiterOptions
             {
               PermitLimit = limit.Value.PermitLimit,

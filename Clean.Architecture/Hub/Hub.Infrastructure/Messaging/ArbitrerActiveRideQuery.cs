@@ -15,4 +15,11 @@ public class ArbitrerActiveRideQuery(IMediator mediator) : IActiveRideQuery
 
     return result == null ? null : new ActiveRide { Id = result.Id, PickupLocation = result.PickupLocation };
   }
+
+  public async Task<ActiveRide> GetActiveRideForParticipantAsync(Guid participantId, CancellationToken cancellationToken)
+  {
+    var result = await mediator.Send(new GetActiveRide { DriverId = participantId, UserId = participantId }, cancellationToken);
+
+    return result == null ? null : new ActiveRide { Id = result.Id, PickupLocation = result.PickupLocation };
+  }
 }

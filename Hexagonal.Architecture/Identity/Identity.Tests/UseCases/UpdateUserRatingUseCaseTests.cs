@@ -18,7 +18,7 @@ public class UpdateUserRatingUseCaseTests
 
     var useCase = new UpdateUserRatingUseCase(repository);
 
-    var result = await useCase.Handle(new UpdateUserRating { UserId = user.Id, Rating = 5, Rides = 1 }, CancellationToken.None);
+    var result = await useCase.Handle(new UpdateUserRating { UserId = user.Id, Rating = 5 }, CancellationToken.None);
 
     Assert.Equal(5, result);
     Assert.Equal(5, user.Ratings);

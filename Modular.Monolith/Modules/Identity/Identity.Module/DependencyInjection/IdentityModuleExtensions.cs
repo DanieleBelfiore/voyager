@@ -52,9 +52,13 @@ public static class IdentityModuleExtensions
           .EnableTokenEndpointPassthrough()
           .DisableTransportSecurityRequirement();
 
-        options.SetAccessTokenLifetime(TimeSpan.FromHours(12));
-        options.SetIdentityTokenLifetime(TimeSpan.FromHours(12));
-        options.SetRefreshTokenLifetime(TimeSpan.FromDays(30));
+        // Demo-scope relaxations, not for production: DisableTransportSecurityRequirement allows
+        // the token endpoint over plain HTTP; the long token lifetimes and
+        // DisableAccessTokenEncryption below keep the JWT plaintext and long-lived so it's easy
+        // to inspect while developing. Tighten all of this before any non-demo deployment.
+        options.SetAccessTokenLifetime(TimeSpan.FromHours(configuration.GetValue<double>("Identity:AccessTokenLifetimeHours")));
+        options.SetIdentityTokenLifetime(TimeSpan.FromHours(configuration.GetValue<double>("Identity:IdentityTokenLifetimeHours")));
+        options.SetRefreshTokenLifetime(TimeSpan.FromDays(configuration.GetValue<double>("Identity:RefreshTokenLifetimeDays")));
 
         options.DisableAccessTokenEncryption();
 

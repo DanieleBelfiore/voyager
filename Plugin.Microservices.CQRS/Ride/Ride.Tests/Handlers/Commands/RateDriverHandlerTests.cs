@@ -5,8 +5,6 @@ using MediatR;
 using Microsoft.AspNetCore.SignalR;
 using NSubstitute;
 using Ride.Core.CQRS.Commands;
-using Ride.Core.CQRS.Queries;
-using Ride.Core.Dtos;
 using Ride.Handlers.CQRS.Commands;
 using Xunit;
 
@@ -37,43 +35,23 @@ public class RateDriverHandlerTests
   }
 
   [Fact]
-  public async Task Handle_UpdatesRatingAndPushesToHub_WhenDriverHasRides()
+  public async Task Handle_UpdatesRatingAndPushesToHubForRatedRide()
   {
-    // Arrange
+    // Arrange: the notification must always use the ride being rated (request.RideId), not
+    // derived from the driver's history — Identity now self-tracks the ratings count, so the
+    // handler no longer needs to look up or pass a rides count at all.
     var userId = Guid.NewGuid();
     var driverId = Guid.NewGuid();
     var rideId = Guid.NewGuid();
-    _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, UserId = userId, DriverId = driverId });
+    _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, UserId = userId, DriverId = driverId, Status = Ride.Core.Enums.RideStatus.Completed });
     await _context.SaveChangesAsync();
-    var latestRide = new RideDetailsResponse { Id = rideId, DriverId = driverId };
-    _mediator.Send(Arg.Any<GetRideDriverHistory>(), Arg.Any<CancellationToken>())
-      .Returns([latestRide]);
 
     // Act
     await _mediator.Send(new RateDriver { RideId = rideId, CallerId = userId, Rating = 5 });
 
     // Assert
-    await _mediator.Received(1).Send(Arg.Is<UpdateUserRating>(c => c.UserId == driverId && c.Rating == 5 && c.Rides == 1), Arg.Any<CancellationToken>());
+    await _mediator.Received(1).Send(Arg.Is<UpdateUserRating>(c => c.UserId == driverId && c.Rating == 5), Arg.Any<CancellationToken>());
     await _clientProxy.Received(1).SendToDriverNewRateReceived(5);
-  }
-
-  [Fact]
-  public async Task Handle_DoesNotPushToHub_WhenDriverHasNoRides()
-  {
-    // Arrange
-    var userId = Guid.NewGuid();
-    var driverId = Guid.NewGuid();
-    var rideId = Guid.NewGuid();
-    _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, UserId = userId, DriverId = driverId });
-    await _context.SaveChangesAsync();
-    _mediator.Send(Arg.Any<GetRideDriverHistory>(), Arg.Any<CancellationToken>())
-      .Returns(new List<RideDetailsResponse>());
-
-    // Act
-    await _mediator.Send(new RateDriver { RideId = rideId, CallerId = userId, Rating = 5 });
-
-    // Assert
-    await _clientProxy.DidNotReceive().SendToDriverNewRateReceived(Arg.Any<int>());
   }
 
   [Fact]

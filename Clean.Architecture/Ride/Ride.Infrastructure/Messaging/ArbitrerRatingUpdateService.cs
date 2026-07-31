@@ -9,8 +9,8 @@ namespace Ride.Infrastructure.Messaging;
 
 public class ArbitrerRatingUpdateService(IMediator mediator) : IRatingUpdateService
 {
-  public async Task<double> UpdateRatingAsync(Guid userId, int rating, int rides, CancellationToken cancellationToken)
+  public async Task<double> UpdateRatingAsync(Guid userId, int rating, CancellationToken cancellationToken)
   {
-    return await mediator.Send(new UpdateUserRating { UserId = userId, Rating = rating, Rides = rides }, cancellationToken);
+    return await mediator.Send(new UpdateUserRating { UserId = userId, Rating = rating }, cancellationToken);
   }
 }

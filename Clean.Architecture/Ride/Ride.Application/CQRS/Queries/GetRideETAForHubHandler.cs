@@ -23,8 +23,8 @@ public class GetRideETAForHubHandler(IRideRepository repository, IDriverLocation
     if (ride.PickupLocation == null || location == null)
       return new RideETAInfo();
 
-    var distanceInMeters = ride.PickupLocation.Distance(location);
-    var (minutes, distanceKm) = RideEtaCalculator.Calculate(distanceInMeters, config.AverageSpeedKmh);
+    var distanceInMeters = RideEtaCalculator.DistanceInMeters(ride.PickupLocation, location);
+    var (minutes, distanceKm) = RideEtaCalculator.Calculate(distanceInMeters, config);
 
     return new RideETAInfo { EstimatedArrivalMinutes = minutes, DistanceKm = distanceKm };
   }

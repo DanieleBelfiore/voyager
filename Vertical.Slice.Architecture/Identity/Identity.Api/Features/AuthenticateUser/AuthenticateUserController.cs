@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using MediatR;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
 
@@ -12,6 +13,7 @@ namespace Identity.Api.Features.AuthenticateUser;
 
 public class AuthenticateUserController(IMediator mediator) : Controller
 {
+  [EnableRateLimiting("identity_token")]
   [HttpPost("~/connect/token")]
   [Consumes("application/x-www-form-urlencoded")]
   [Produces("application/json")]

@@ -11,6 +11,7 @@ using MediatR;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
@@ -33,6 +34,7 @@ public partial class UsersController(IdentityContext db, SignInManager<VoyagerUs
   /// </summary>
   /// <param name="model">The registration model containing the user details.</param>
   /// <returns>A JSON response indicating the outcome of the registration.</returns>
+  [EnableRateLimiting("identity_register")]
   [HttpPost("~/connect/register")]
   [Produces("application/json")]
   public async Task<IActionResult> Register([FromBody] Register model)
@@ -90,6 +92,7 @@ public partial class UsersController(IdentityContext db, SignInManager<VoyagerUs
   /// Exchanges user credentials for an access token.
   /// </summary>
   /// <returns>A JSON response containing the access token.</returns>
+  [EnableRateLimiting("identity_token")]
   [HttpPost("~/connect/token")]
   [Consumes("application/x-www-form-urlencoded")]
   [Produces("application/json")]

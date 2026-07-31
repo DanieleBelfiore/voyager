@@ -17,7 +17,7 @@ public class UpdateUserRatingHandler(IUserRepository repository) : IRequestHandl
   {
     var user = await repository.GetByIdAsync(request.UserId, cancellationToken) ?? throw new InvalidOperationException("user_not_found");
 
-    user.UpdateRating(request.Rating, request.Rides);
+    user.UpdateRating(request.Rating);
 
     await repository.SaveChangesAsync(cancellationToken);
 

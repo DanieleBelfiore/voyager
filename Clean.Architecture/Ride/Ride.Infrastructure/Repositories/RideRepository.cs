@@ -40,20 +40,32 @@ public class RideRepository(RideDbContext db) : IRideRepository
 
   public async Task<List<RideEntity>> GetDriverHistoryAsync(Guid driverId, int take, int page, CancellationToken cancellationToken)
   {
-    var query = db.Rides.AsNoTracking().Where(f => f.DriverId == driverId && f.Status == RideStatus.Completed)
-      .OrderByDescending(f => f.RequestedAt)
-      .Skip(take * page);
+    // Clamped here rather than trusted from the caller: take<=0 defaulted to 25 (never
+    // unbounded), take capped at 100, page floored at 0 (a negative page would otherwise
+    // produce a negative Skip() and throw at the database).
+    take = take <= 0 ? 25 : Math.Min(take, 100);
+    page = Math.Max(page, 0);
 
-    return await (take < 0 ? query : query.Take(take)).ToListAsync(cancellationToken);
+    return await db.Rides.AsNoTracking().Where(f => f.DriverId == driverId && f.Status == RideStatus.Completed)
+      .OrderByDescending(f => f.RequestedAt)
+      .Skip(take * page)
+      .Take(take)
+      .ToListAsync(cancellationToken);
   }
 
   public async Task<List<RideEntity>> GetUserHistoryAsync(Guid userId, int take, int page, CancellationToken cancellationToken)
   {
-    var query = db.Rides.AsNoTracking().Where(f => f.UserId == userId && f.Status == RideStatus.Completed)
-      .OrderByDescending(f => f.RequestedAt)
-      .Skip(take * page);
+    // Clamped here rather than trusted from the caller: take<=0 defaulted to 25 (never
+    // unbounded), take capped at 100, page floored at 0 (a negative page would otherwise
+    // produce a negative Skip() and throw at the database).
+    take = take <= 0 ? 25 : Math.Min(take, 100);
+    page = Math.Max(page, 0);
 
-    return await (take < 0 ? query : query.Take(take)).ToListAsync(cancellationToken);
+    return await db.Rides.AsNoTracking().Where(f => f.UserId == userId && f.Status == RideStatus.Completed)
+      .OrderByDescending(f => f.RequestedAt)
+      .Skip(take * page)
+      .Take(take)
+      .ToListAsync(cancellationToken);
   }
 
   public void Add(RideEntity ride)

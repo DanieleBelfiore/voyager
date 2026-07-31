@@ -1,8 +1,8 @@
 using System;
-using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using Hub.Core.Ports.Primary;
+using Hub.Core.Ports.Secondary;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using NetTopologySuite.Geometries;
@@ -15,10 +15,14 @@ namespace Hub.Api;
 /// implements IRequestHandler&lt;T&gt; too (see IUpdateDriverLocationUseCase).
 /// </summary>
 [Authorize]
-public class VoyagerHub(IUpdateDriverLocationUseCase updateDriverLocation) : Hub<IVoyagerShareClient>
+public class VoyagerHub(IUpdateDriverLocationUseCase updateDriverLocation, IActiveRideQuery activeRideQuery) : Hub<IVoyagerShareClient>
 {
   public async Task JoinRideGroup(string rideId)
   {
+    var ride = await activeRideQuery.GetActiveRideForParticipantAsync(GetCallerId(), CancellationToken.None);
+    if (ride == null || ride.Id != Guid.Parse(rideId))
+      throw new HubException("not_ride_participant");
+
     await Groups.AddToGroupAsync(Context.ConnectionId, $"ride_{rideId}");
   }
 
@@ -29,8 +33,9 @@ public class VoyagerHub(IUpdateDriverLocationUseCase updateDriverLocation) : Hub
 
   public async Task UpdateDriverLocation(Point location)
   {
-    var id = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new HubException("user_not_authenticated");
-
-    await updateDriverLocation.Handle(new Hub.Core.Ports.Primary.UpdateDriverLocation { DriverId = Guid.Parse(id), Location = location }, CancellationToken.None);
+    await updateDriverLocation.Handle(new Hub.Core.Ports.Primary.UpdateDriverLocation { DriverId = GetCallerId(), Location = location }, CancellationToken.None);
   }
+
+  private Guid GetCallerId() =>
+    Guid.Parse(Context.User?.FindFirst("sub")?.Value ?? throw new HubException("user_not_authenticated"));
 }

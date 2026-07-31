@@ -9,5 +9,5 @@ namespace Ride.Application.Ports;
 /// </summary>
 public interface IRatingUpdateService
 {
-  Task<double> UpdateRatingAsync(Guid userId, int rating, int rides, CancellationToken cancellationToken);
+  Task<double> UpdateRatingAsync(Guid userId, int rating, CancellationToken cancellationToken);
 }

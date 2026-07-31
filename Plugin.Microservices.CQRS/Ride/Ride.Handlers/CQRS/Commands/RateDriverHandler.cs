@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Hub.API;
@@ -9,7 +8,6 @@ using MediatR;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Ride.Core.CQRS.Commands;
-using Ride.Core.CQRS.Queries;
 using Ride.Handlers.Interfaces;
 
 namespace Ride.Handlers.CQRS.Commands;
@@ -18,18 +16,12 @@ public class RateDriverHandler(IRideContext db, IMediator mediator, IHubContext<
 {
   public async Task Handle(RateDriver request, CancellationToken cancellationToken)
   {
-    var r = await db.Rides.AsNoTracking().FirstOrDefaultAsync(f => f.Id == request.RideId, cancellationToken) ?? throw new Exception("ride_not_found");
+    var ride = await db.Rides.AsNoTracking().FirstOrDefaultAsync(f => f.Id == request.RideId, cancellationToken) ?? throw new Exception("ride_not_found");
 
-    if (r.UserId != request.CallerId)
+    if (ride.UserId != request.CallerId)
       throw new UnauthorizedAccessException("not_ride_participant");
 
-    var rides = await mediator.Send(new GetRideDriverHistory { DriverId = r.DriverId, Take = -1 }, cancellationToken);
-
-    await mediator.Send(new UpdateUserRating { UserId = r.DriverId, Rating = request.Rating, Rides = rides.Count }, cancellationToken);
-
-    var ride = rides.FirstOrDefault();
-    if (ride == null)
-      return;
+    await mediator.Send(new UpdateUserRating { UserId = ride.DriverId, Rating = request.Rating }, cancellationToken);
 
     await hub.Clients.Group($"ride_{ride.Id}").SendToDriverNewRateReceived(request.Rating);
   }

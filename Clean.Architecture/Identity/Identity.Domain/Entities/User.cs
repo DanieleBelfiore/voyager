@@ -18,6 +18,7 @@ public class User
   public string PasswordHash { get; private set; }
   public bool IsDriver { get; private set; }
   public double Ratings { get; private set; }
+  public int RatingsCount { get; private set; }
   public DateTime Created { get; private set; } = DateTime.UtcNow;
   public DateTime Modified { get; private set; } = DateTime.UtcNow;
   public DateTime LastLogin { get; private set; } = DateTime.UtcNow;
@@ -44,13 +45,17 @@ public class User
   }
 
   /// <summary>
-  /// Weighted running average: (previousAverage * (rides - 1) + newRating) / rides.
+  /// Weighted running average: (previousAverage * (count - 1) + newRating) / count.
   /// The Plugin.Microservices.CQRS variant uses (currentRating + newRating) / totalRides, which
-  /// is not a valid running average for rides > 1; fixed here rather than copied verbatim.
+  /// is not a valid running average for count > 1; fixed here rather than copied verbatim.
+  /// RatingsCount is self-tracked here (incremented once per call) rather than passed in by the
+  /// caller — the caller previously supplied "rides completed", which isn't the same number as
+  /// "ratings actually received" (a completed ride isn't necessarily rated).
   /// </summary>
-  public void UpdateRating(int rating, int rides)
+  public void UpdateRating(int rating)
   {
-    Ratings = rides <= 1 ? rating : (Ratings * (rides - 1) + rating) / (double)rides;
+    RatingsCount++;
+    Ratings = RatingsCount <= 1 ? rating : (Ratings * (RatingsCount - 1) + rating) / (double)RatingsCount;
     Modified = DateTime.UtcNow;
   }
 }

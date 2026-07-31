@@ -94,6 +94,7 @@ public class RidesController(
     return Ok(await getActiveRide.Handle(new GetActiveRide { UserId = this.GetUserId() }, cancellationToken));
   }
 
+  [Authorize(Policy = "RequireDriver")]
   [HttpPut("{rideId:guid}/accept")]
   public async Task<ActionResult> AcceptRide(Guid rideId, CancellationToken cancellationToken)
   {

@@ -47,9 +47,12 @@ public class GetRideETAHandlerTests
     // Act
     var result = await _mediator.Send(new GetRideETA { Id = rideId, CallerId = driverId });
 
-    // Assert
-    Assert.NotNull(result.DistanceKm);
-    Assert.NotNull(result.EstimatedArrivalMinutes);
+    // Assert: pickup and driver location are 1 degree of latitude apart (~111.2km great-circle).
+    // At 30km/h that's ~222 base minutes before the 0.8x-1.6x time-of-day multiplier — asserting
+    // real ranges (not just NotNull) also catches DistanceKm silently holding meters instead of
+    // kilometers (would show as ~111195 here, well outside this range).
+    Assert.InRange(result.DistanceKm!.Value, 111.0, 111.3);
+    Assert.InRange(result.EstimatedArrivalMinutes!.Value, 170, 360);
   }
 
   [Fact]

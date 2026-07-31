@@ -2,6 +2,7 @@ using System;
 using Hub.Module.Middlewares;
 using Hub.Module.Shared;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -14,13 +15,13 @@ namespace Hub.Module.DependencyInjection;
 /// </summary>
 public static class HubModuleExtensions
 {
-  public static IServiceCollection AddHubModule(this IServiceCollection services)
+  public static IServiceCollection AddHubModule(this IServiceCollection services, IConfiguration configuration)
   {
     services.AddSignalR(options =>
     {
       options.MaximumReceiveMessageSize = 32 * 1024;
-      options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
-      options.KeepAliveInterval = TimeSpan.FromSeconds(15);
+      options.ClientTimeoutInterval = TimeSpan.FromSeconds(configuration.GetValue<double>("SignalR:ClientTimeoutSeconds"));
+      options.KeepAliveInterval = TimeSpan.FromSeconds(configuration.GetValue<double>("SignalR:KeepAliveSeconds"));
       options.EnableDetailedErrors = true;
     }).AddNewtonsoftJsonProtocol(options =>
     {

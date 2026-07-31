@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Ride.Application.Ports;
@@ -16,14 +15,8 @@ public class RateDriverHandler(IRideRepository repository, IRatingUpdateService 
     if (ride.UserId != request.CallerId)
       throw new UnauthorizedAccessException("not_ride_participant");
 
-    var driverRides = await repository.GetDriverHistoryAsync(ride.DriverId, -1, 0, cancellationToken);
+    await ratings.UpdateRatingAsync(ride.DriverId, request.Rating, cancellationToken);
 
-    await ratings.UpdateRatingAsync(ride.DriverId, request.Rating, driverRides.Count, cancellationToken);
-
-    var latestRide = driverRides.FirstOrDefault();
-    if (latestRide == null)
-      return;
-
-    await events.DriverRatingReceivedAsync(latestRide.Id, request.Rating, cancellationToken);
+    await events.DriverRatingReceivedAsync(ride.Id, request.Rating, cancellationToken);
   }
 }

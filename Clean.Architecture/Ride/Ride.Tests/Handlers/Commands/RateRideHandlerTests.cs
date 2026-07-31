@@ -21,19 +21,20 @@ public class RateRideHandlerTests
   }
 
   [Fact]
-  public async Task Handle_UpdatesRatingAndPublishesEvent()
+  public async Task Handle_UpdatesRiderRatingAndPublishesEvent_WhenCalledByDriver()
   {
-    // Arrange
+    // Arrange: RateRide is the driver rating the rider (see SendToRiderNewRateReceived) —
+    // the caller must be the ride's driver, and the rating is applied to the rider (UserId).
     var userId = Guid.NewGuid();
-    var ride = new RideEntity(userId, Guid.NewGuid(), SomePoint, SomePoint);
+    var driverId = Guid.NewGuid();
+    var ride = new RideEntity(userId, driverId, SomePoint, SomePoint);
     _repository.GetByIdReadOnlyAsync(ride.Id, Arg.Any<CancellationToken>()).Returns(ride);
-    _repository.GetUserHistoryAsync(userId, -1, 0, Arg.Any<CancellationToken>()).Returns([ride]);
 
     // Act
-    await _handler.Handle(new RateRide { RideId = ride.Id, Rating = 4, CallerId = userId }, CancellationToken.None);
+    await _handler.Handle(new RateRide { RideId = ride.Id, Rating = 4, CallerId = driverId }, CancellationToken.None);
 
     // Assert
-    await _ratings.Received(1).UpdateRatingAsync(userId, 4, 1, Arg.Any<CancellationToken>());
+    await _ratings.Received(1).UpdateRatingAsync(userId, 4, Arg.Any<CancellationToken>());
     await _events.Received(1).RiderRatingReceivedAsync(ride.Id, 4, Arg.Any<CancellationToken>());
   }
 
@@ -50,12 +51,13 @@ public class RateRideHandlerTests
   }
 
   [Fact]
-  public async Task Handle_Throws_Unauthorized_WhenCallerIsNotRider()
+  public async Task Handle_Throws_Unauthorized_WhenCallerIsNotDriver()
   {
-    // Arrange
+    // Arrange: the rider (or anyone else) attempting to call RateRide must be rejected —
+    // only the ride's driver may rate the rider.
     var ride = new RideEntity(Guid.NewGuid(), Guid.NewGuid(), SomePoint, SomePoint);
     _repository.GetByIdReadOnlyAsync(ride.Id, Arg.Any<CancellationToken>()).Returns(ride);
-    var act = () => _handler.Handle(new RateRide { RideId = ride.Id, Rating = 4, CallerId = ride.DriverId }, CancellationToken.None);
+    var act = () => _handler.Handle(new RateRide { RideId = ride.Id, Rating = 4, CallerId = ride.UserId }, CancellationToken.None);
 
     // Act & Assert
     await Assert.ThrowsAsync<UnauthorizedAccessException>(act);

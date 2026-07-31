@@ -9,7 +9,9 @@ namespace Driver.Core.Ports.Secondary;
 public interface IDriverRepository
 {
   Task<DriverEntity> GetByIdAsync(Guid id, CancellationToken cancellationToken);
-  Task<List<DriverEntity>> GetAvailableWithLocationAsync(CancellationToken cancellationToken);
+
+  Task<List<DriverEntity>> GetAvailableWithinBoundingBoxAsync(
+    double minLatitude, double maxLatitude, double minLongitude, double maxLongitude, CancellationToken cancellationToken);
   void Add(DriverEntity driver);
   Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

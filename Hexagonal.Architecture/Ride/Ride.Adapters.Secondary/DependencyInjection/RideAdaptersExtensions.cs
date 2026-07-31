@@ -34,7 +34,11 @@ public static class RideAdaptersExtensions
 
     services.AddSingleton<IEtaConfig>(_ => new EtaConfig
     {
-      AverageSpeedKmh = configuration.GetValue<double>("AverageSpeedKmh")
+      AverageSpeedKmh = configuration.GetValue<double>("AverageSpeedKmh"),
+      MorningPeakMultiplier = configuration.GetValue<double>("MorningPeakMultiplier"),
+      EveningPeakMultiplier = configuration.GetValue<double>("EveningPeakMultiplier"),
+      NightMultiplier = configuration.GetValue<double>("NightMultiplier"),
+      LunchMultiplier = configuration.GetValue<double>("LunchMultiplier")
     });
 
     return services;

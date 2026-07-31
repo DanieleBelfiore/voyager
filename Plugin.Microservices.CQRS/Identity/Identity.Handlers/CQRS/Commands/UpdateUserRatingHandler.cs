@@ -11,16 +11,18 @@ namespace Identity.Handlers.CQRS.Commands;
 
 public class UpdateUserRatingHandler(IIdentityContext db) : IRequestHandler<UpdateUserRating, double>
 {
+  // RatingsCount is self-tracked here (incremented once per call) rather than passed in by the
+  // caller — the caller previously supplied "rides completed", which isn't the same number as
+  // "ratings actually received" (a completed ride isn't necessarily rated).
   public async Task<double> Handle(UpdateUserRating request, CancellationToken cancellationToken)
   {
     var user = await db.Users.Where(f => f.Id == request.UserId).FirstOrDefaultAsync(cancellationToken) ?? throw new InvalidOperationException("user_not_found");
 
-    var newRating = request.Rides <= 1 ? request.Rating : (user.Ratings * (request.Rides - 1) + request.Rating) / (double)request.Rides;
-
-    user.Ratings = newRating;
+    user.RatingsCount++;
+    user.Ratings = user.RatingsCount <= 1 ? request.Rating : (user.Ratings * (user.RatingsCount - 1) + request.Rating) / (double)user.RatingsCount;
 
     await db.SaveChangesAsync(cancellationToken);
 
-    return newRating;
+    return user.Ratings;
   }
 }

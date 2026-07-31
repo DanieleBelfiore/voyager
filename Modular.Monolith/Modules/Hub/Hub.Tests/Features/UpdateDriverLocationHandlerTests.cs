@@ -2,6 +2,7 @@ using Hub.Module.Features.UpdateDriverLocation;
 using Hub.Module.Shared;
 using MediatR;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Configuration;
 using NetTopologySuite.Geometries;
 using NSubstitute;
 using Voyager.Contracts.Driver;
@@ -12,6 +13,10 @@ namespace Hub.Tests.Features;
 
 public class UpdateDriverLocationHandlerTests
 {
+  private static readonly IConfiguration TestConfiguration = new ConfigurationBuilder()
+    .AddInMemoryCollection(new Dictionary<string, string?> { ["Hub:ArrivalThresholdMeters"] = "500" })
+    .Build();
+
   private static (IMediator Mediator, IHubContext<VoyagerHub, IVoyagerShareClient> Hub, IVoyagerShareClient GroupClient) NewMocks()
   {
     var mediator = Substitute.For<IMediator>();
@@ -40,7 +45,7 @@ public class UpdateDriverLocationHandlerTests
     mediator.Send(Arg.Any<GetRideETA>(), Arg.Any<CancellationToken>())
       .Returns(new RideETAInfo { EstimatedArrivalMinutes = 5, DistanceKm = 1.2 });
 
-    var handler = new UpdateDriverLocationHandler(mediator, hub);
+    var handler = new UpdateDriverLocationHandler(mediator, hub, TestConfiguration);
 
     await handler.Handle(new UpdateDriverLocation { DriverId = driverId, Location = newLocation }, CancellationToken.None);
 
@@ -57,7 +62,7 @@ public class UpdateDriverLocationHandlerTests
 
     mediator.Send(Arg.Any<GetActiveRide>(), Arg.Any<CancellationToken>()).Returns((ActiveRideInfo)null!);
 
-    var handler = new UpdateDriverLocationHandler(mediator, hub);
+    var handler = new UpdateDriverLocationHandler(mediator, hub, TestConfiguration);
 
     await handler.Handle(new UpdateDriverLocation { DriverId = Guid.NewGuid(), Location = new Point(0, 0) }, CancellationToken.None);
 

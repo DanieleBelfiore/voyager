@@ -9,7 +9,7 @@ using Voyager.Shared.Extensions;
 
 namespace Ride.Api.Features.AcceptRide;
 
-[Authorize]
+[Authorize(Policy = "RequireDriver")]
 [EnableRateLimiting("ride_api")]
 [Route("api/v1/rides")]
 public class AcceptRideController(IMediator mediator) : ControllerBase

@@ -22,7 +22,7 @@ public class UpdateUserRatingHandlerTests
 
     var handler = new UpdateUserRatingHandler(db);
 
-    var result = await handler.Handle(new Voyager.Contracts.Identity.UpdateUserRating { UserId = user.Id, Rating = 5, Rides = 1 }, CancellationToken.None);
+    var result = await handler.Handle(new Voyager.Contracts.Identity.UpdateUserRating { UserId = user.Id, Rating = 5 }, CancellationToken.None);
 
     Assert.Equal(5, result);
     Assert.Equal(5, user.Ratings);

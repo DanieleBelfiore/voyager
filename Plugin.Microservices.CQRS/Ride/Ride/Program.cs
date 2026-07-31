@@ -9,6 +9,9 @@ using Common.Core;
 using Common.Core.Cache;
 using Common.Core.RateLimiting;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.Extensions.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.OpenApi;
@@ -33,10 +36,12 @@ var moduleName = string.Concat(module!.Select((c, i) => i > 0 && char.IsUpper(c)
 var modulePath = string.Concat(module!.Select((c, i) =>
   i > 0 && char.IsUpper(c) ? $"-{char.ToLower(c)}" : char.ToLower(c).ToString()));
 
+var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+
 builder.Services.AddCors(options =>
 {
   options.AddDefaultPolicy(opt =>
-    opt.AllowAnyMethod().AllowAnyHeader().SetIsOriginAllowed(_ => true).AllowCredentials());
+    opt.AllowAnyMethod().AllowAnyHeader().WithOrigins(allowedOrigins).AllowCredentials());
 });
 
 Loader.Current.ConfigureServices(builder.Services, configuration, hostingEnvironment);
@@ -53,6 +58,14 @@ builder.Services.AddOpenIddict()
 builder.Services.AddAuthentication(options =>
 {
   options.DefaultScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
+});
+
+// "is_driver" is the custom claim UsersController stamps onto the access token principal
+// (see Constants.IS_DRIVER) — AcceptRide is the only endpoint that needs it: without this
+// check any authenticated rider could accept their own (or anyone else's) pending ride.
+builder.Services.AddAuthorization(options =>
+{
+  options.AddPolicy("RequireDriver", policy => policy.RequireClaim("is_driver", "True"));
 });
 
 builder.Services.AddSignalR(options =>
@@ -151,7 +164,26 @@ var app = builder.Build();
 
 // Only for development
 const string scheme = "http";
-app.UseDeveloperExceptionPage();
+
+if (app.Environment.IsDevelopment())
+{
+  app.UseDeveloperExceptionPage();
+}
+else
+{
+  // Do not leak stack traces/paths outside Development: a generic response, with
+  // UnauthorizedAccessException mapped to 403 since handlers already use it for that.
+  app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
+  {
+    var statusCode = context.Features.Get<IExceptionHandlerFeature>()?.Error is UnauthorizedAccessException
+      ? StatusCodes.Status403Forbidden
+      : StatusCodes.Status500InternalServerError;
+
+    context.Response.StatusCode = statusCode;
+    context.Response.ContentType = "application/json";
+    await context.Response.WriteAsJsonAsync(new { error = statusCode == StatusCodes.Status403Forbidden ? "forbidden" : "internal_server_error" });
+  }));
+}
 
 app.UseRouting();
 app.UseSwagger(options =>

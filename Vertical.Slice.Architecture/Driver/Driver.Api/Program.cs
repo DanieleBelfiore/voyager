@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text.Json.Nodes;
@@ -6,6 +7,9 @@ using Driver.Api.Features.SearchBestDriver;
 using Driver.Api.Persistence;
 using FluentValidation;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.Extensions.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,8 +28,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 var configuration = builder.Configuration;
 
-var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-  ?? ["http://localhost:3000", "http://localhost:5173"];
+var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 
 builder.Services.AddCors(options =>
 {
@@ -144,7 +147,26 @@ var app = builder.Build();
 
 // Only for development
 const string scheme = "http";
-app.UseDeveloperExceptionPage();
+
+if (app.Environment.IsDevelopment())
+{
+  app.UseDeveloperExceptionPage();
+}
+else
+{
+  // Do not leak stack traces/paths outside Development: a generic response, with
+  // UnauthorizedAccessException mapped to 403 since handlers already use it for that.
+  app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
+  {
+    var statusCode = context.Features.Get<IExceptionHandlerFeature>()?.Error is UnauthorizedAccessException
+      ? StatusCodes.Status403Forbidden
+      : StatusCodes.Status500InternalServerError;
+
+    context.Response.StatusCode = statusCode;
+    context.Response.ContentType = "application/json";
+    await context.Response.WriteAsJsonAsync(new { error = statusCode == StatusCodes.Status403Forbidden ? "forbidden" : "internal_server_error" });
+  }));
+}
 
 app.UseRouting();
 app.UseSwagger(options =>

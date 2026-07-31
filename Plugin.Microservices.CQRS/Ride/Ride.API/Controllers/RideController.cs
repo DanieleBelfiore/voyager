@@ -136,6 +136,7 @@ public class RidesController(IMediator mediator) : ControllerBase
   /// Accepts a specific ride.
   /// </summary>
   /// <param name="rideId">The ID of the ride.</param>
+  [Authorize(Policy = "RequireDriver")]
   [HttpPut("{rideId:guid}/accept")]
   public async Task<ActionResult> AcceptRide(Guid rideId)
   {

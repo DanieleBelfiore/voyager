@@ -5,8 +5,6 @@ using MediatR;
 using Microsoft.AspNetCore.SignalR;
 using NSubstitute;
 using Ride.Core.CQRS.Commands;
-using Ride.Core.CQRS.Queries;
-using Ride.Core.Dtos;
 using Ride.Handlers.CQRS.Commands;
 using Xunit;
 
@@ -37,21 +35,21 @@ public class RateRideHandlerTests
   }
 
   [Fact]
-  public async Task Handle_UpdatesRatingAndPushesToHub()
+  public async Task Handle_UpdatesRiderRatingAndPushesToHub_WhenCalledByDriver()
   {
-    // Arrange
+    // Arrange: RateRide is the driver rating the rider (see SendToRiderNewRateReceived) —
+    // the caller must be the ride's driver, and the rating is applied to the rider (UserId).
     var userId = Guid.NewGuid();
+    var driverId = Guid.NewGuid();
     var rideId = Guid.NewGuid();
-    _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, UserId = userId });
+    _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, UserId = userId, DriverId = driverId, Status = Ride.Core.Enums.RideStatus.Completed });
     await _context.SaveChangesAsync();
-    _mediator.Send(Arg.Any<GetRideHistory>(), Arg.Any<CancellationToken>())
-      .Returns([new RideDetailsResponse { Id = rideId, UserId = userId }]);
 
     // Act
-    await _mediator.Send(new RateRide { RideId = rideId, CallerId = userId, Rating = 4 });
+    await _mediator.Send(new RateRide { RideId = rideId, CallerId = driverId, Rating = 4 });
 
     // Assert
-    await _mediator.Received(1).Send(Arg.Is<UpdateUserRating>(c => c.UserId == userId && c.Rating == 4 && c.Rides == 1), Arg.Any<CancellationToken>());
+    await _mediator.Received(1).Send(Arg.Is<UpdateUserRating>(c => c.UserId == userId && c.Rating == 4), Arg.Any<CancellationToken>());
     await _clientProxy.Received(1).SendToRiderNewRateReceived(4);
   }
 
@@ -67,14 +65,15 @@ public class RateRideHandlerTests
   }
 
   [Fact]
-  public async Task Handle_Throws_WhenCallerIsNotRideOwner()
+  public async Task Handle_Throws_WhenCallerIsNotDriver()
   {
-    // Arrange
+    // Arrange: the rider (or anyone else) attempting to call RateRide must be rejected —
+    // only the ride's driver may rate the rider.
     var userId = Guid.NewGuid();
     var rideId = Guid.NewGuid();
-    _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, UserId = userId });
+    _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, UserId = userId, DriverId = Guid.NewGuid() });
     await _context.SaveChangesAsync();
-    var act = () => _mediator.Send(new RateRide { RideId = rideId, CallerId = Guid.NewGuid(), Rating = 4 });
+    var act = () => _mediator.Send(new RateRide { RideId = rideId, CallerId = userId, Rating = 4 });
 
     // Act & Assert
     var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(act);

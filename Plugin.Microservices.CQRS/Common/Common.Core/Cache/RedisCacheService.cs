@@ -20,8 +20,13 @@ public class RedisCacheService(IConnectionMultiplexer redis, ILogger<RedisCacheS
 
   public async Task<T> GetOrCreateAsync<T>(string key, Func<Task<T>> factory, TimeSpan expiration)
   {
-    if (await ExistsAsync(key))
-      return await GetAsync<T>(key);
+    // Single read instead of ExistsAsync+GetAsync: two round trips left a window where the key
+    // could expire between them, and either call failing independently could still report a
+    // "hit" that then returned nothing. One StringGetAsync also means a failed/missing read
+    // reliably falls through to the factory instead of returning a default value as if cached.
+    var (found, cached) = await TryGetAsync<T>(key);
+    if (found)
+      return cached;
 
     var value = await factory();
 
@@ -32,18 +37,26 @@ public class RedisCacheService(IConnectionMultiplexer redis, ILogger<RedisCacheS
 
   public async Task<T> GetAsync<T>(string key)
   {
+    var (_, value) = await TryGetAsync<T>(key);
+
+    return value;
+  }
+
+  private async Task<(bool Found, T Value)> TryGetAsync<T>(string key)
+  {
     try
     {
-      var value = await _cache.StringGetAsync(key);
+      var cached = await _cache.StringGetAsync(key);
 
-      return !value.HasValue ? default : JsonSerializer.Deserialize<T>(((string)value)!);
+      if (cached.HasValue)
+        return (true, JsonSerializer.Deserialize<T>((string)cached!));
     }
     catch (Exception ex)
     {
       logger.LogError(ex, "Error getting value from Redis for key {Key}", key);
-
-      return default;
     }
+
+    return (false, default);
   }
 
   private async Task SetAsync<T>(string key, T value, TimeSpan expiration)

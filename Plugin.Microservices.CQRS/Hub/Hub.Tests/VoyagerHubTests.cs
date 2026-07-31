@@ -4,6 +4,7 @@ using Hub.API;
 using Hub.Core.Interfaces;
 using MediatR;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Configuration;
 using NetTopologySuite.Geometries;
 using NSubstitute;
 using Ride.Core.CQRS.Queries;
@@ -14,6 +15,10 @@ namespace Hub.Tests;
 
 public class VoyagerHubTests
 {
+  private static readonly IConfiguration TestConfiguration = new ConfigurationBuilder()
+    .AddInMemoryCollection(new Dictionary<string, string?> { ["Hub:ArrivalThresholdMeters"] = "500" })
+    .Build();
+
   private readonly IMediator _mediator = Substitute.For<IMediator>();
   private readonly IGroupManager _groups = Substitute.For<IGroupManager>();
   private readonly IHubCallerClients<IVoyagerShareClient> _clients = Substitute.For<IHubCallerClients<IVoyagerShareClient>>();
@@ -26,7 +31,7 @@ public class VoyagerHubTests
     _context.ConnectionId.Returns("conn-1");
     _clients.Group(Arg.Any<string>()).Returns(_groupClient);
 
-    _hub = new VoyagerHub(_mediator)
+    _hub = new VoyagerHub(_mediator, TestConfiguration)
     {
       Context = _context,
       Groups = _groups,
@@ -41,16 +46,36 @@ public class VoyagerHubTests
   }
 
   [Fact]
-  public async Task JoinRideGroup_AddsConnectionToGroup()
+  public async Task JoinRideGroup_AddsConnectionToGroup_WhenCallerIsParticipant()
   {
     // Arrange
-    var rideId = Guid.NewGuid().ToString();
+    var callerId = Guid.NewGuid();
+    var rideId = Guid.NewGuid();
+    AuthenticateAs(callerId);
+    _mediator.Send(Arg.Any<GetActiveRide>(), Arg.Any<CancellationToken>())
+      .Returns(new ActiveRideResponse { Id = rideId, PickupLocation = new Point(0, 0) });
 
     // Act
-    await _hub.JoinRideGroup(rideId);
+    await _hub.JoinRideGroup(rideId.ToString());
 
     // Assert
     await _groups.Received(1).AddToGroupAsync("conn-1", $"ride_{rideId}", Arg.Any<CancellationToken>());
+  }
+
+  [Fact]
+  public async Task JoinRideGroup_Throws_WhenCallerIsNotParticipant()
+  {
+    // Arrange
+    var callerId = Guid.NewGuid();
+    var rideId = Guid.NewGuid().ToString();
+    AuthenticateAs(callerId);
+    _mediator.Send(Arg.Any<GetActiveRide>(), Arg.Any<CancellationToken>()).Returns((ActiveRideResponse?)null);
+    var act = () => _hub.JoinRideGroup(rideId);
+
+    // Act & Assert
+    var ex = await Assert.ThrowsAsync<HubException>(act);
+    Assert.Equal("not_ride_participant", ex.Message);
+    await _groups.DidNotReceive().AddToGroupAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
   }
 
   [Fact]
@@ -129,8 +154,8 @@ public class VoyagerHubTests
     _mediator.Send(Arg.Any<GetRideETA>(), Arg.Any<CancellationToken>())
       .Returns(new ETAResponse());
 
-    // Act
-    await _hub.UpdateDriverLocation(new Point(10000, 10000));
+    // Act: ~111km away (1 degree of latitude), well outside the 500m arrival threshold
+    await _hub.UpdateDriverLocation(new Point(0, 1));
 
     // Assert
     await _groupClient.DidNotReceive().SendToRiderDriverArrival(Arg.Any<Guid>());

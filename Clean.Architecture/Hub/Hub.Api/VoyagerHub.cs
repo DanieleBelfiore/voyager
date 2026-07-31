@@ -1,7 +1,8 @@
 using System;
-using System.Security.Claims;
+using System.Threading;
 using System.Threading.Tasks;
 using Hub.Application.CQRS.Commands;
+using Hub.Application.Ports;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
@@ -16,10 +17,14 @@ namespace Hub.Api;
 /// mediator dispatch, the same role a controller action plays for HTTP.
 /// </summary>
 [Authorize]
-public class VoyagerHub(IMediator mediator) : Hub<IVoyagerShareClient>
+public class VoyagerHub(IMediator mediator, IActiveRideQuery activeRideQuery) : Hub<IVoyagerShareClient>
 {
   public async Task JoinRideGroup(string rideId)
   {
+    var ride = await activeRideQuery.GetActiveRideForParticipantAsync(GetCallerId(), CancellationToken.None);
+    if (ride == null || ride.Id != Guid.Parse(rideId))
+      throw new HubException("not_ride_participant");
+
     await Groups.AddToGroupAsync(Context.ConnectionId, $"ride_{rideId}");
   }
 
@@ -30,8 +35,9 @@ public class VoyagerHub(IMediator mediator) : Hub<IVoyagerShareClient>
 
   public async Task UpdateDriverLocation(Point location)
   {
-    var id = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new HubException("user_not_authenticated");
-
-    await mediator.Send(new UpdateDriverLocation { DriverId = Guid.Parse(id), Location = location });
+    await mediator.Send(new UpdateDriverLocation { DriverId = GetCallerId(), Location = location });
   }
+
+  private Guid GetCallerId() =>
+    Guid.Parse(Context.User?.FindFirst("sub")?.Value ?? throw new HubException("user_not_authenticated"));
 }

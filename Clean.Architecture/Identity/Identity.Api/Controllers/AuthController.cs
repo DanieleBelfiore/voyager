@@ -6,6 +6,7 @@ using Identity.Application.CQRS.Queries;
 using MediatR;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
 
@@ -19,6 +20,7 @@ namespace Identity.Api.Controllers;
 /// </summary>
 public class AuthController(IMediator mediator) : Controller
 {
+  [EnableRateLimiting("identity_register")]
   [HttpPost("~/connect/register")]
   [Produces("application/json")]
   public async Task<IActionResult> Register([FromBody] RegisterUser command)
@@ -35,6 +37,7 @@ public class AuthController(IMediator mediator) : Controller
     return Ok();
   }
 
+  [EnableRateLimiting("identity_token")]
   [HttpPost("~/connect/token")]
   [Consumes("application/x-www-form-urlencoded")]
   [Produces("application/json")]

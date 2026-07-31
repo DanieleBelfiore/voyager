@@ -20,7 +20,7 @@ Voyager is a ride-sharing backend (Identity / Driver / Ride / Hub services). Thi
 
 Each folder is a **self-contained .NET solution** with its own `README.md` (architecture rationale, patterns used) and `CLAUDE.md` (commands, layout). Don't assume commands or paths from one variant apply to another — `cd` into the folder first.
 
-For browsing every variant side by side in a single IDE window, open [`Voyager.All.sln`](Voyager.All.sln) at the repo root — an aggregate solution containing all 79 projects, grouped into solution folders that mirror the on-disk layout. It's an IDE convenience only: each variant's own `.sln` stays the canonical build unit, and CI builds those five individually.
+For browsing every variant side by side in a single IDE window, open [`Voyager.All.sln`](Voyager.All.sln) at the repo root — an aggregate solution containing all 81 projects, grouped into solution folders that mirror the on-disk layout. It's an IDE convenience only: each variant's own `.sln` stays the canonical build unit, and CI builds those five individually.
 
 ## `Commons/`
 

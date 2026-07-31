@@ -37,10 +37,15 @@ def main():
         print(f"No cobertura files matched: {args.cobertura_glob}", file=sys.stderr)
         sys.exit(1)
 
-    covered = 0
-    valid = 0
+    # Keyed by (package, class, line number) rather than summed per file: the .NET coverage
+    # collector emits one cobertura report per test assembly, and a production assembly merely
+    # *loaded* (via a transitive reference) by more than one test project shows up in more than
+    # one report -- often with near-zero hits in the report belonging to the project that never
+    # actually calls into it. Summing those reports independently would count the same lines
+    # multiple times and could dilute or inflate the aggregate. Deduping by line and treating a
+    # line as covered if any report saw a hit gives one honest count per line.
     seen = set()
-    per_package = {}
+    line_hit = {}
 
     for f in files:
         root = ET.parse(f).getroot()
@@ -49,23 +54,27 @@ def main():
             if name not in wanted:
                 continue
             seen.add(name)
-            pcov = psum = 0
             for cls in pkg.iter("class"):
                 cls_name = cls.get("name")
                 if exclude_re and exclude_re.search(cls_name):
                     continue
                 for line in cls.iter("line"):
-                    psum += 1
-                    if int(line.get("hits")) > 0:
-                        pcov += 1
-            c, v = per_package.get(name, (0, 0))
-            per_package[name] = (c + pcov, v + psum)
-            covered += pcov
-            valid += psum
+                    key = (name, cls_name, line.get("number"))
+                    hit = int(line.get("hits")) > 0
+                    line_hit[key] = line_hit.get(key, False) or hit
 
     missing = wanted - seen
     if missing:
-        print(f"WARNING: these packages never appeared in any cobertura report (never loaded by tests): {sorted(missing)}", file=sys.stderr)
+        print(f"FAIL: these packages never appeared in any cobertura report (never loaded by tests): {sorted(missing)}", file=sys.stderr)
+        sys.exit(1)
+
+    per_package = {}
+    for (pkg_name, _cls_name, _line_number), hit in line_hit.items():
+        c, v = per_package.get(pkg_name, (0, 0))
+        per_package[pkg_name] = (c + (1 if hit else 0), v + 1)
+
+    covered = sum(c for c, _v in per_package.values())
+    valid = sum(v for _c, v in per_package.values())
 
     print(f"{'Assembly':40} {'covered/valid':>15} {'line %':>8}")
     print("-" * 66)

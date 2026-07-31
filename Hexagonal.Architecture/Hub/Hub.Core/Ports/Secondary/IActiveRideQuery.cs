@@ -8,6 +8,8 @@ namespace Hub.Core.Ports.Secondary;
 public interface IActiveRideQuery
 {
   Task<ActiveRide> GetActiveRideForDriverAsync(Guid driverId, CancellationToken cancellationToken);
+
+  Task<ActiveRide> GetActiveRideForParticipantAsync(Guid participantId, CancellationToken cancellationToken);
 }
 
 public class ActiveRide

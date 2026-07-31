@@ -17,10 +17,17 @@ public class DriverRepository(DriverDbContext db) : IDriverRepository
     return await db.Drivers.FirstOrDefaultAsync(f => f.Id == id, cancellationToken);
   }
 
-  public async Task<List<DriverEntity>> GetAvailableWithLocationAsync(CancellationToken cancellationToken)
+  // Bounding-box prefilter pushed into SQL (plain X/Y comparisons, no spatial-function
+  // translation involved) instead of pulling every available driver into memory: this is what
+  // the geography index on LastLocation actually earns its keep on, and the precise
+  // great-circle cutoff still happens in the handler on this already-narrowed set.
+  public async Task<List<DriverEntity>> GetAvailableWithinBoundingBoxAsync(
+    double minLatitude, double maxLatitude, double minLongitude, double maxLongitude, CancellationToken cancellationToken)
   {
     return await db.Drivers.AsNoTracking()
-      .Where(f => f.Status == Domain.Enums.DriverStatus.Available && f.LastLocation != null)
+      .Where(f => f.Status == Domain.Enums.DriverStatus.Available && f.LastLocation != null
+        && f.LastLocation.Y >= minLatitude && f.LastLocation.Y <= maxLatitude
+        && f.LastLocation.X >= minLongitude && f.LastLocation.X <= maxLongitude)
       .ToListAsync(cancellationToken);
   }
 

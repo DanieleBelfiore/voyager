@@ -9,6 +9,11 @@ namespace Hub.Tests.UseCases;
 
 public class UpdateDriverLocationUseCaseTests
 {
+  private sealed class TestHubConfig : IHubConfig
+  {
+    public double ArrivalThresholdMeters { get; init; } = 500;
+  }
+
   [Fact]
   public async Task UpdateDriverLocation_ShouldUpdateLocationAndPushToRider_WhenActiveRideExists()
   {
@@ -27,7 +32,7 @@ public class UpdateDriverLocationUseCaseTests
     etaQuery.GetEtaAsync(rideId, Arg.Any<CancellationToken>())
       .Returns(new RideEta { EstimatedArrivalMinutes = 5, DistanceKm = 1.2 });
 
-    var useCase = new UpdateDriverLocationUseCase(locationUpdater, activeRideQuery, etaQuery, relay);
+    var useCase = new UpdateDriverLocationUseCase(locationUpdater, activeRideQuery, etaQuery, relay, new TestHubConfig());
 
     await useCase.Handle(new UpdateDriverLocation { DriverId = driverId, Location = newLocation }, CancellationToken.None);
 
@@ -47,7 +52,7 @@ public class UpdateDriverLocationUseCaseTests
 
     activeRideQuery.GetActiveRideForDriverAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns((ActiveRide?)null);
 
-    var useCase = new UpdateDriverLocationUseCase(locationUpdater, activeRideQuery, etaQuery, relay);
+    var useCase = new UpdateDriverLocationUseCase(locationUpdater, activeRideQuery, etaQuery, relay, new TestHubConfig());
 
     await useCase.Handle(new UpdateDriverLocation { DriverId = Guid.NewGuid(), Location = new Point(0, 0) }, CancellationToken.None);
 

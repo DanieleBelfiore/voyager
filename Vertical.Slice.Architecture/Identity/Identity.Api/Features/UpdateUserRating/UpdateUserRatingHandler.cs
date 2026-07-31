@@ -19,7 +19,7 @@ public class UpdateUserRatingHandler(IdentityDbContext db) : IRequestHandler<Voy
     var user = await db.Users.FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken)
       ?? throw new InvalidOperationException("user_not_found");
 
-    user.UpdateRating(request.Rating, request.Rides);
+    user.UpdateRating(request.Rating);
 
     await db.SaveChangesAsync(cancellationToken);
 

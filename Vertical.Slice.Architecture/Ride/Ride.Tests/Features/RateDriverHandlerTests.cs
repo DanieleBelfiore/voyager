@@ -25,9 +25,11 @@ public class RateDriverHandlerTests
   }
 
   [Fact]
-  public async Task Handle_UpdatesRatingAndPublishesEvent_WhenDriverHasCompletedRides()
+  public async Task Handle_UpdatesRatingAndPublishesEventForRatedRide()
   {
-    // Arrange
+    // Arrange: the notification must always use the ride being rated (request.RideId), not
+    // derived from the driver's history — Identity now self-tracks the ratings count, so the
+    // handler no longer needs to look up or pass a rides count at all.
     await using var db = NewContext();
     var userId = Guid.NewGuid();
     var driverId = Guid.NewGuid();
@@ -44,28 +46,8 @@ public class RateDriverHandlerTests
     await handler.Handle(new RateDriver { RideId = ride.Id, Rating = 5, CallerId = userId }, CancellationToken.None);
 
     // Assert
-    await mediator.Received(1).Send(Arg.Is<UpdateUserRating>(c => c.UserId == driverId && c.Rating == 5 && c.Rides == 1), Arg.Any<CancellationToken>());
+    await mediator.Received(1).Send(Arg.Is<UpdateUserRating>(c => c.UserId == driverId && c.Rating == 5), Arg.Any<CancellationToken>());
     await mediator.Received(1).Publish(Arg.Is<DriverRatingReceived>(e => e.RideId == ride.Id && e.Rating == 5), Arg.Any<CancellationToken>());
-  }
-
-  [Fact]
-  public async Task Handle_DoesNotPublishEvent_WhenDriverHasNoCompletedRides()
-  {
-    // Arrange
-    await using var db = NewContext();
-    var userId = Guid.NewGuid();
-    var driverId = Guid.NewGuid();
-    var ride = new RideEntity(userId, driverId, SomePoint, SomePoint); // still Requested, not Completed
-    db.Rides.Add(ride);
-    await db.SaveChangesAsync();
-    var mediator = Substitute.For<IMediator>();
-    var handler = new RateDriverHandler(db, mediator);
-
-    // Act
-    await handler.Handle(new RateDriver { RideId = ride.Id, Rating = 5, CallerId = userId }, CancellationToken.None);
-
-    // Assert
-    await mediator.DidNotReceive().Publish(Arg.Any<DriverRatingReceived>(), Arg.Any<CancellationToken>());
   }
 
   [Fact]

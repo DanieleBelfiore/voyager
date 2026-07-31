@@ -7,6 +7,8 @@ using Arbitrer;
 using Identity.Infrastructure.DependencyInjection;
 using Identity.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,6 +20,7 @@ using OpenIddict.Abstractions;
 using OpenIddict.Validation.AspNetCore;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using Swashbuckle.AspNetCore.SwaggerUI;
+using Voyager.Shared.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -52,9 +55,14 @@ builder.Services.AddOpenIddict()
       .EnableTokenEndpointPassthrough()
       .DisableTransportSecurityRequirement();
 
-    options.SetAccessTokenLifetime(TimeSpan.FromHours(12));
-    options.SetIdentityTokenLifetime(TimeSpan.FromHours(12));
-    options.SetRefreshTokenLifetime(TimeSpan.FromDays(30));
+    // Demo-scope relaxations, not for production: DisableTransportSecurityRequirement allows the
+    // token endpoint over plain HTTP (services talk over the docker-compose network, not TLS);
+    // the long token lifetimes and DisableAccessTokenEncryption below keep the JWT plaintext and
+    // long-lived so it's easy to inspect while developing. Tighten all of this before any
+    // non-demo deployment.
+    options.SetAccessTokenLifetime(TimeSpan.FromHours(configuration.GetValue<double>("Identity:AccessTokenLifetimeHours")));
+    options.SetIdentityTokenLifetime(TimeSpan.FromHours(configuration.GetValue<double>("Identity:IdentityTokenLifetimeHours")));
+    options.SetRefreshTokenLifetime(TimeSpan.FromDays(configuration.GetValue<double>("Identity:RefreshTokenLifetimeDays")));
 
     options.DisableAccessTokenEncryption();
 
@@ -147,13 +155,19 @@ builder.Services.AddArbitrerRabbitMQMessageDispatcher(o =>
 
 builder.Services.AddHttpContextAccessor();
 
+// The password grant at /connect/token has no other brute-force protection (no lockout,
+// no CAPTCHA) — rate limiting is the only thing standing between it and credential stuffing.
+builder.Services.AddCustomRateLimiting(configuration);
+
 var app = builder.Build();
+
+var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 
 app.UseCors(corsPolicyBuilder =>
 {
   corsPolicyBuilder.AllowAnyHeader();
   corsPolicyBuilder.AllowAnyMethod();
-  corsPolicyBuilder.AllowAnyOrigin();
+  corsPolicyBuilder.WithOrigins(allowedOrigins);
 });
 
 app.UseForwardedHeaders();
@@ -161,11 +175,32 @@ app.UseForwardedHeaders();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.UseRateLimiter();
+
 app.MapControllers();
 
 // Only for development
 const string scheme = "http";
-app.UseDeveloperExceptionPage();
+
+if (app.Environment.IsDevelopment())
+{
+  app.UseDeveloperExceptionPage();
+}
+else
+{
+  // Do not leak stack traces/paths outside Development: a generic response, with
+  // UnauthorizedAccessException mapped to 403 since handlers already use it for that.
+  app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
+  {
+    var statusCode = context.Features.Get<IExceptionHandlerFeature>()?.Error is UnauthorizedAccessException
+      ? StatusCodes.Status403Forbidden
+      : StatusCodes.Status500InternalServerError;
+
+    context.Response.StatusCode = statusCode;
+    context.Response.ContentType = "application/json";
+    await context.Response.WriteAsJsonAsync(new { error = statusCode == StatusCodes.Status403Forbidden ? "forbidden" : "internal_server_error" });
+  }));
+}
 
 app.UseSwagger(options =>
 {

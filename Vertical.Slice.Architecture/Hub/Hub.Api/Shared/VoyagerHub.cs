@@ -1,11 +1,11 @@
 using System;
-using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using NetTopologySuite.Geometries;
+using Voyager.Contracts.Ride;
 using UpdateDriverLocationCommand = Hub.Api.Features.UpdateDriverLocation.UpdateDriverLocation;
 
 namespace Hub.Api.Shared;
@@ -22,6 +22,11 @@ public class VoyagerHub(IMediator mediator) : Hub<IVoyagerShareClient>
 {
   public async Task JoinRideGroup(string rideId)
   {
+    var callerId = GetCallerId();
+    var ride = await mediator.Send(new GetActiveRide { DriverId = callerId, UserId = callerId }, CancellationToken.None);
+    if (ride == null || ride.Id != Guid.Parse(rideId))
+      throw new HubException("not_ride_participant");
+
     await Groups.AddToGroupAsync(Context.ConnectionId, HubGroups.ForRide(Guid.Parse(rideId)));
   }
 
@@ -32,8 +37,9 @@ public class VoyagerHub(IMediator mediator) : Hub<IVoyagerShareClient>
 
   public async Task UpdateDriverLocation(Point location)
   {
-    var id = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new HubException("user_not_authenticated");
-
-    await mediator.Send(new UpdateDriverLocationCommand { DriverId = Guid.Parse(id), Location = location }, CancellationToken.None);
+    await mediator.Send(new UpdateDriverLocationCommand { DriverId = GetCallerId(), Location = location }, CancellationToken.None);
   }
+
+  private Guid GetCallerId() =>
+    Guid.Parse(Context.User?.FindFirst("sub")?.Value ?? throw new HubException("user_not_authenticated"));
 }

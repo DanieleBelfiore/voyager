@@ -33,7 +33,7 @@ public class UpdateUserRatingHandlerTests
     await _context.SaveChangesAsync();
 
     // Act
-    var result = await _mediator.Send(new UpdateUserRating { UserId = userId, Rating = 5, Rides = 1 });
+    var result = await _mediator.Send(new UpdateUserRating { UserId = userId, Rating = 5 });
 
     // Assert
     Assert.Equal(5, result);
@@ -45,7 +45,7 @@ public class UpdateUserRatingHandlerTests
   public async Task Handle_Throws_WhenUserNotFound()
   {
     // Arrange
-    var act = () => _mediator.Send(new UpdateUserRating { UserId = Guid.NewGuid(), Rating = 5, Rides = 1 });
+    var act = () => _mediator.Send(new UpdateUserRating { UserId = Guid.NewGuid(), Rating = 5 });
 
     // Act & Assert
     var ex = await Assert.ThrowsAsync<InvalidOperationException>(act);

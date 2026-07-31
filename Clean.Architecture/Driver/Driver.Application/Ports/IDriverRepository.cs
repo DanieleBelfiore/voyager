@@ -8,7 +8,9 @@ namespace Driver.Application.Ports;
 public interface IDriverRepository
 {
   Task<Domain.Entities.Driver> GetByIdAsync(Guid id, CancellationToken cancellationToken);
-  Task<List<Domain.Entities.Driver>> GetAvailableWithLocationAsync(CancellationToken cancellationToken);
+
+  Task<List<Domain.Entities.Driver>> GetAvailableWithinBoundingBoxAsync(
+    double minLatitude, double maxLatitude, double minLongitude, double maxLongitude, CancellationToken cancellationToken);
   void Add(Domain.Entities.Driver driver);
   Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

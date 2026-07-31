@@ -42,9 +42,12 @@ public class GetRideETAHandlerTests
     // Act
     var result = await handler.Handle(new GetRideETA { Id = ride.Id, CallerId = ride.UserId }, CancellationToken.None);
 
-    // Assert
-    Assert.NotNull(result.DistanceKm);
-    Assert.NotNull(result.EstimatedArrivalMinutes);
+    // Assert: pickup and driver location are 1 degree of latitude apart (~111.2km great-circle).
+    // At 30km/h that's ~222 base minutes before the 0.8x-1.6x time-of-day multiplier — asserting
+    // real ranges (not just NotNull) is what would have caught the regression where this returned
+    // DateTime.Now.Minute (a value in [0, 59] unrelated to distance/speed) instead.
+    Assert.InRange(result.DistanceKm!.Value, 111.0, 111.3);
+    Assert.InRange(result.EstimatedArrivalMinutes!.Value, 170, 360);
   }
 
   [Fact]

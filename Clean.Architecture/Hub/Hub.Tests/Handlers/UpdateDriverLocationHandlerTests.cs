@@ -8,6 +8,11 @@ namespace Hub.Tests.Handlers;
 
 public class UpdateDriverLocationHandlerTests
 {
+  private sealed class TestHubConfig : IHubConfig
+  {
+    public double ArrivalThresholdMeters { get; init; } = 500;
+  }
+
   [Fact]
   public async Task UpdateDriverLocation_ShouldUpdateLocationAndPushToRider_WhenActiveRideExists()
   {
@@ -26,7 +31,7 @@ public class UpdateDriverLocationHandlerTests
     etaQuery.GetEtaAsync(rideId, Arg.Any<CancellationToken>())
       .Returns(new RideEta { EstimatedArrivalMinutes = 5, DistanceKm = 1.2 });
 
-    var handler = new UpdateDriverLocationHandler(locationUpdater, activeRideQuery, etaQuery, relay);
+    var handler = new UpdateDriverLocationHandler(locationUpdater, activeRideQuery, etaQuery, relay, new TestHubConfig());
 
     await handler.Handle(new UpdateDriverLocation { DriverId = driverId, Location = newLocation }, CancellationToken.None);
 
@@ -46,7 +51,7 @@ public class UpdateDriverLocationHandlerTests
 
     activeRideQuery.GetActiveRideForDriverAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns((ActiveRide?)null);
 
-    var handler = new UpdateDriverLocationHandler(locationUpdater, activeRideQuery, etaQuery, relay);
+    var handler = new UpdateDriverLocationHandler(locationUpdater, activeRideQuery, etaQuery, relay, new TestHubConfig());
 
     await handler.Handle(new UpdateDriverLocation { DriverId = Guid.NewGuid(), Location = new Point(0, 0) }, CancellationToken.None);
 

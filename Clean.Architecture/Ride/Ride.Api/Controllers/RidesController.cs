@@ -82,6 +82,7 @@ public class RidesController(IMediator mediator) : ControllerBase
     return Ok(await mediator.Send(new GetActiveRide { UserId = this.GetUserId() }));
   }
 
+  [Authorize(Policy = "RequireDriver")]
   [HttpPut("{rideId:guid}/accept")]
   public async Task<ActionResult> AcceptRide(Guid rideId)
   {

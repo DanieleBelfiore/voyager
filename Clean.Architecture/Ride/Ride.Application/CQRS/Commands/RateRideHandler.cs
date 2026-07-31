@@ -12,12 +12,10 @@ public class RateRideHandler(IRideRepository repository, IRatingUpdateService ra
   {
     var ride = await repository.GetByIdReadOnlyAsync(request.RideId, cancellationToken) ?? throw new Exception("ride_not_found");
 
-    if (ride.UserId != request.CallerId)
+    if (ride.DriverId != request.CallerId)
       throw new UnauthorizedAccessException("not_ride_participant");
 
-    var rideCount = await repository.GetUserHistoryAsync(ride.UserId, -1, 0, cancellationToken);
-
-    await ratings.UpdateRatingAsync(ride.UserId, request.Rating, rideCount.Count, cancellationToken);
+    await ratings.UpdateRatingAsync(ride.UserId, request.Rating, cancellationToken);
 
     await events.RiderRatingReceivedAsync(ride.Id, request.Rating, cancellationToken);
   }

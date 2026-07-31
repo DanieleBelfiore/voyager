@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Identity.Core.Ports.Primary;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
 
@@ -16,6 +17,7 @@ namespace Identity.Api.Controllers;
 /// </summary>
 public class AuthController(IRegisterUserUseCase registerUser, IAuthenticateUserUseCase authenticateUser) : Controller
 {
+  [EnableRateLimiting("identity_register")]
   [HttpPost("~/connect/register")]
   [Produces("application/json")]
   public async Task<IActionResult> Register([FromBody] RegisterUser command, CancellationToken cancellationToken)
@@ -32,6 +34,7 @@ public class AuthController(IRegisterUserUseCase registerUser, IAuthenticateUser
     return Ok();
   }
 
+  [EnableRateLimiting("identity_token")]
   [HttpPost("~/connect/token")]
   [Consumes("application/x-www-form-urlencoded")]
   [Produces("application/json")]

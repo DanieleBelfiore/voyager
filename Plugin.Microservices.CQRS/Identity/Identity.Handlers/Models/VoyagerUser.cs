@@ -13,6 +13,7 @@ public class VoyagerUser : IdentityUser<Guid>
   [StringLength(64)]
   public string LastName { get; set; }
   public double Ratings { get; set; }
+  public int RatingsCount { get; set; }
   [StringLength(64)]
   public override string PhoneNumber { get; set; }
   public bool IsDriver { get; set; }
