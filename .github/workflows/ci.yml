@@ -33,9 +33,15 @@ jobs:
           # class_exclude drops generated EF migrations/model snapshots, DbContext/
           # ContextFactory/SlowQueryInterceptor (persistence), the IModule plugin
           # registration classes, and UserManagerService (a thin UserManager<T> pass-through).
+          # This variant's {Service}.Core projects are NOT listed: per its CLAUDE.md they hold
+          # "CQRS commands/queries, DTOs, enums" and nothing else -- auto-properties compile to
+          # no instrumentable code, so the collector emits no <package> for them at all and the
+          # never-loaded check below fails on assemblies that can never carry a coverage signal.
+          # Same "wire shapes, no logic" category as Commons/Voyager.Contracts, already out of
+          # scope everywhere. Business logic lives in {Service}.Handlers (and Hub.API).
           - name: Plugin.Microservices.CQRS
             solution: Plugin.Microservices.CQRS/Voyager.sln
-            coverage_packages: Driver.Core,Driver.Handlers,Hub.API,Identity.Core,Identity.Handlers,Ride.Core,Ride.Handlers
+            coverage_packages: Driver.Handlers,Hub.API,Identity.Handlers,Ride.Handlers
             class_exclude: '\.Migrations\.|Context|SlowQueryInterceptor|^.*\.Module$|\.Module\.|\.Services\.'
           - name: Clean.Architecture
             solution: Clean.Architecture/Voyager.CleanArchitecture.sln

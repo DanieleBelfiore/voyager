@@ -65,7 +65,18 @@ def main():
 
     missing = wanted - seen
     if missing:
-        print(f"FAIL: these packages never appeared in any cobertura report (never loaded by tests): {sorted(missing)}", file=sys.stderr)
+        # Two different causes, and the distinction is not visible from the report -- an absent
+        # assembly looks identical either way:
+        #   1. no test project loads it, so its (probably near-zero) coverage never counts;
+        #   2. it has no instrumentable code at all, so the collector emits no <package> for it
+        #      even though tests do load it. Assemblies of pure auto-property DTO/message types
+        #      hit this -- an auto-property compiles to no sequence points, so a project of
+        #      nothing but request/response shapes is invisible to coverage by construction.
+        # Case 1 is the bug this check exists to catch. Case 2 means the assembly should not be
+        # in --packages: it can never carry a coverage signal, so listing it only ever fails.
+        print(f"FAIL: these packages have no coverage data: {sorted(missing)}", file=sys.stderr)
+        print("      Either no test project loads them (write tests), or they contain no", file=sys.stderr)
+        print("      instrumentable code (pure DTO/message assemblies -- drop from --packages).", file=sys.stderr)
         sys.exit(1)
 
     per_package = {}
