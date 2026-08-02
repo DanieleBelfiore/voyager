@@ -7,8 +7,6 @@ using Driver.Adapters.Secondary.DependencyInjection;
 using Driver.Core.Ports.Primary;
 using Driver.Core.UseCases;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,6 +18,9 @@ using Newtonsoft.Json.Converters;
 using OpenIddict.Validation.AspNetCore;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using Voyager.Shared.RateLimiting;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Driver.Adapters.Secondary.Persistence;
+using Voyager.Shared.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -134,30 +135,18 @@ builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddCustomRateLimiting(builder.Configuration);
 
+builder.Services.AddHealthChecks().AddDbContextCheck<DriverDbContext>("driver-database", tags: ["ready"]);
+
+// Runs after the server is listening, so /health answers during migration; /ready
+// stays unhealthy until it finishes.
+builder.Services.AddStartupMigration(sp => sp.MigrateDriverDatabase());
+
 var app = builder.Build();
 
 // Only for development
 const string scheme = "http";
 
-if (app.Environment.IsDevelopment())
-{
-  app.UseDeveloperExceptionPage();
-}
-else
-{
-  // Do not leak stack traces/paths outside Development: a generic response, with
-  // UnauthorizedAccessException mapped to 403 since handlers already use it for that.
-  app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
-  {
-    var statusCode = context.Features.Get<IExceptionHandlerFeature>()?.Error is UnauthorizedAccessException
-      ? StatusCodes.Status403Forbidden
-      : StatusCodes.Status500InternalServerError;
-
-    context.Response.StatusCode = statusCode;
-    context.Response.ContentType = "application/json";
-    await context.Response.WriteAsJsonAsync(new { error = statusCode == StatusCodes.Status403Forbidden ? "forbidden" : "internal_server_error" });
-  }));
-}
+app.UseDomainExceptionHandler();
 
 app.UseRouting();
 app.UseSwagger(options =>
@@ -189,8 +178,6 @@ app.UseAuthorization();
 
 app.UseRateLimiter();
 
-app.Services.MigrateDriverDatabase();
-
 app.MapGet("/", context =>
 {
   context.Response.Redirect("/driver/swagger/");
@@ -198,5 +185,8 @@ app.MapGet("/", context =>
 });
 
 app.MapControllers();
+
+app.MapHealthChecks("/health", new HealthCheckOptions { Predicate = _ => false });
+app.MapHealthChecks("/ready", new HealthCheckOptions { Predicate = check => check.Tags.Contains("ready") });
 
 app.Run();

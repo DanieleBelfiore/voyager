@@ -37,7 +37,7 @@ public class RequestRideHandlerTests
     Assert.Equal(Ride.Domain.Enums.RideStatus.Requested, result.Status);
     _repository.Received(1).Add(Arg.Any<Ride.Domain.Entities.Ride>());
     await _repository.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
-    await _events.Received(1).NewRideRequestedAsync(result.Id, Arg.Any<CancellationToken>());
+    await _events.Received(1).NewRideRequestedAsync(result.Id, driverId, Arg.Any<CancellationToken>());
   }
 
   [Fact]

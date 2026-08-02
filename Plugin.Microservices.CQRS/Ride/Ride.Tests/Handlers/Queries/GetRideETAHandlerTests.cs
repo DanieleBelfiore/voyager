@@ -1,3 +1,4 @@
+using Common.Core.Exceptions;
 using Driver.Core.CQRS.Queries;
 using Driver.Core.Dtos;
 using MediatR;
@@ -19,9 +20,16 @@ public class GetRideETAHandlerTests
   public GetRideETAHandlerTests()
   {
     _context = TestBase.CreateTestDbContext();
+    // All four time-of-day multipliers must be set: GetValue<double> silently returns 0 for a
+    // missing key, which used to make this test's outcome depend on the UTC hour it happened to
+    // run in (whichever multiplier bucket the wall clock fell into that day).
     _configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
     {
-      ["AverageSpeedKmh"] = "30"
+      ["AverageSpeedKmh"] = "30",
+      ["MorningPeakMultiplier"] = "1.5",
+      ["EveningPeakMultiplier"] = "1.6",
+      ["NightMultiplier"] = "0.8",
+      ["LunchMultiplier"] = "1.2"
     }).Build();
 
     var mediatorMock = Substitute.For<IMediator>();
@@ -82,7 +90,7 @@ public class GetRideETAHandlerTests
     var act = () => _mediator.Send(new GetRideETA { Id = Guid.NewGuid() });
 
     // Act & Assert
-    var ex = await Assert.ThrowsAsync<Exception>(act);
+    var ex = await Assert.ThrowsAsync<NotFoundException>(act);
     Assert.Equal("ride_not_found", ex.Message);
   }
 
@@ -99,7 +107,7 @@ public class GetRideETAHandlerTests
     var act = () => _mediator.Send(new GetRideETA { Id = rideId, CallerId = driverId });
 
     // Act & Assert
-    var ex = await Assert.ThrowsAsync<Exception>(act);
+    var ex = await Assert.ThrowsAsync<NotFoundException>(act);
     Assert.Equal("driver_not_found", ex.Message);
   }
 

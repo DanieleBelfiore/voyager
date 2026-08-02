@@ -7,8 +7,6 @@ using Arbitrer;
 using FluentValidation;
 using Identity.Api.Persistence;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
@@ -24,6 +22,8 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using Voyager.Shared.RateLimiting;
 using Voyager.Shared.Validation;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Voyager.Shared.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -168,6 +168,16 @@ builder.Services.AddCustomRateLimiting(configuration);
 
 var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 
+builder.Services.AddHealthChecks().AddDbContextCheck<IdentityDbContext>("identity-database", tags: ["ready"]);
+
+// Runs after the server is listening, so /health answers during migration; /ready
+// stays unhealthy until it finishes.
+builder.Services.AddStartupMigration(sp =>
+{
+  using var scope = sp.CreateScope();
+  scope.ServiceProvider.GetRequiredService<IdentityDbContext>().Database.Migrate();
+});
+
 var app = builder.Build();
 
 app.UseCors(corsPolicyBuilder =>
@@ -189,25 +199,7 @@ app.MapControllers();
 // Only for development
 const string scheme = "http";
 
-if (app.Environment.IsDevelopment())
-{
-  app.UseDeveloperExceptionPage();
-}
-else
-{
-  // Do not leak stack traces/paths outside Development: a generic response, with
-  // UnauthorizedAccessException mapped to 403 since handlers already use it for that.
-  app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
-  {
-    var statusCode = context.Features.Get<IExceptionHandlerFeature>()?.Error is UnauthorizedAccessException
-      ? StatusCodes.Status403Forbidden
-      : StatusCodes.Status500InternalServerError;
-
-    context.Response.StatusCode = statusCode;
-    context.Response.ContentType = "application/json";
-    await context.Response.WriteAsJsonAsync(new { error = statusCode == StatusCodes.Status403Forbidden ? "forbidden" : "internal_server_error" });
-  }));
-}
+app.UseDomainExceptionHandler();
 
 app.UseSwagger(options =>
 {
@@ -234,10 +226,8 @@ app.MapGet("/", context =>
   return System.Threading.Tasks.Task.CompletedTask;
 });
 
-using (var scope = app.Services.CreateScope())
-{
-  scope.ServiceProvider.GetRequiredService<IdentityDbContext>().Database.Migrate();
-}
+app.MapHealthChecks("/health", new HealthCheckOptions { Predicate = _ => false });
+app.MapHealthChecks("/ready", new HealthCheckOptions { Predicate = check => check.Tags.Contains("ready") });
 
 app.Run();
 

@@ -17,7 +17,14 @@ public class GetRideETAUseCaseTests
 
   public GetRideETAUseCaseTests()
   {
+    // All four time-of-day multipliers must be set: an unconfigured NSubstitute double property
+    // returns 0, which used to make this test's outcome depend on the UTC hour it happened to
+    // run in (whichever multiplier bucket the wall clock fell into that day).
     _config.AverageSpeedKmh.Returns(30.0);
+    _config.MorningPeakMultiplier.Returns(1.5);
+    _config.EveningPeakMultiplier.Returns(1.6);
+    _config.NightMultiplier.Returns(0.8);
+    _config.LunchMultiplier.Returns(1.2);
     _useCase = new GetRideETAUseCase(_repository, _driverLocation, _config);
   }
 
@@ -66,7 +73,7 @@ public class GetRideETAUseCaseTests
     var act = () => _useCase.Handle(new GetRideETA { Id = Guid.NewGuid() }, CancellationToken.None);
 
     // Act & Assert
-    var ex = await Assert.ThrowsAsync<Exception>(act);
+    var ex = await Assert.ThrowsAsync<KeyNotFoundException>(act);
     Assert.Equal("ride_not_found", ex.Message);
   }
 }

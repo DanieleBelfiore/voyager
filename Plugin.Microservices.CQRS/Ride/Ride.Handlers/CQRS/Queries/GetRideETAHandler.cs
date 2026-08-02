@@ -1,11 +1,11 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Common.Core.Exceptions;
 using Driver.Core.CQRS.Queries;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using NetTopologySuite.Geometries;
 using Ride.Core.CQRS.Queries;
 using Ride.Core.Dtos;
 using Ride.Handlers.Interfaces;
@@ -27,17 +27,17 @@ public class GetRideETAHandler(IRideContext db, IMediator mediator, IConfigurati
 {
   public async Task<ETAResponse> Handle(GetRideETA request, CancellationToken cancellationToken)
   {
-    var ride = await db.Rides.AsNoTracking().FirstOrDefaultAsync(f => f.Id == request.Id, cancellationToken) ?? throw new Exception("ride_not_found");
+    var ride = await db.Rides.AsNoTracking().FirstOrDefaultAsync(f => f.Id == request.Id, cancellationToken) ?? throw new NotFoundException("ride_not_found");
 
     if (ride.UserId != request.CallerId && ride.DriverId != request.CallerId)
       throw new UnauthorizedAccessException("not_ride_participant");
 
-    var driver = await mediator.Send(new GetDriverStatus { Id = ride.DriverId }, cancellationToken) ?? throw new Exception("driver_not_found");
+    var driver = await mediator.Send(new GetDriverStatus { Id = ride.DriverId }, cancellationToken) ?? throw new NotFoundException("driver_not_found");
 
     if (ride.PickupLocation == null || driver.LastLocation == null)
       return new ETAResponse();
 
-    var distanceInMeters = DistanceInMeters(ride.PickupLocation, driver.LastLocation);
+    var distanceInMeters = RideGeoCalculator.DistanceInMeters(ride.PickupLocation, driver.LastLocation);
 
     var baseMinutes = distanceInMeters / 1000 / configuration.GetValue<double>("AverageSpeedKmh") * 60;
     var adjustedMinutes = baseMinutes * GetTimeMultiplier(DateTime.UtcNow.Hour, configuration);
@@ -68,23 +68,5 @@ public class GetRideETAHandler(IRideContext db, IMediator mediator, IConfigurati
       // Normal daytime (6-11)
       _ => 1.0
     };
-  }
-
-  // NetTopologySuite's Point.Distance() is planar/Cartesian on the raw coordinate values (SRID
-  // is metadata only) — on lat/lon points that returns degrees, not meters. Haversine gives the
-  // real great-circle distance instead.
-  private static double DistanceInMeters(Point a, Point b)
-  {
-    const double earthRadiusMeters = 6371000;
-
-    var lat1 = a.Y * Math.PI / 180;
-    var lat2 = b.Y * Math.PI / 180;
-    var deltaLat = (b.Y - a.Y) * Math.PI / 180;
-    var deltaLon = (b.X - a.X) * Math.PI / 180;
-
-    var h = Math.Sin(deltaLat / 2) * Math.Sin(deltaLat / 2) +
-            Math.Cos(lat1) * Math.Cos(lat2) * Math.Sin(deltaLon / 2) * Math.Sin(deltaLon / 2);
-
-    return 2 * earthRadiusMeters * Math.Asin(Math.Sqrt(h));
   }
 }

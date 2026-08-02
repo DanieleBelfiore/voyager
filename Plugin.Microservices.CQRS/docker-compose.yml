@@ -79,6 +79,12 @@ services:
       - "5001:8080"
     networks:
       - voyager-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
   driver-api:
     build:
@@ -91,11 +97,24 @@ services:
       - RabbitMQ__Password=${RABBITMQ_PASSWORD:-Strong!Passw0rd}
       - Identity__Issuer=http://identity-api:8080
     depends_on:
-      - identity-api
+      sqlserver:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      identity-api:
+        condition: service_healthy
     ports:
       - "5002:8080"
     networks:
       - voyager-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
   ride-api:
     build:
@@ -108,11 +127,24 @@ services:
       - RabbitMQ__Password=${RABBITMQ_PASSWORD:-Strong!Passw0rd}
       - Identity__Issuer=http://identity-api:8080
     depends_on:
-      - identity-api
+      sqlserver:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      identity-api:
+        condition: service_healthy
     ports:
       - "5003:8080"
     networks:
       - voyager-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
   hub-api:
     build:
@@ -124,11 +156,22 @@ services:
       - RabbitMQ__Password=${RABBITMQ_PASSWORD:-Strong!Passw0rd}
       - Identity__Issuer=http://identity-api:8080
     depends_on:
-      - identity-api
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      identity-api:
+        condition: service_healthy
     ports:
       - "5000:8080"
     networks:
       - voyager-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
 volumes:
   sqlserver_data:

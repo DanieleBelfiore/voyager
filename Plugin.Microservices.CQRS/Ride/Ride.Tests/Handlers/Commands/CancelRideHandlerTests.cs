@@ -1,9 +1,8 @@
-using Hub.API;
-using Hub.Core.Interfaces;
+using Common.Core.Exceptions;
 using MediatR;
-using Microsoft.AspNetCore.SignalR;
 using NSubstitute;
 using Ride.Core.CQRS.Commands;
+using Ride.Core.CQRS.Events;
 using Ride.Core.Enums;
 using Ride.Handlers.CQRS.Commands;
 using Xunit;
@@ -14,28 +13,21 @@ public class CancelRideHandlerTests
 {
   private readonly IMediator _mediator;
   private readonly TestApplicationDbContext _context;
-  private readonly IVoyagerShareClient _clientProxy;
 
   public CancelRideHandlerTests()
   {
     _context = TestBase.CreateTestDbContext();
 
-    _clientProxy = Substitute.For<IVoyagerShareClient>();
-    var clientsProxy = Substitute.For<IHubClients<IVoyagerShareClient>>();
-    var hubContext = Substitute.For<IHubContext<VoyagerHub, IVoyagerShareClient>>();
-    clientsProxy.Group(Arg.Any<string>()).Returns(_clientProxy);
-    hubContext.Clients.Returns(clientsProxy);
-
     var mediatorMock = Substitute.For<IMediator>();
     _mediator = mediatorMock;
 
     mediatorMock.Send(Arg.Any<CancelRide>(), Arg.Any<CancellationToken>())
-      .Returns(c => new CancelRideHandler(_context, hubContext)
+      .Returns(c => new CancelRideHandler(_context, _mediator)
         .Handle(c.Arg<CancelRide>(), c.Arg<CancellationToken>()));
   }
 
   [Fact]
-  public async Task Handle_CancelsRideAndPushesToHub_WhenCancellable()
+  public async Task Handle_CancelsRideAndPublishesEvent_WhenCancellable()
   {
     // Arrange
     var rideId = Guid.NewGuid();
@@ -50,7 +42,7 @@ public class CancelRideHandlerTests
     var ride = await _context.Rides.FindAsync(rideId);
     Assert.Equal(RideStatus.Cancelled, ride!.Status);
     Assert.Equal("changed_mind", ride.CancellationReason);
-    await _clientProxy.Received(1).SendToDriverRideCancel(rideId);
+    await _mediator.Received(1).Publish(Arg.Is<RideCancelled>(e => e.RideId == rideId), Arg.Any<CancellationToken>());
   }
 
   [Fact]
@@ -60,7 +52,7 @@ public class CancelRideHandlerTests
     var act = () => _mediator.Send(new CancelRide { Id = Guid.NewGuid(), CancellationReason = "x" });
 
     // Act & Assert
-    var ex = await Assert.ThrowsAsync<Exception>(act);
+    var ex = await Assert.ThrowsAsync<NotFoundException>(act);
     Assert.Equal("no_ride_found", ex.Message);
   }
 
@@ -75,7 +67,7 @@ public class CancelRideHandlerTests
     var act = () => _mediator.Send(new CancelRide { Id = rideId, CallerId = userId, CancellationReason = "x" });
 
     // Act & Assert
-    var ex = await Assert.ThrowsAsync<Exception>(act);
+    var ex = await Assert.ThrowsAsync<ConflictException>(act);
     Assert.Equal("operation_not_permitted", ex.Message);
   }
 

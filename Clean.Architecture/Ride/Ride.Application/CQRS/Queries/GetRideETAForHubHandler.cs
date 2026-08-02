@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Ride.Application.Ports;
@@ -16,7 +17,7 @@ public class GetRideETAForHubHandler(IRideRepository repository, IDriverLocation
 {
   public async Task<RideETAInfo> Handle(SharedGetRideETA request, CancellationToken cancellationToken)
   {
-    var ride = await repository.GetByIdReadOnlyAsync(request.Id, cancellationToken) ?? throw new Exception("ride_not_found");
+    var ride = await repository.GetByIdReadOnlyAsync(request.Id, cancellationToken) ?? throw new KeyNotFoundException("ride_not_found");
 
     var location = await driverLocation.GetLocationAsync(ride.DriverId, cancellationToken);
 

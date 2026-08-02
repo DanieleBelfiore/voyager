@@ -49,7 +49,7 @@ public class UpdateLocationUseCaseTests
     var act = () => _useCase.Handle(new UpdateLocation { Id = id, Location = new Point(0, 0) }, CancellationToken.None);
 
     // Act & Assert
-    var ex = await Assert.ThrowsAsync<Exception>(act);
+    var ex = await Assert.ThrowsAsync<KeyNotFoundException>(act);
     Assert.Equal("driver_not_found", ex.Message);
     await _cache.DidNotReceive().RemoveAsync(Arg.Any<string>());
   }

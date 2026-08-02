@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Core.Cache;
+using Common.Core.Exceptions;
 using Driver.Core.CQRS.Queries;
 using Driver.Core.Dtos;
 using Driver.Handlers.Interfaces;
@@ -22,7 +23,7 @@ public class GetDriverStatusHandler(IDriverContext db, DriverMapper mapper, ICac
 
     return await cache.GetOrCreateAsync(cacheKey, async () =>
     {
-      return await mapper.ProjectToDto(db.Drivers.AsNoTracking().Where(f => f.Id == request.Id)).FirstOrDefaultAsync(cancellationToken) ?? throw new Exception("driver_not_found");
+      return await mapper.ProjectToDto(db.Drivers.AsNoTracking().Where(f => f.Id == request.Id)).FirstOrDefaultAsync(cancellationToken) ?? throw new NotFoundException("driver_not_found");
     }, CacheExpiration);
   }
 }

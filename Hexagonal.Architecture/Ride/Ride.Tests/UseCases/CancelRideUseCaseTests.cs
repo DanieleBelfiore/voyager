@@ -13,11 +13,12 @@ public class CancelRideUseCaseTests
   private static readonly Point SomePoint = new(0, 0);
   private readonly IRideRepository _repository = Substitute.For<IRideRepository>();
   private readonly IRideEventPublisher _events = Substitute.For<IRideEventPublisher>();
+  private readonly IDriverAvailabilityNotifier _availability = Substitute.For<IDriverAvailabilityNotifier>();
   private readonly CancelRideUseCase _useCase;
 
   public CancelRideUseCaseTests()
   {
-    _useCase = new CancelRideUseCase(_repository, _events);
+    _useCase = new CancelRideUseCase(_repository, _events, _availability);
   }
 
   [Fact]
@@ -35,6 +36,7 @@ public class CancelRideUseCaseTests
     Assert.Equal("changed_mind", ride.CancellationReason);
     await _repository.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     await _events.Received(1).RideCancelledAsync(ride.Id, Arg.Any<CancellationToken>());
+    await _availability.Received(1).MarkAvailableAsync(ride.DriverId, Arg.Any<CancellationToken>());
   }
 
   [Fact]
@@ -45,7 +47,7 @@ public class CancelRideUseCaseTests
     var act = () => _useCase.Handle(new CancelRide { Id = Guid.NewGuid(), CancellationReason = "x" }, CancellationToken.None);
 
     // Act & Assert
-    var ex = await Assert.ThrowsAsync<Exception>(act);
+    var ex = await Assert.ThrowsAsync<KeyNotFoundException>(act);
     Assert.Equal("no_ride_found", ex.Message);
   }
 

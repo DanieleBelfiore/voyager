@@ -7,8 +7,7 @@ using FluentValidation;
 using Hub.Module.DependencyInjection;
 using Identity.Module.DependencyInjection;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.Extensions.Hosting;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,6 +21,7 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using Voyager.Shared.RateLimiting;
 using Voyager.Shared.Validation;
+using Voyager.Shared.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -124,30 +124,21 @@ builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddCustomRateLimiting(configuration);
 
+// Runs after the server is listening, so /health answers during migration; /ready
+// stays unhealthy until it finishes.
+builder.Services.AddStartupMigration(sp =>
+{
+  sp.MigrateIdentityDatabase();
+  sp.MigrateDriverDatabase();
+  sp.MigrateRideDatabase();
+});
+
 var app = builder.Build();
 
 // Only for development
 const string scheme = "http";
 
-if (app.Environment.IsDevelopment())
-{
-  app.UseDeveloperExceptionPage();
-}
-else
-{
-  // Do not leak stack traces/paths outside Development: a generic response, with
-  // UnauthorizedAccessException mapped to 403 since handlers already use it for that.
-  app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
-  {
-    var statusCode = context.Features.Get<IExceptionHandlerFeature>()?.Error is UnauthorizedAccessException
-      ? StatusCodes.Status403Forbidden
-      : StatusCodes.Status500InternalServerError;
-
-    context.Response.StatusCode = statusCode;
-    context.Response.ContentType = "application/json";
-    await context.Response.WriteAsJsonAsync(new { error = statusCode == StatusCodes.Status403Forbidden ? "forbidden" : "internal_server_error" });
-  }));
-}
+app.UseDomainExceptionHandler();
 
 app.UseRouting();
 app.UseSwagger(options =>
@@ -179,10 +170,6 @@ app.UseAuthorization();
 
 app.UseRateLimiter();
 
-app.Services.MigrateIdentityDatabase();
-app.Services.MigrateDriverDatabase();
-app.Services.MigrateRideDatabase();
-
 app.MapGet("/", context =>
 {
   context.Response.Redirect("/swagger/");
@@ -191,6 +178,9 @@ app.MapGet("/", context =>
 
 app.MapControllers();
 app.MapHubModule();
+
+app.MapHealthChecks("/health", new HealthCheckOptions { Predicate = _ => false });
+app.MapHealthChecks("/ready", new HealthCheckOptions { Predicate = check => check.Tags.Contains("ready") });
 
 app.Run();
 

@@ -12,6 +12,7 @@ public class RideEventHandlersTests
   private readonly IHubContext<VoyagerHub, IVoyagerShareClient> _hub;
   private readonly IVoyagerShareClient _groupClient;
   private readonly Guid _rideId = Guid.NewGuid();
+  private readonly Guid _driverId = Guid.NewGuid();
 
   public RideEventHandlersTests()
   {
@@ -20,6 +21,7 @@ public class RideEventHandlersTests
     _groupClient = Substitute.For<IVoyagerShareClient>();
     _hub.Clients.Returns(clients);
     clients.Group(HubGroups.ForRide(_rideId)).Returns(_groupClient);
+    clients.Group(HubGroups.ForUser(_driverId)).Returns(_groupClient);
   }
 
   [Fact]
@@ -27,7 +29,7 @@ public class RideEventHandlersTests
   {
     var handler = new NewRideRequestedHandler(_hub);
 
-    await handler.Handle(new NewRideRequested { RideId = _rideId }, CancellationToken.None);
+    await handler.Handle(new NewRideRequested { RideId = _rideId, DriverId = _driverId }, CancellationToken.None);
 
     await _groupClient.Received(1).SendToDriverNewRideRequest(_rideId);
   }

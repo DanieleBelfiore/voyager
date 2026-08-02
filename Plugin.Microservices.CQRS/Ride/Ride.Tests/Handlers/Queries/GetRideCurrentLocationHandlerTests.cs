@@ -1,3 +1,4 @@
+using Common.Core.Exceptions;
 using MediatR;
 using NetTopologySuite.Geometries;
 using NSubstitute;
@@ -48,7 +49,7 @@ public class GetRideCurrentLocationHandlerTests
     var act = () => _mediator.Send(new GetRideCurrentLocation { Id = Guid.NewGuid() });
 
     // Act & Assert
-    var ex = await Assert.ThrowsAsync<Exception>(act);
+    var ex = await Assert.ThrowsAsync<NotFoundException>(act);
     Assert.Equal("ride_not_found", ex.Message);
   }
 

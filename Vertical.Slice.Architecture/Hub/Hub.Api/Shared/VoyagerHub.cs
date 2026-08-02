@@ -20,6 +20,14 @@ namespace Hub.Api.Shared;
 [Authorize]
 public class VoyagerHub(IMediator mediator) : Hub<IVoyagerShareClient>
 {
+  /// <summary>Joins the caller's personal group so cross-service events targeting them by user
+  /// id (e.g. NewRideRequested, before anyone can join ride_{RideId}) reach this connection.</summary>
+  public override async Task OnConnectedAsync()
+  {
+    await Groups.AddToGroupAsync(Context.ConnectionId, HubGroups.ForUser(GetCallerId()));
+    await base.OnConnectedAsync();
+  }
+
   public async Task JoinRideGroup(string rideId)
   {
     var callerId = GetCallerId();

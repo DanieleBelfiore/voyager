@@ -23,7 +23,7 @@ public class RequestRideUseCase(IRideRepository repository, RideMapper mapper, I
 
     await repository.SaveChangesAsync(cancellationToken);
 
-    await events.NewRideRequestedAsync(ride.Id, cancellationToken);
+    await events.NewRideRequestedAsync(ride.Id, ride.DriverId, cancellationToken);
 
     return mapper.ToRideDetails(ride);
   }

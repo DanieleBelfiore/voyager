@@ -4,6 +4,7 @@ using NetTopologySuite.Geometries;
 using NSubstitute;
 using Ride.Api.Features.CancelRide;
 using Ride.Api.Persistence;
+using Voyager.Contracts.Driver;
 using Voyager.Contracts.Ride;
 using Xunit;
 using RideEntity = Ride.Api.Entities.Ride;
@@ -43,6 +44,7 @@ public class CancelRideHandlerTests
     Assert.Equal(RideStatus.Cancelled, ride.Status);
     Assert.Equal("changed_mind", ride.CancellationReason);
     await mediator.Received(1).Publish(Arg.Is<RideCancelled>(e => e.RideId == ride.Id), Arg.Any<CancellationToken>());
+    await mediator.Received(1).Send(Arg.Is<MarkDriverAvailable>(c => c.DriverId == ride.DriverId), Arg.Any<CancellationToken>());
   }
 
   [Fact]
@@ -54,7 +56,7 @@ public class CancelRideHandlerTests
     var act = () => handler.Handle(new CancelRide { Id = Guid.NewGuid(), CancellationReason = "x" }, CancellationToken.None);
 
     // Act & Assert
-    var ex = await Assert.ThrowsAsync<Exception>(act);
+    var ex = await Assert.ThrowsAsync<KeyNotFoundException>(act);
     Assert.Equal("no_ride_found", ex.Message);
   }
 

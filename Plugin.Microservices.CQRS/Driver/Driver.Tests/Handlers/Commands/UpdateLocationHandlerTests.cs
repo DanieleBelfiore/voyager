@@ -1,3 +1,4 @@
+using Common.Core.Exceptions;
 using Driver.Core.CQRS.Commands;
 using Driver.Handlers.CQRS.Commands;
 using MediatR;
@@ -54,7 +55,7 @@ public class UpdateLocationHandlerTests
     var act = () => _mediator.Send(new UpdateLocation { Id = Guid.NewGuid(), Location = new Point(0, 0) });
 
     // Act & Assert
-    var ex = await Assert.ThrowsAsync<Exception>(act);
+    var ex = await Assert.ThrowsAsync<NotFoundException>(act);
     Assert.Equal("driver_not_found", ex.Message);
   }
 }

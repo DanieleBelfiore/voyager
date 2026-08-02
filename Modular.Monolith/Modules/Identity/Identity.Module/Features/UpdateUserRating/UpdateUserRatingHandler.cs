@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Identity.Module.Persistence;
@@ -16,7 +17,7 @@ internal class UpdateUserRatingHandler(IdentityDbContext db) : IRequestHandler<V
   public async Task<double> Handle(Voyager.Contracts.Identity.UpdateUserRating request, CancellationToken cancellationToken)
   {
     var user = await db.Users.FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken)
-      ?? throw new InvalidOperationException("user_not_found");
+      ?? throw new KeyNotFoundException("user_not_found");
 
     user.UpdateRating(request.Rating);
 

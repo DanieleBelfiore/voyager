@@ -79,6 +79,12 @@ services:
       - "5201:8080"
     networks:
       - voyager-hexagonal-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
   driver-api:
     build:
@@ -97,11 +103,17 @@ services:
       rabbitmq:
         condition: service_healthy
       identity-api:
-        condition: service_started
+        condition: service_healthy
     ports:
       - "5202:8080"
     networks:
       - voyager-hexagonal-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
   ride-api:
     build:
@@ -119,11 +131,17 @@ services:
       rabbitmq:
         condition: service_healthy
       identity-api:
-        condition: service_started
+        condition: service_healthy
     ports:
       - "5203:8080"
     networks:
       - voyager-hexagonal-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
   hub-api:
     build:
@@ -137,12 +155,20 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+      redis:
+        condition: service_healthy
       identity-api:
-        condition: service_started
+        condition: service_healthy
     ports:
       - "5200:8080"
     networks:
       - voyager-hexagonal-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
 volumes:
   sqlserver_data:

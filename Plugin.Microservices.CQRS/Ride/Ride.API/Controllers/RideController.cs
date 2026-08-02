@@ -166,7 +166,7 @@ public class RidesController(IMediator mediator) : ControllerBase
   [HttpPut("{rideId:guid}/complete")]
   public async Task<ActionResult> CompleteRide(Guid rideId, [FromBody] CompleteRideRequest request)
   {
-    await mediator.Send(new CompleteRide { Id = rideId, CallerId = this.GetUserId(), Location = request.Location, Price = request.Price });
+    await mediator.Send(new CompleteRide { Id = rideId, CallerId = this.GetUserId(), Location = request.Location });
 
     return Ok();
   }

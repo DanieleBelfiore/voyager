@@ -45,7 +45,7 @@ public class UpdateAvailabilityHandlerTests
     var act = () => handler.Handle(new UpdateAvailability { Id = Guid.NewGuid(), Status = DriverStatus.Available }, CancellationToken.None);
 
     // Act & Assert
-    var ex = await Assert.ThrowsAsync<Exception>(act);
+    var ex = await Assert.ThrowsAsync<KeyNotFoundException>(act);
     Assert.Equal("driver_not_found", ex.Message);
   }
 }

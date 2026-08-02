@@ -26,6 +26,8 @@ public static class DriverModuleExtensions
 
     services.AddScoped<SlowQueryInterceptor>();
 
+    services.AddHealthChecks().AddDbContextCheck<DriverDbContext>("driver-database", tags: ["ready"]);
+
     services.AddRedisCache(configuration);
 
     services.Configure<MatchingWeights>(configuration);

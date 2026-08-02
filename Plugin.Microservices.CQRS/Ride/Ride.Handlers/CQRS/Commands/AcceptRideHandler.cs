@@ -1,32 +1,38 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Hub.API;
-using Hub.Core.Interfaces;
+using Common.Core.Exceptions;
+using Driver.Core.CQRS.Commands;
+using Driver.Core.Enums;
 using MediatR;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Ride.Core.CQRS.Commands;
+using Ride.Core.CQRS.Events;
 using Ride.Core.Enums;
 using Ride.Handlers.Interfaces;
 
 namespace Ride.Handlers.CQRS.Commands;
 
-public class AcceptRideHandler(IRideContext db, IHubContext<VoyagerHub, IVoyagerShareClient> hub) : IRequestHandler<AcceptRide>
+public class AcceptRideHandler(IRideContext db, IMediator mediator) : IRequestHandler<AcceptRide>
 {
   public async Task Handle(AcceptRide request, CancellationToken cancellationToken)
   {
-    var ride = await db.Rides.FirstOrDefaultAsync(f => f.Id == request.RideId, cancellationToken) ?? throw new Exception("no_ride_found");
+    var ride = await db.Rides.FirstOrDefaultAsync(f => f.Id == request.RideId, cancellationToken) ?? throw new NotFoundException("no_ride_found");
+
+    if (ride.DriverId != request.DriverId)
+      throw new UnauthorizedAccessException("not_ride_participant");
 
     if (ride.Status != RideStatus.Requested)
-      throw new Exception("operation_not_permitted");
+      throw new ConflictException("operation_not_permitted");
 
-    ride.DriverId = request.DriverId;
     ride.Status = RideStatus.DriverAssigned;
     ride.LastUpdateDate = DateTime.UtcNow;
 
     await db.SaveChangesAsync(cancellationToken);
 
-    await hub.Clients.Group($"ride_{ride.Id}").SendToRiderRideAccepted(ride.Id);
+    // Otherwise the driver keeps ranking in SearchBestDriver while already committed to a ride.
+    await mediator.Send(new UpdateAvailability { Id = ride.DriverId, Status = DriverStatus.OnRide }, cancellationToken);
+
+    await mediator.Publish(new RideAccepted { RideId = ride.Id }, cancellationToken);
   }
 }

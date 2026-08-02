@@ -1,9 +1,8 @@
-using Hub.API;
-using Hub.Core.Interfaces;
+using Common.Core.Exceptions;
 using MediatR;
-using Microsoft.AspNetCore.SignalR;
 using NSubstitute;
 using Ride.Core.CQRS.Commands;
+using Ride.Core.CQRS.Events;
 using Ride.Core.Enums;
 using Ride.Handlers.CQRS.Commands;
 using Xunit;
@@ -14,36 +13,31 @@ public class AcceptRideHandlerTests
 {
   private readonly IMediator _mediator;
   private readonly TestApplicationDbContext _context;
-  private readonly IVoyagerShareClient _clientProxy;
 
   public AcceptRideHandlerTests()
   {
     _context = TestBase.CreateTestDbContext();
 
-    _clientProxy = Substitute.For<IVoyagerShareClient>();
-    var clientsProxy = Substitute.For<IHubClients<IVoyagerShareClient>>();
-    var hubContext = Substitute.For<IHubContext<VoyagerHub, IVoyagerShareClient>>();
-    clientsProxy.Group(Arg.Any<string>()).Returns(_clientProxy);
-    hubContext.Clients.Returns(clientsProxy);
-
     var mediatorMock = Substitute.For<IMediator>();
     _mediator = mediatorMock;
 
     mediatorMock.Send(Arg.Any<AcceptRide>(), Arg.Any<CancellationToken>())
-      .Returns(c => new AcceptRideHandler(_context, hubContext)
+      .Returns(c => new AcceptRideHandler(_context, _mediator)
         .Handle(c.Arg<AcceptRide>(), c.Arg<CancellationToken>()));
   }
 
   [Fact]
   public async Task AcceptRideTestFact()
   {
-    // Arrange
+    // Arrange: the accepting driver must be the one the rider assigned at RequestRide time.
     var rideId = Guid.NewGuid();
     var driverId = Guid.NewGuid();
 
     _context.Rides.Add(new Ride.Handlers.Models.Ride
     {
-      Id = rideId
+      Id = rideId,
+      DriverId = driverId,
+      Status = RideStatus.Requested
     });
 
     await _context.SaveChangesAsync();
@@ -64,7 +58,7 @@ public class AcceptRideHandlerTests
     Assert.Equal(RideStatus.DriverAssigned, result.Status);
     Assert.Equal(driverId, result.DriverId);
 
-    await _clientProxy.Received(1).SendToRiderRideAccepted(Arg.Is<Guid>(id => id == rideId));
+    await _mediator.Received(1).Publish(Arg.Is<RideAccepted>(e => e.RideId == rideId), Arg.Any<CancellationToken>());
   }
 
   [Fact]
@@ -72,12 +66,28 @@ public class AcceptRideHandlerTests
   {
     // Arrange
     var rideId = Guid.NewGuid();
-    _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, Status = RideStatus.DriverAssigned });
+    var driverId = Guid.NewGuid();
+    _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, DriverId = driverId, Status = RideStatus.DriverAssigned });
+    await _context.SaveChangesAsync();
+    var act = () => _mediator.Send(new AcceptRide { RideId = rideId, DriverId = driverId });
+
+    // Act & Assert
+    var ex = await Assert.ThrowsAsync<ConflictException>(act);
+    Assert.Equal("operation_not_permitted", ex.Message);
+  }
+
+  [Fact]
+  public async Task Handle_Throws_WhenCallerIsNotAssignedDriver()
+  {
+    // Arrange: a different driver must not be able to hijack a ride assigned to someone else.
+    var rideId = Guid.NewGuid();
+    var assignedDriverId = Guid.NewGuid();
+    _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, DriverId = assignedDriverId, Status = RideStatus.Requested });
     await _context.SaveChangesAsync();
     var act = () => _mediator.Send(new AcceptRide { RideId = rideId, DriverId = Guid.NewGuid() });
 
     // Act & Assert
-    var ex = await Assert.ThrowsAsync<Exception>(act);
-    Assert.Equal("operation_not_permitted", ex.Message);
+    var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(act);
+    Assert.Equal("not_ride_participant", ex.Message);
   }
 }

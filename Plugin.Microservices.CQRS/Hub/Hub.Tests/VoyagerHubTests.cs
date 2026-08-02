@@ -41,8 +41,24 @@ public class VoyagerHubTests
 
   private void AuthenticateAs(Guid driverId)
   {
-    var identity = new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, driverId.ToString())]);
+    // "sub", matching what OpenIddict actually puts on the access token (see
+    // UsersController.CreatePrincipalAsync) — not ClaimTypes.NameIdentifier.
+    var identity = new ClaimsIdentity([new Claim("sub", driverId.ToString())]);
     _context.User.Returns(new ClaimsPrincipal(identity));
+  }
+
+  [Fact]
+  public async Task OnConnectedAsync_JoinsCallersPersonalGroup()
+  {
+    // Arrange
+    var callerId = Guid.NewGuid();
+    AuthenticateAs(callerId);
+
+    // Act
+    await _hub.OnConnectedAsync();
+
+    // Assert
+    await _groups.Received(1).AddToGroupAsync("conn-1", $"user_{callerId}", Arg.Any<CancellationToken>());
   }
 
   [Fact]

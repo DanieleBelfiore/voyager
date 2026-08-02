@@ -15,7 +15,17 @@ namespace Ride.Tests.Features;
 public class GetRideETAHandlerTests
 {
   private readonly IMediator _mediator = Substitute.For<IMediator>();
-  private readonly IOptions<EtaConfig> _config = Options.Create(new EtaConfig { AverageSpeedKmh = 30.0 });
+  // All four time-of-day multipliers must be set: EtaConfig's unset double properties default
+  // to 0, which used to make the range assertion below depend on the UTC hour the test happened
+  // to run in (whichever multiplier bucket the wall clock fell into that day).
+  private readonly IOptions<EtaConfig> _config = Options.Create(new EtaConfig
+  {
+    AverageSpeedKmh = 30.0,
+    MorningPeakMultiplier = 1.5,
+    EveningPeakMultiplier = 1.6,
+    NightMultiplier = 0.8,
+    LunchMultiplier = 1.2
+  });
 
   private static RideDbContext NewContext()
   {
@@ -80,7 +90,7 @@ public class GetRideETAHandlerTests
     var act = () => handler.Handle(new GetRideETA { Id = Guid.NewGuid() }, CancellationToken.None);
 
     // Act & Assert
-    var ex = await Assert.ThrowsAsync<Exception>(act);
+    var ex = await Assert.ThrowsAsync<KeyNotFoundException>(act);
     Assert.Equal("ride_not_found", ex.Message);
   }
 }

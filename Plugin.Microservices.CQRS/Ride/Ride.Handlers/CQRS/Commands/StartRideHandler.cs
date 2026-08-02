@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Common.Core.Exceptions;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using NetTopologySuite.IO;
@@ -14,13 +15,13 @@ public class StartRideHandler(IRideContext db) : IRequestHandler<StartRide>
 {
   public async Task Handle(StartRide request, CancellationToken cancellationToken)
   {
-    var ride = await db.Rides.FirstOrDefaultAsync(f => f.Id == request.Id, cancellationToken) ?? throw new Exception("no_ride_found");
+    var ride = await db.Rides.FirstOrDefaultAsync(f => f.Id == request.Id, cancellationToken) ?? throw new NotFoundException("no_ride_found");
 
     if (ride.DriverId != request.CallerId)
       throw new UnauthorizedAccessException("not_ride_participant");
 
     if (ride.Status != RideStatus.DriverAssigned)
-      throw new Exception("operation_not_permitted");
+      throw new ConflictException("operation_not_permitted");
 
     ride.Status = RideStatus.InProgress;
     ride.PickupLocation = request.Location;

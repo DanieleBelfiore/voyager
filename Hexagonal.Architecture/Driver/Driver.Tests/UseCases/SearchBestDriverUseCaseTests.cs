@@ -35,19 +35,21 @@ public class SearchBestDriverUseCaseTests
     return driver;
   }
 
-  private void ReturnsFromBoundingBoxQuery(params DriverEntity[] drivers)
+  // The repository owns the distance filter/computation (real STDistance in production) — the
+  // use case only sees whatever NearbyDriver rows it returns, so tests control distance
+  // directly instead of relying on NTS's in-memory (non-geodetic) Point.Distance().
+  private void ReturnsNearbyDrivers(params (DriverEntity Driver, double DistanceInMeters)[] drivers)
   {
-    _repository.GetAvailableWithinBoundingBoxAsync(
-      Arg.Any<double>(), Arg.Any<double>(), Arg.Any<double>(), Arg.Any<double>(), Arg.Any<CancellationToken>())
-      .Returns(drivers.ToList());
+    _repository.GetAvailableWithinDistanceAsync(Arg.Any<Point>(), Arg.Any<double>(), Arg.Any<CancellationToken>())
+      .Returns(drivers.Select(d => new NearbyDriver { Driver = d.Driver, DistanceInMeters = d.DistanceInMeters }).ToList());
   }
 
   [Fact]
-  public async Task Handle_ReturnsEmpty_WhenNoDriverWithinThreshold()
+  public async Task Handle_ReturnsEmpty_WhenRepositoryFindsNoDriverWithinThreshold()
   {
-    // Arrange
-    var farDriver = DriverAt(new Point(100, 100));
-    ReturnsFromBoundingBoxQuery(farDriver);
+    // Arrange: the repository itself is responsible for the distance cutoff (STDistance in the
+    // WHERE clause), so "nothing within threshold" means it returns an empty set.
+    ReturnsNearbyDrivers();
 
     // Act
     var result = await _useCase.Handle(new SearchBestDriver { UserId = Guid.NewGuid(), Location = new Point(0, 0), DistanceThresholdInMeters = 5000 }, CancellationToken.None);
@@ -60,9 +62,9 @@ public class SearchBestDriverUseCaseTests
   [Fact]
   public async Task Handle_ReturnsDriver_WhenWithinThreshold()
   {
-    // Arrange: 0.01 degrees of latitude is ~1112m — comfortably inside the 5000m threshold.
+    // Arrange
     var driver = DriverAt(new Point(0, 0.01));
-    ReturnsFromBoundingBoxQuery(driver);
+    ReturnsNearbyDrivers((driver, 1112.0));
     _ratingsQuery.GetRatingsAsync(Arg.Any<List<Guid>>(), Arg.Any<CancellationToken>())
       .Returns(new Dictionary<Guid, double> { [driver.Id] = 4.0 });
 
@@ -72,16 +74,16 @@ public class SearchBestDriverUseCaseTests
     // Assert
     var response = Assert.Single(result);
     Assert.Equal(driver.Id, response.DriverId);
-    Assert.InRange(response.Distance, 1100, 1120);
+    Assert.Equal(1112.0, response.Distance);
   }
 
   [Fact]
   public async Task Handle_OrdersByScoreAscending_WhenMultipleDriversMatch()
   {
-    // Arrange: both within the 5000m threshold, closeDriver (~1112m) nearer than farDriver (~3336m).
+    // Arrange: both within threshold, closeDriver (1112m) nearer than farDriver (3336m), same rating.
     var closeDriver = DriverAt(new Point(0, 0.01));
     var farDriver = DriverAt(new Point(0, 0.03));
-    ReturnsFromBoundingBoxQuery(farDriver, closeDriver);
+    ReturnsNearbyDrivers((farDriver, 3336.0), (closeDriver, 1112.0));
     _ratingsQuery.GetRatingsAsync(Arg.Any<List<Guid>>(), Arg.Any<CancellationToken>())
       .Returns(new Dictionary<Guid, double> { [closeDriver.Id] = 5.0, [farDriver.Id] = 5.0 });
 
@@ -101,16 +103,16 @@ public class SearchBestDriverUseCaseTests
     // range = 2.5), not as the worst possible rating (0.0), which would unfairly bury
     // brand-new drivers in the ranking.
     var driver = DriverAt(new Point(0, 0.01));
-    ReturnsFromBoundingBoxQuery(driver);
+    ReturnsNearbyDrivers((driver, 1112.0));
     _ratingsQuery.GetRatingsAsync(Arg.Any<List<Guid>>(), Arg.Any<CancellationToken>())
       .Returns(new Dictionary<Guid, double>());
 
     // Act
     var result = await _useCase.Handle(new SearchBestDriver { UserId = Guid.NewGuid(), Location = new Point(0, 0), DistanceThresholdInMeters = 5000 }, CancellationToken.None);
 
-    // Assert: normalizedRating = (2.5-0)/(5-0) = 0.5, normalizedDistance ~= 1112m/5000m = 0.222,
-    // score = 0.5*0.222 + 0.5*(1-0.5) ~= 0.361. Under the old "default to 0.0" bug this would
-    // have been 0.5*0.222 + 0.5*(1-0) ~= 0.611.
+    // Assert: normalizedRating = (2.5-0)/(5-0) = 0.5, normalizedDistance = 1112/5000 = 0.2224,
+    // score = 0.5*0.2224 + 0.5*(1-0.5) = 0.3612. Under the old "default to 0.0" bug this would
+    // have been 0.5*0.2224 + 0.5*(1-0) = 0.6112.
     var response = Assert.Single(result);
     Assert.InRange(response.Score, 0.35, 0.37);
   }

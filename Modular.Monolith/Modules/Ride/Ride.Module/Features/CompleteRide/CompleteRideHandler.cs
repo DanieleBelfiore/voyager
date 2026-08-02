@@ -1,28 +1,35 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Ride.Module.Persistence;
+using Ride.Module.Shared;
+using Voyager.Contracts.Driver;
 using Voyager.Contracts.Ride;
 
 namespace Ride.Module.Features.CompleteRide;
 
-internal class CompleteRideHandler(RideDbContext db, IMediator mediator) : IRequestHandler<CompleteRide>
+internal class CompleteRideHandler(RideDbContext db, IMediator mediator, IOptions<FareConfig> fareConfig) : IRequestHandler<CompleteRide>
 {
   public async Task Handle(CompleteRide request, CancellationToken cancellationToken)
   {
-    var ride = await db.Rides.FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken) ?? throw new Exception("no_ride_found");
+    var ride = await db.Rides.FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken) ?? throw new KeyNotFoundException("no_ride_found");
 
     if (ride.DriverId != request.CallerId)
       throw new UnauthorizedAccessException("not_ride_participant");
 
-    if (request.Price <= 0)
-      throw new ArgumentException("invalid_price");
+    var distanceInMeters = ride.PickupLocation != null ? RideEtaCalculator.DistanceInMeters(ride.PickupLocation, request.Location) : 0;
+    var durationMinutes = ride.StartAt.HasValue ? (DateTime.UtcNow - ride.StartAt.Value).TotalMinutes : 0;
+    var price = RideFareCalculator.Calculate(distanceInMeters, durationMinutes, fareConfig.Value);
 
-    ride.Complete(request.Location, request.Price);
+    ride.Complete(request.Location, price);
 
     await db.SaveChangesAsync(cancellationToken);
+
+    await mediator.Send(new MarkDriverAvailable { DriverId = ride.DriverId }, cancellationToken);
 
     await mediator.Publish(new RideCompleted { RideId = ride.Id }, cancellationToken);
   }

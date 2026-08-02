@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Driver.Application.Ports;
 using Driver.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using NetTopologySuite.Geometries;
 using DriverEntity = Driver.Domain.Entities.Driver;
 
 namespace Driver.Infrastructure.Repositories;
@@ -17,17 +18,18 @@ public class DriverRepository(DriverDbContext db) : IDriverRepository
     return await db.Drivers.FirstOrDefaultAsync(f => f.Id == id, cancellationToken);
   }
 
-  // Bounding-box prefilter pushed into SQL (plain X/Y comparisons, no spatial-function
-  // translation involved) instead of pulling every available driver into memory: this is what
-  // the geography index on LastLocation actually earns its keep on, and the precise
-  // great-circle cutoff still happens in the handler on this already-narrowed set.
-  public async Task<List<DriverEntity>> GetAvailableWithinBoundingBoxAsync(
-    double minLatitude, double maxLatitude, double minLongitude, double maxLongitude, CancellationToken cancellationToken)
+  // Point.Distance() against a geography-typed column translates to SQL Server's STDistance —
+  // real geodetic meters, not the planar/Cartesian distance NTS computes in memory — so this is
+  // both the exact cutoff and the prefilter in one query, pushed entirely into SQL. Backed by a
+  // spatial index on LastLocation (see the AddDriverLastLocationSpatialIndex migration) so the
+  // query optimizer isn't forced into a full table scan.
+  public async Task<List<NearbyDriver>> GetAvailableWithinDistanceAsync(
+    Point center, double radiusMeters, CancellationToken cancellationToken)
   {
     return await db.Drivers.AsNoTracking()
       .Where(f => f.Status == Domain.Enums.DriverStatus.Available && f.LastLocation != null
-        && f.LastLocation.Y >= minLatitude && f.LastLocation.Y <= maxLatitude
-        && f.LastLocation.X >= minLongitude && f.LastLocation.X <= maxLongitude)
+        && f.LastLocation.Distance(center) <= radiusMeters)
+      .Select(f => new NearbyDriver { Driver = f, DistanceInMeters = f.LastLocation!.Distance(center) })
       .ToListAsync(cancellationToken);
   }
 

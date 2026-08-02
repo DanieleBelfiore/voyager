@@ -38,7 +38,7 @@ public class RequestRideUseCaseTests
     Assert.Equal(Ride.Core.Domain.RideStatus.Requested, result.Status);
     _repository.Received(1).Add(Arg.Any<Ride.Core.Domain.Ride>());
     await _repository.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
-    await _events.Received(1).NewRideRequestedAsync(result.Id, Arg.Any<CancellationToken>());
+    await _events.Received(1).NewRideRequestedAsync(result.Id, driverId, Arg.Any<CancellationToken>());
   }
 
   [Fact]

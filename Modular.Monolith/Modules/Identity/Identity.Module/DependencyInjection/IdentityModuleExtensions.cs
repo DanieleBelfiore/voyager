@@ -30,6 +30,8 @@ public static class IdentityModuleExtensions
     });
     services.AddScoped<SlowQueryInterceptor>();
 
+    services.AddHealthChecks().AddDbContextCheck<IdentityDbContext>("identity-database", tags: ["ready"]);
+
     services.AddSingleton(new PasswordHasher<object>());
 
     services.AddOpenIddict()

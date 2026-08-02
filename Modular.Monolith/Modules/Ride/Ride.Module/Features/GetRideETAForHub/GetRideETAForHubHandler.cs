@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
@@ -17,7 +18,7 @@ internal class GetRideETAForHubHandler(RideDbContext db, IMediator mediator, IOp
   public async Task<RideETAInfo> Handle(SharedGetRideETA request, CancellationToken cancellationToken)
   {
     var ride = await db.Rides.AsNoTracking().FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken)
-      ?? throw new Exception("ride_not_found");
+      ?? throw new KeyNotFoundException("ride_not_found");
 
     var driverLocation = await mediator.Send(new GetDriverLocation { DriverId = ride.DriverId }, cancellationToken);
     var location = driverLocation?.LastLocation;

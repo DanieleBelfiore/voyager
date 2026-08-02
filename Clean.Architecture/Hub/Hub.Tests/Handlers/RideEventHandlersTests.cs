@@ -10,15 +10,16 @@ public class RideEventHandlersTests
 {
   private readonly IHubRelay _relay = Substitute.For<IHubRelay>();
   private readonly Guid _rideId = Guid.NewGuid();
+  private readonly Guid _driverId = Guid.NewGuid();
 
   [Fact]
   public async Task NewRideRequestedHandler_RelaysToDriver()
   {
     var handler = new NewRideRequestedHandler(_relay);
 
-    await handler.Handle(new NewRideRequested { RideId = _rideId }, CancellationToken.None);
+    await handler.Handle(new NewRideRequested { RideId = _rideId, DriverId = _driverId }, CancellationToken.None);
 
-    await _relay.Received(1).SendToDriverNewRideRequest(_rideId, Arg.Any<CancellationToken>());
+    await _relay.Received(1).SendToDriverNewRideRequest(_rideId, _driverId, Arg.Any<CancellationToken>());
   }
 
   [Fact]

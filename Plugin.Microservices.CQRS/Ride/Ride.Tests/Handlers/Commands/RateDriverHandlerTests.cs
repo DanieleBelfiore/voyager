@@ -1,10 +1,9 @@
-using Hub.API;
-using Hub.Core.Interfaces;
+using Common.Core.Exceptions;
 using Identity.Core.CQRS.Commands;
 using MediatR;
-using Microsoft.AspNetCore.SignalR;
 using NSubstitute;
 using Ride.Core.CQRS.Commands;
+using Ride.Core.CQRS.Events;
 using Ride.Handlers.CQRS.Commands;
 using Xunit;
 
@@ -14,28 +13,21 @@ public class RateDriverHandlerTests
 {
   private readonly IMediator _mediator;
   private readonly TestApplicationDbContext _context;
-  private readonly IVoyagerShareClient _clientProxy;
 
   public RateDriverHandlerTests()
   {
     _context = TestBase.CreateTestDbContext();
 
-    _clientProxy = Substitute.For<IVoyagerShareClient>();
-    var clientsProxy = Substitute.For<IHubClients<IVoyagerShareClient>>();
-    var hubContext = Substitute.For<IHubContext<VoyagerHub, IVoyagerShareClient>>();
-    clientsProxy.Group(Arg.Any<string>()).Returns(_clientProxy);
-    hubContext.Clients.Returns(clientsProxy);
-
     var mediatorMock = Substitute.For<IMediator>();
     _mediator = mediatorMock;
 
     mediatorMock.Send(Arg.Any<RateDriver>(), Arg.Any<CancellationToken>())
-      .Returns(c => new RateDriverHandler(_context, _mediator, hubContext)
+      .Returns(c => new RateDriverHandler(_context, _mediator)
         .Handle(c.Arg<RateDriver>(), c.Arg<CancellationToken>()));
   }
 
   [Fact]
-  public async Task Handle_UpdatesRatingAndPushesToHubForRatedRide()
+  public async Task Handle_UpdatesRatingAndPublishesEvent_ForRatedRide()
   {
     // Arrange: the notification must always use the ride being rated (request.RideId), not
     // derived from the driver's history — Identity now self-tracks the ratings count, so the
@@ -51,7 +43,7 @@ public class RateDriverHandlerTests
 
     // Assert
     await _mediator.Received(1).Send(Arg.Is<UpdateUserRating>(c => c.UserId == driverId && c.Rating == 5), Arg.Any<CancellationToken>());
-    await _clientProxy.Received(1).SendToDriverNewRateReceived(5);
+    await _mediator.Received(1).Publish(Arg.Is<DriverRatingReceived>(e => e.RideId == rideId && e.Rating == 5), Arg.Any<CancellationToken>());
   }
 
   [Fact]
@@ -61,7 +53,7 @@ public class RateDriverHandlerTests
     var act = () => _mediator.Send(new RateDriver { RideId = Guid.NewGuid(), Rating = 3 });
 
     // Act & Assert
-    var ex = await Assert.ThrowsAsync<Exception>(act);
+    var ex = await Assert.ThrowsAsync<NotFoundException>(act);
     Assert.Equal("ride_not_found", ex.Message);
   }
 

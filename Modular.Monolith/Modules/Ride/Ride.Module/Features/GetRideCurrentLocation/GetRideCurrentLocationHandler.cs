@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
@@ -12,7 +13,7 @@ internal class GetRideCurrentLocationHandler(RideDbContext db) : IRequestHandler
   public async Task<RideCurrentLocationResponse> Handle(GetRideCurrentLocation request, CancellationToken cancellationToken)
   {
     var ride = await db.Rides.AsNoTracking().FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken)
-      ?? throw new Exception("ride_not_found");
+      ?? throw new KeyNotFoundException("ride_not_found");
 
     if (ride.UserId != request.CallerId && ride.DriverId != request.CallerId)
       throw new UnauthorizedAccessException("not_ride_participant");

@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using Microsoft.AspNetCore;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using OpenIddict.Abstractions;
@@ -19,7 +20,11 @@ public class AuthenticateUserController(IMediator mediator) : Controller
   [Produces("application/json")]
   public async Task<IActionResult> Exchange(CancellationToken cancellationToken)
   {
-    var request = HttpContext.GetOpenIddictServerRequest() ?? throw new InvalidOperationException("The OpenID Connect request cannot be retrieved.");
+    // A direct 500 here, not a thrown exception: the global exception handler now maps
+    // InvalidOperationException to 409 for domain conflicts, and this guard is an internal
+    // invariant (a misconfigured pipeline), not a client-facing conflict.
+    if (HttpContext.GetOpenIddictServerRequest() is not { } request)
+      return StatusCode(StatusCodes.Status500InternalServerError);
 
     if (!request.IsPasswordGrantType())
       return BadRequest(new OpenIddictResponse { Error = OpenIddictConstants.Errors.UnsupportedGrantType, ErrorDescription = "Only the password grant flow is supported." });

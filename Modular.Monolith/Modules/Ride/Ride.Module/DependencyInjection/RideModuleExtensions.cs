@@ -19,7 +19,10 @@ public static class RideModuleExtensions
 
     services.AddScoped<SlowQueryInterceptor>();
 
+    services.AddHealthChecks().AddDbContextCheck<RideDbContext>("ride-database", tags: ["ready"]);
+
     services.Configure<EtaConfig>(configuration);
+    services.Configure<FareConfig>(configuration);
 
     return services;
   }

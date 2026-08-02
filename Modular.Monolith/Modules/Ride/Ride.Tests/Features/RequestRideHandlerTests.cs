@@ -42,7 +42,7 @@ public class RequestRideHandlerTests
     Assert.Equal(driverId, result.DriverId);
     Assert.Equal(RideStatus.Requested, result.Status);
     Assert.Single(db.Rides);
-    await mediator.Received(1).Publish(Arg.Is<NewRideRequested>(e => e.RideId == result.Id), Arg.Any<CancellationToken>());
+    await mediator.Received(1).Publish(Arg.Is<NewRideRequested>(e => e.RideId == result.Id && e.DriverId == driverId), Arg.Any<CancellationToken>());
   }
 
   [Fact]

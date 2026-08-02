@@ -14,8 +14,11 @@ namespace Hub.Module.Features.RideEvents;
 /// </summary>
 internal class NewRideRequestedHandler(IHubContext<VoyagerHub, IVoyagerShareClient> hub) : INotificationHandler<NewRideRequested>
 {
+  // Targets the driver's personal group, not the ride group: at Requested status nobody has
+  // called JoinRideGroup yet (there's no active ride to authorize it against), so ride_{rideId}
+  // would have zero members and the notification would be silently dropped.
   public Task Handle(NewRideRequested notification, CancellationToken cancellationToken) =>
-    hub.Clients.Group(HubGroups.ForRide(notification.RideId)).SendToDriverNewRideRequest(notification.RideId);
+    hub.Clients.Group(HubGroups.ForUser(notification.DriverId)).SendToDriverNewRideRequest(notification.RideId);
 }
 
 internal class RideAcceptedHandler(IHubContext<VoyagerHub, IVoyagerShareClient> hub) : INotificationHandler<RideAccepted>

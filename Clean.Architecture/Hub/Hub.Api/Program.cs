@@ -8,8 +8,6 @@ using Hub.Api.Middlewares;
 using Hub.Application.Ports;
 using Hub.Infrastructure.DependencyInjection;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,6 +19,9 @@ using Newtonsoft.Json.Converters;
 using OpenIddict.Validation.AspNetCore;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using Voyager.Shared.RateLimiting;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Voyager.Shared.Diagnostics;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -65,11 +66,33 @@ builder.Services.AddSignalR(options =>
 }).AddNewtonsoftJsonProtocol(options =>
 {
   options.PayloadSerializerSettings.Converters.Add(new StringEnumConverter());
+  // Without this, a Point argument/payload (UpdateDriverLocation, SendToRiderNewDriverLocation)
+  // serializes as NTS's internal Coordinate/CoordinateSequence/Factory graph instead of GeoJSON,
+  // and won't round-trip back into a Point on the other end. Same converter the MVC pipeline
+  // below already registers for controller request/response bodies.
+  options.PayloadSerializerSettings.Converters.Add(new GeometryConverter());
   options.PayloadSerializerSettings.MissingMemberHandling = MissingMemberHandling.Ignore;
   options.PayloadSerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
   options.PayloadSerializerSettings.DateFormatHandling = DateFormatHandling.IsoDateFormat;
   options.PayloadSerializerSettings.DateTimeZoneHandling = DateTimeZoneHandling.Utc;
   options.PayloadSerializerSettings.NullValueHandling = NullValueHandling.Ignore;
+// A single Hub instance is fine for this exercise's scale, but the backplane is what makes
+// horizontal scaling (Scalability & performance in DESIGN.md) actually work for SignalR: without
+// it, a client connected to Hub instance A never receives a group message published from instance
+// B, since group membership and Clients.Group(...) dispatch are both in-memory and per-instance.
+}).AddStackExchangeRedis(options =>
+{
+  // Same connect options the cache side already uses (see CacheExtensions):
+  // AbortOnConnectFail=false so an instance still starts when Redis is briefly
+  // unreachable and reconnects on its own, rather than throwing at startup.
+  options.Configuration = new ConfigurationOptions
+  {
+    EndPoints = { configuration["Redis:ConnectionString"] },
+    AbortOnConnectFail = false,
+    ConnectTimeout = 6000,
+    SyncTimeout = 6000,
+    ConnectRetry = 3
+  };
 });
 
 builder.Services.AddControllers().AddNewtonsoftJson(options =>
@@ -144,30 +167,14 @@ builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddTransient<QueryStringTokenMiddleware>();
 
+builder.Services.AddHealthChecks().AddRedis(configuration["Redis:ConnectionString"], "redis", tags: ["ready"]);
+
 var app = builder.Build();
 
 // Only for development
 const string scheme = "http";
 
-if (app.Environment.IsDevelopment())
-{
-  app.UseDeveloperExceptionPage();
-}
-else
-{
-  // Do not leak stack traces/paths outside Development: a generic response, with
-  // UnauthorizedAccessException mapped to 403 since handlers already use it for that.
-  app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
-  {
-    var statusCode = context.Features.Get<IExceptionHandlerFeature>()?.Error is UnauthorizedAccessException
-      ? StatusCodes.Status403Forbidden
-      : StatusCodes.Status500InternalServerError;
-
-    context.Response.StatusCode = statusCode;
-    context.Response.ContentType = "application/json";
-    await context.Response.WriteAsJsonAsync(new { error = statusCode == StatusCodes.Status403Forbidden ? "forbidden" : "internal_server_error" });
-  }));
-}
+app.UseDomainExceptionHandler();
 
 app.UseRouting();
 app.UseSwagger(options =>
@@ -208,5 +215,8 @@ app.MapGet("/", context =>
 app.MapHub<VoyagerHub>("/voyagerhub");
 
 app.MapControllers();
+
+app.MapHealthChecks("/health", new HealthCheckOptions { Predicate = _ => false });
+app.MapHealthChecks("/ready", new HealthCheckOptions { Predicate = check => check.Tags.Contains("ready") });
 
 app.Run();

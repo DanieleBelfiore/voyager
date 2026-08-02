@@ -6,8 +6,10 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NetTopologySuite.Geometries;
+using NetTopologySuite.IO.Converters;
 using Newtonsoft.Json;
 
 namespace Demo;
@@ -38,11 +40,20 @@ public class Program
       // Configure HTTP client with rider token initially
       _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", riderToken);
 
-      // 2. Set up SignalR connection for real-time updates
+      // 2. Set up SignalR connection for real-time updates. Authenticated as the driver, since
+      // this connection also submits location updates over the socket (see UpdateDriverLocation)
+      // — it doubles as a stand-in for the rider's client too, for the events this demo listens to.
       _hubConnection = new HubConnectionBuilder()
         .WithUrl(HUB_API, options =>
         {
           options.AccessTokenProvider = () => Task.FromResult(driverToken);
+        })
+        .AddNewtonsoftJsonProtocol(options =>
+        {
+          // Must match the server's GeometryConverter registration (Hub/Program.cs) so a Point
+          // argument (UpdateDriverLocation) and Point payloads (SendToRiderNewDriverLocation)
+          // round-trip as GeoJSON instead of NTS's internal object graph.
+          options.PayloadSerializerSettings.Converters.Add(new GeometryConverter());
         })
         .WithAutomaticReconnect()
         .Build();
@@ -101,7 +112,13 @@ public class Program
       await AcceptRide(rideId);
       _logger.LogInformation("Ride accepted by driver");
 
-      // 6. Simulate ride progress with location updates
+      // Only reachable once the ride is DriverAssigned/InProgress for this caller — see
+      // VoyagerHub.JoinRideGroup — which is why this can't happen any earlier than here.
+      await _hubConnection.InvokeAsync("JoinRideGroup", rideId.ToString());
+      _logger.LogInformation("Joined ride group for real-time updates");
+
+      // 6. Simulate ride progress with location updates, sent over the hub connection (not
+      // REST) so the WebSocket path actually carries traffic both ways, not just server->client.
       var progress = SimulateRideProgress(riderLocation, destination);
       foreach (var location in progress)
       {
@@ -116,7 +133,7 @@ public class Program
       await StartRide(rideId, riderLocation);
       _logger.LogInformation("Ride started");
 
-      await CompleteRide(rideId, destination, 15.50);
+      await CompleteRide(rideId, destination);
       _logger.LogInformation("Ride completed");
 
       // 8. Rate each other
@@ -193,9 +210,38 @@ public class Program
 
   private static void SetupSignalRHandlers()
   {
+    // Driver-facing events — deliverable to this connection now that NewRideRequested routes
+    // to the driver's own user_{id} group instead of a ride_{id} group nobody has joined yet.
+    _hubConnection.On<Guid>("SendToDriverNewRideRequest", rideId =>
+    {
+      _logger.LogInformation("New ride request received for ride {RideId}", rideId);
+    });
+
+    _hubConnection.On<Guid>("SendToDriverRideCancel", rideId =>
+    {
+      _logger.LogInformation("Ride {RideId} was cancelled", rideId);
+    });
+
+    _hubConnection.On<int>("SendToDriverNewRateReceived", rating =>
+    {
+      _logger.LogInformation("Received {Rating} stars from rider", rating);
+    });
+
+    // Rider-facing events — only deliverable to this connection from the point it joins
+    // ride_{RideId} onward (see the JoinRideGroup call after AcceptRide).
     _hubConnection.On<Point>("SendToRiderNewDriverLocation", location =>
     {
       _logger.LogInformation("Driver location updated: ({Lat}, {Lon})", location.Y, location.X);
+    });
+
+    _hubConnection.On<EtaDto>("SendToRiderNewETA", eta =>
+    {
+      _logger.LogInformation("New ETA: {Minutes} min, {Distance} km", eta.EstimatedArrivalMinutes, eta.DistanceKm);
+    });
+
+    _hubConnection.On<Guid>("SendToRiderDriverArrival", rideId =>
+    {
+      _logger.LogInformation("Driver has arrived for ride {RideId}", rideId);
     });
 
     _hubConnection.On<Guid>("SendToRiderRideAccepted", rideId =>
@@ -214,13 +260,11 @@ public class Program
     });
   }
 
+  // Sent over the SignalR hub connection (VoyagerHub.UpdateDriverLocation), not REST — this is
+  // the driver-originated leg of the real-time path the mandate asks for.
   private static async Task UpdateDriverLocation(Point location)
   {
-    var response = await _httpClient.PutAsync(
-      $"{DRIVER_API}/api/v1/drivers/location",
-      new StringContent(JsonConvert.SerializeObject(new { location = new LocationDto { Coordinates = [location.Y, location.X] } }), Encoding.UTF8, "application/json"));
-
-    response.EnsureSuccessStatusCode();
+    await _hubConnection.InvokeAsync("UpdateDriverLocation", location);
   }
 
   private static async Task UpdateDriverStatus(bool available)
@@ -240,7 +284,10 @@ public class Program
       $"{DRIVER_API}/api/v1/drivers/search",
       new StringContent(JsonConvert.SerializeObject(new
       {
-        location = new LocationDto { Coordinates = [location.Y, location.X] },
+        // GeoJSON coordinate order is [longitude, latitude] — Point.X is longitude, Point.Y is
+        // latitude. Reversing this doesn't fail loudly: both write and read paths agree on the
+        // (wrong) order, so it round-trips silently into the wrong hemisphere.
+        location = new LocationDto { Coordinates = [location.X, location.Y] },
         distanceThresholdInKm = 5
       }), Encoding.UTF8, "application/json")
     );
@@ -259,8 +306,8 @@ public class Program
       new StringContent(JsonConvert.SerializeObject(new
       {
         driverId,
-        pickupLocation = new LocationDto { Coordinates = [pickup.Y, pickup.X] },
-        dropoffLocation = new LocationDto { Coordinates = [dropoff.Y, dropoff.X] }
+        pickupLocation = new LocationDto { Coordinates = [pickup.X, pickup.Y] },
+        dropoffLocation = new LocationDto { Coordinates = [dropoff.X, dropoff.Y] }
       }), Encoding.UTF8, "application/json")
     );
 
@@ -287,7 +334,7 @@ public class Program
   {
     var response = await _httpClient.PutAsync(
       $"{RIDE_API}/api/v1/rides/{rideId}/start",
-      new StringContent(JsonConvert.SerializeObject(new { location = new LocationDto { Coordinates = [location.Y, location.X] } }), Encoding.UTF8, "application/json")
+      new StringContent(JsonConvert.SerializeObject(new { location = new LocationDto { Coordinates = [location.X, location.Y] } }), Encoding.UTF8, "application/json")
     );
 
     response.EnsureSuccessStatusCode();
@@ -309,14 +356,13 @@ public class Program
     return points;
   }
 
-  private static async Task CompleteRide(Guid rideId, Point location, double price)
+  private static async Task CompleteRide(Guid rideId, Point location)
   {
     var response = await _httpClient.PutAsync(
       $"{RIDE_API}/api/v1/rides/{rideId}/complete",
       new StringContent(JsonConvert.SerializeObject(new
       {
-        location = new LocationDto { Coordinates = [location.Y, location.X] },
-        price
+        location = new LocationDto { Coordinates = [location.X, location.Y] }
       }), Encoding.UTF8, "application/json")
     );
 
@@ -372,5 +418,12 @@ public class Program
     public string Type { get; set; } = "Point";
     [JsonProperty("coordinates")]
     public double[] Coordinates { get; set; }
+  }
+
+  // ReSharper disable once ClassNeverInstantiated.Local
+  private class EtaDto
+  {
+    public int? EstimatedArrivalMinutes { get; set; }
+    public double? DistanceKm { get; set; }
   }
 }

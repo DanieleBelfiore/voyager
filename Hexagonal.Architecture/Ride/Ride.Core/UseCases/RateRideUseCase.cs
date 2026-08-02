@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Ride.Core.Ports.Secondary;
@@ -10,7 +11,7 @@ public class RateRideUseCase(IRideRepository repository, IRatingUpdateService ra
 {
   public async Task Handle(RateRide request, CancellationToken cancellationToken)
   {
-    var ride = await repository.GetByIdReadOnlyAsync(request.RideId, cancellationToken) ?? throw new Exception("ride_not_found");
+    var ride = await repository.GetByIdReadOnlyAsync(request.RideId, cancellationToken) ?? throw new KeyNotFoundException("ride_not_found");
 
     if (ride.DriverId != request.CallerId)
       throw new UnauthorizedAccessException("not_ride_participant");

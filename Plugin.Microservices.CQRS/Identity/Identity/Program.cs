@@ -6,11 +6,10 @@ using System.Linq;
 using System.Reflection;
 using Arbitrer;
 using Common.Core;
+using Common.Core.Exceptions;
 using Identity.Handlers.Models;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
@@ -28,6 +27,8 @@ using OpenIddict.Validation.AspNetCore;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using Common.Core.RateLimiting;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Common.Core.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -201,6 +202,15 @@ builder.Services.AddHttpContextAccessor();
 // no CAPTCHA) — rate limiting is the only thing standing between it and credential stuffing.
 builder.Services.AddCustomRateLimiting(configuration);
 
+builder.Services.AddHealthChecks().AddDbContextCheck<IdentityContext>("identity-database", tags: ["ready"]);
+
+// Runs after the server is listening, so /health answers during migration; /ready
+// stays unhealthy until it finishes. Every IModule.OnStartup in this variant does nothing but
+// run its own EF migration, and reads only app.ApplicationServices off the builder it's handed —
+// so a throwaway ApplicationBuilder over the root provider satisfies the contract without
+// dragging the real request pipeline into a hosted service.
+builder.Services.AddStartupMigration(sp => Loader.Current.AddModules(new ApplicationBuilder(sp)));
+
 var app = builder.Build();
 
 var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
@@ -228,25 +238,7 @@ app.MapControllers();
 // Only for development
 const string scheme = "http";
 
-if (app.Environment.IsDevelopment())
-{
-  app.UseDeveloperExceptionPage();
-}
-else
-{
-  // Do not leak stack traces/paths outside Development: a generic response, with
-  // UnauthorizedAccessException mapped to 403 since handlers already use it for that.
-  app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
-  {
-    var statusCode = context.Features.Get<IExceptionHandlerFeature>()?.Error is UnauthorizedAccessException
-      ? StatusCodes.Status403Forbidden
-      : StatusCodes.Status500InternalServerError;
-
-    context.Response.StatusCode = statusCode;
-    context.Response.ContentType = "application/json";
-    await context.Response.WriteAsJsonAsync(new { error = statusCode == StatusCodes.Status403Forbidden ? "forbidden" : "internal_server_error" });
-  }));
-}
+app.UseDomainExceptionHandler();
 
 app.UseSwagger(options =>
 {
@@ -273,7 +265,8 @@ using var scope = app.Services.GetRequiredService<IServiceScopeFactory>().Create
 
 scope.ServiceProvider.GetRequiredService<OpenIddictApplicationManager<OpenIddictEntityFrameworkCoreApplication>>();
 
-Loader.Current.AddModules(app);
+app.MapHealthChecks("/health", new HealthCheckOptions { Predicate = _ => false });
+app.MapHealthChecks("/ready", new HealthCheckOptions { Predicate = check => check.Tags.Contains("ready") });
 
 app.Run();
 

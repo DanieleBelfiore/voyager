@@ -1,3 +1,4 @@
+using Common.Core.Exceptions;
 using Driver.Core.CQRS.Commands;
 using Driver.Core.Enums;
 using Driver.Handlers.CQRS.Commands;
@@ -52,7 +53,7 @@ public class UpdateAvailabilityHandlerTests
     var act = () => _mediator.Send(new UpdateAvailability { Id = Guid.NewGuid(), Status = DriverStatus.Available });
 
     // Act & Assert
-    var ex = await Assert.ThrowsAsync<Exception>(act);
+    var ex = await Assert.ThrowsAsync<NotFoundException>(act);
     Assert.Equal("driver_not_found", ex.Message);
   }
 }

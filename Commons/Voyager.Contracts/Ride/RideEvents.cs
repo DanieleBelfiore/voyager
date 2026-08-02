@@ -5,20 +5,19 @@ namespace Voyager.Contracts.Ride;
 
 /// <summary>
 /// Ride lifecycle events, published by Ride and consumed by Hub to relay over SignalR to its
-/// own connected clients.
-///
-/// In the Plugin.Microservices.CQRS variant, Ride's handlers inject
-/// IHubContext&lt;VoyagerHub, IVoyagerShareClient&gt; directly and call it in-process — but
-/// Ride and Hub are separate services with no SignalR backplane configured, so those calls
-/// only ever reach clients connected to Ride's own (client-less) SignalR endpoint. They're
-/// dead code. This variant fixes that by using the same Arbitrer notification pub/sub the
-/// rest of the portfolio already relies on for cross-service requests: Ride publishes these
-/// as MediatR notifications, Arbitrer fans them out over RabbitMQ, and Hub — the service that
-/// actually owns connected SignalR clients — is the one that relays them.
+/// own connected clients. Every variant — including Plugin.Microservices.CQRS, whose original
+/// handlers used to call IHubContext&lt;VoyagerHub, IVoyagerShareClient&gt; directly in-process
+/// and never reached a real client, since Ride and Hub are separate services — publishes these
+/// as MediatR notifications; Arbitrer fans them out over RabbitMQ to whichever service owns the
+/// connected SignalR clients (Hub), where they're relayed for real.
 /// </summary>
 public class NewRideRequested : INotification
 {
   public Guid RideId { get; set; }
+
+  /// <summary>Routes the notification to the driver's personal group (user_{DriverId}) — at
+  /// Requested status nobody has joined ride_{RideId} yet, so that group would be empty.</summary>
+  public Guid DriverId { get; set; }
 }
 
 public class RideAccepted : INotification

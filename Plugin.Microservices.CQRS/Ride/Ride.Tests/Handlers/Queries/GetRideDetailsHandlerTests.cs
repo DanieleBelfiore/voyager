@@ -1,3 +1,4 @@
+using Common.Core.Exceptions;
 using MediatR;
 using NSubstitute;
 using Ride.Core.CQRS.Queries;
@@ -50,7 +51,7 @@ public class GetRideDetailsHandlerTests
     var act = () => _mediator.Send(new GetRideDetails { Id = Guid.NewGuid() });
 
     // Act & Assert
-    var ex = await Assert.ThrowsAsync<Exception>(act);
+    var ex = await Assert.ThrowsAsync<NotFoundException>(act);
     Assert.Equal("ride_not_found", ex.Message);
   }
 

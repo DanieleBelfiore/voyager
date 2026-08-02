@@ -1,3 +1,4 @@
+using Common.Core.Exceptions;
 using Identity.Core.CQRS.Commands;
 using Identity.Handlers.CQRS.Commands;
 using Identity.Handlers.Models;
@@ -48,7 +49,7 @@ public class UpdateUserRatingHandlerTests
     var act = () => _mediator.Send(new UpdateUserRating { UserId = Guid.NewGuid(), Rating = 5 });
 
     // Act & Assert
-    var ex = await Assert.ThrowsAsync<InvalidOperationException>(act);
+    var ex = await Assert.ThrowsAsync<NotFoundException>(act);
     Assert.Equal("user_not_found", ex.Message);
   }
 }

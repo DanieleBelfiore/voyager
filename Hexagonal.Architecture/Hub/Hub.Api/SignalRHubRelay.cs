@@ -15,9 +15,13 @@ namespace Hub.Api;
 public class SignalRHubRelay(IHubContext<VoyagerHub, IVoyagerShareClient> hub) : IHubRelay
 {
   private static string GroupFor(Guid rideId) => $"ride_{rideId}";
+  private static string UserGroupFor(Guid userId) => $"user_{userId}";
 
-  public Task SendToDriverNewRideRequest(Guid rideId, CancellationToken cancellationToken) =>
-    hub.Clients.Group(GroupFor(rideId)).SendToDriverNewRideRequest(rideId);
+  // Targets the driver's personal group, not the ride group: at Requested status nobody has
+  // called JoinRideGroup yet (there's no active ride to authorize it against), so ride_{rideId}
+  // would have zero members and the notification would be silently dropped.
+  public Task SendToDriverNewRideRequest(Guid rideId, Guid driverId, CancellationToken cancellationToken) =>
+    hub.Clients.Group(UserGroupFor(driverId)).SendToDriverNewRideRequest(rideId);
 
   public Task SendToDriverRideCancel(Guid rideId, CancellationToken cancellationToken) =>
     hub.Clients.Group(GroupFor(rideId)).SendToDriverRideCancel(rideId);

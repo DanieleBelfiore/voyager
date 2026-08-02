@@ -1,5 +1,4 @@
 using System;
-using System.Security.Claims;
 using System.Threading.Tasks;
 using Driver.Core.CQRS.Commands;
 using Hub.Core.Interfaces;
@@ -24,6 +23,16 @@ namespace Hub.API;
 [Authorize]
 public class VoyagerHub(IMediator mediator, IConfiguration configuration) : Hub<IVoyagerShareClient>
 {
+  /// <summary>
+  /// Joins the caller's personal group so cross-service events targeting them by user id
+  /// (e.g. NewRideRequested, before anyone can join ride_{RideId}) reach this connection.
+  /// </summary>
+  public override async Task OnConnectedAsync()
+  {
+    await Groups.AddToGroupAsync(Context.ConnectionId, $"user_{GetCallerId()}");
+    await base.OnConnectedAsync();
+  }
+
   /// <summary>
   /// Adds the current connection to a ride group, after verifying the caller is a
   /// participant (rider or driver) of that ride.
@@ -64,7 +73,10 @@ public class VoyagerHub(IMediator mediator, IConfiguration configuration) : Hub<
 
     await Clients.Group($"ride_{ride.Id}").SendToRiderNewDriverLocation(location);
 
-    var ETA = await mediator.Send(new GetRideETA { Id = ride.Id });
+    // CallerId must be set: GetRideETAHandler rejects the request otherwise (defaults to
+    // Guid.Empty, which matches neither the ride's rider nor driver) — the driver reporting
+    // this location update is by construction a participant of their own active ride.
+    var ETA = await mediator.Send(new GetRideETA { Id = ride.Id, CallerId = driverId });
 
     await Clients.Group($"ride_{ride.Id}").SendToRiderNewETA(ETA);
 
@@ -73,8 +85,12 @@ public class VoyagerHub(IMediator mediator, IConfiguration configuration) : Hub<
       await Clients.Group($"ride_{ride.Id}").SendToRiderDriverArrival(ride.Id);
   }
 
+  // "sub", not ClaimTypes.NameIdentifier: OpenIddict issues the access token from the "sub"
+  // claim (see UsersController.CreatePrincipalAsync), and every REST controller resolves the
+  // caller the same way via ControllerExtensions.GetUserId(). NameIdentifier is never present,
+  // so every hub method looking up the caller failed with "user_not_authenticated" before this.
   private Guid GetCallerId() =>
-    Guid.Parse(Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? throw new HubException("user_not_authenticated"));
+    Guid.Parse(Context.User?.FindFirst("sub")?.Value ?? throw new HubException("user_not_authenticated"));
 
   // NetTopologySuite's Point.Distance() is planar/Cartesian on the raw coordinate values (SRID
   // is metadata only) — on lat/lon points that returns degrees, not meters. Haversine gives the

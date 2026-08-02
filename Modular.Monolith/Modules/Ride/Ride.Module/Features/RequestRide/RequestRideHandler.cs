@@ -36,7 +36,7 @@ internal class RequestRideHandler(RideDbContext db, IMediator mediator) : IReque
       throw new InvalidOperationException();
     }
 
-    await mediator.Publish(new NewRideRequested { RideId = ride.Id }, cancellationToken);
+    await mediator.Publish(new NewRideRequested { RideId = ride.Id, DriverId = ride.DriverId }, cancellationToken);
 
     return RideDetailsResponse.From(ride);
   }

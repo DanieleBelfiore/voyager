@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Common.Core.Exceptions;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Ride.Core.CQRS.Queries;
@@ -13,7 +14,7 @@ public class GetRideCurrentLocationHandler(IRideContext db) : IRequestHandler<Ge
 {
   public async Task<RideCurrentLocationResponse> Handle(GetRideCurrentLocation request, CancellationToken cancellationToken)
   {
-    var ride = await db.Rides.AsNoTracking().FirstOrDefaultAsync(f => f.Id == request.Id, cancellationToken) ?? throw new Exception("ride_not_found");
+    var ride = await db.Rides.AsNoTracking().FirstOrDefaultAsync(f => f.Id == request.Id, cancellationToken) ?? throw new NotFoundException("ride_not_found");
 
     if (ride.UserId != request.CallerId && ride.DriverId != request.CallerId)
       throw new UnauthorizedAccessException("not_ride_participant");

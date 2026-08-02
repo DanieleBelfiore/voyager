@@ -49,7 +49,7 @@ public class GetRideCurrentLocationHandlerTests
     var act = () => handler.Handle(new GetRideCurrentLocation { Id = Guid.NewGuid() }, CancellationToken.None);
 
     // Act & Assert
-    var ex = await Assert.ThrowsAsync<Exception>(act);
+    var ex = await Assert.ThrowsAsync<KeyNotFoundException>(act);
     Assert.Equal("ride_not_found", ex.Message);
   }
 }

@@ -6,7 +6,7 @@ namespace Ride.Core.Ports.Secondary;
 
 public interface IRideEventPublisher
 {
-  Task NewRideRequestedAsync(Guid rideId, CancellationToken cancellationToken);
+  Task NewRideRequestedAsync(Guid rideId, Guid driverId, CancellationToken cancellationToken);
   Task RideAcceptedAsync(Guid rideId, CancellationToken cancellationToken);
   Task RideCancelledAsync(Guid rideId, CancellationToken cancellationToken);
   Task RideCompletedAsync(Guid rideId, CancellationToken cancellationToken);

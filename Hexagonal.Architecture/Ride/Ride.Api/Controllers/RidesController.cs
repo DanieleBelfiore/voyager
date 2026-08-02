@@ -114,7 +114,7 @@ public class RidesController(
   [HttpPut("{rideId:guid}/complete")]
   public async Task<ActionResult> CompleteRide(Guid rideId, [FromBody] CompleteRideRequest request, CancellationToken cancellationToken)
   {
-    await completeRide.Handle(new Ride.Core.Ports.Primary.CompleteRide { Id = rideId, Location = request.Location, Price = request.Price, CallerId = this.GetUserId() }, cancellationToken);
+    await completeRide.Handle(new Ride.Core.Ports.Primary.CompleteRide { Id = rideId, Location = request.Location, CallerId = this.GetUserId() }, cancellationToken);
 
     return Ok();
   }

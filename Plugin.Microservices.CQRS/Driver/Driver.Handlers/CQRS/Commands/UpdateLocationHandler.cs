@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Core.Cache;
+using Common.Core.Exceptions;
 using Driver.Core.CQRS.Commands;
 using Driver.Handlers.Interfaces;
 using MediatR;
@@ -16,7 +17,7 @@ public class UpdateLocationHandler(IDriverContext db, ICacheService cache) : IRe
 
   public async Task Handle(UpdateLocation request, CancellationToken cancellationToken)
   {
-    var driver = await db.Drivers.FirstOrDefaultAsync(f => f.Id == request.Id, cancellationToken) ?? throw new Exception("driver_not_found");
+    var driver = await db.Drivers.FirstOrDefaultAsync(f => f.Id == request.Id, cancellationToken) ?? throw new NotFoundException("driver_not_found");
 
     driver.LastLocation = request.Location;
     driver.LastLocationGeoJSON = new WKTWriter().Write(driver.LastLocation);

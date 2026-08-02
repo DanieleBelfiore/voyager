@@ -6,8 +6,10 @@ using Ride.Adapters.Secondary.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using IDriverAvailabilityNotifier = Ride.Core.Ports.Secondary.IDriverAvailabilityNotifier;
 using IDriverLocationQuery = Ride.Core.Ports.Secondary.IDriverLocationQuery;
 using IEtaConfig = Ride.Core.Ports.Secondary.IEtaConfig;
+using IFareConfig = Ride.Core.Ports.Secondary.IFareConfig;
 using IRatingUpdateService = Ride.Core.Ports.Secondary.IRatingUpdateService;
 using IRideEventPublisher = Ride.Core.Ports.Secondary.IRideEventPublisher;
 using IRideRepository = Ride.Core.Ports.Secondary.IRideRepository;
@@ -31,6 +33,7 @@ public static class RideAdaptersExtensions
     services.AddScoped<IRatingUpdateService, ArbitrerRatingUpdateService>();
     services.AddScoped<IDriverLocationQuery, ArbitrerDriverLocationQuery>();
     services.AddScoped<IRideEventPublisher, ArbitrerRideEventPublisher>();
+    services.AddScoped<IDriverAvailabilityNotifier, ArbitrerDriverAvailabilityNotifier>();
 
     services.AddSingleton<IEtaConfig>(_ => new EtaConfig
     {
@@ -39,6 +42,13 @@ public static class RideAdaptersExtensions
       EveningPeakMultiplier = configuration.GetValue<double>("EveningPeakMultiplier"),
       NightMultiplier = configuration.GetValue<double>("NightMultiplier"),
       LunchMultiplier = configuration.GetValue<double>("LunchMultiplier")
+    });
+
+    services.AddSingleton<IFareConfig>(_ => new FareConfig
+    {
+      BaseFare = configuration.GetValue<double>("BaseFare"),
+      PerKmRate = configuration.GetValue<double>("PerKmRate"),
+      PerMinuteRate = configuration.GetValue<double>("PerMinuteRate")
     });
 
     return services;

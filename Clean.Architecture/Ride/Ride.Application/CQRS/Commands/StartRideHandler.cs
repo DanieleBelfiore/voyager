@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Ride.Application.Ports;
@@ -10,7 +11,7 @@ public class StartRideHandler(IRideRepository repository) : IRequestHandler<Star
 {
   public async Task Handle(StartRide request, CancellationToken cancellationToken)
   {
-    var ride = await repository.GetByIdAsync(request.Id, cancellationToken) ?? throw new Exception("no_ride_found");
+    var ride = await repository.GetByIdAsync(request.Id, cancellationToken) ?? throw new KeyNotFoundException("no_ride_found");
 
     if (ride.DriverId != request.CallerId)
       throw new UnauthorizedAccessException("not_ride_participant");

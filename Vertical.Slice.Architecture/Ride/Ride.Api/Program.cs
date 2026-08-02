@@ -5,8 +5,6 @@ using System.Text.Json.Nodes;
 using Arbitrer;
 using FluentValidation;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -22,6 +20,8 @@ using Ride.Api.Shared;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using Voyager.Shared.RateLimiting;
 using Voyager.Shared.Validation;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Voyager.Shared.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -46,6 +46,7 @@ builder.Services.AddDbContext<RideDbContext>((provider, options) =>
 builder.Services.AddScoped<SlowQueryInterceptor>();
 
 builder.Services.Configure<EtaConfig>(configuration);
+builder.Services.Configure<FareConfig>(configuration);
 
 builder.Services.AddOpenIddict()
     .AddValidation(options =>
@@ -146,30 +147,22 @@ builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddCustomRateLimiting(builder.Configuration);
 
+builder.Services.AddHealthChecks().AddDbContextCheck<RideDbContext>("ride-database", tags: ["ready"]);
+
+// Runs after the server is listening, so /health answers during migration; /ready
+// stays unhealthy until it finishes.
+builder.Services.AddStartupMigration(sp =>
+{
+  using var scope = sp.CreateScope();
+  scope.ServiceProvider.GetRequiredService<RideDbContext>().Database.Migrate();
+});
+
 var app = builder.Build();
 
 // Only for development
 const string scheme = "http";
 
-if (app.Environment.IsDevelopment())
-{
-  app.UseDeveloperExceptionPage();
-}
-else
-{
-  // Do not leak stack traces/paths outside Development: a generic response, with
-  // UnauthorizedAccessException mapped to 403 since handlers already use it for that.
-  app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
-  {
-    var statusCode = context.Features.Get<IExceptionHandlerFeature>()?.Error is UnauthorizedAccessException
-      ? StatusCodes.Status403Forbidden
-      : StatusCodes.Status500InternalServerError;
-
-    context.Response.StatusCode = statusCode;
-    context.Response.ContentType = "application/json";
-    await context.Response.WriteAsJsonAsync(new { error = statusCode == StatusCodes.Status403Forbidden ? "forbidden" : "internal_server_error" });
-  }));
-}
+app.UseDomainExceptionHandler();
 
 app.UseRouting();
 app.UseSwagger(options =>
@@ -201,11 +194,6 @@ app.UseAuthorization();
 
 app.UseRateLimiter();
 
-using (var scope = app.Services.CreateScope())
-{
-  scope.ServiceProvider.GetRequiredService<RideDbContext>().Database.Migrate();
-}
-
 app.MapGet("/", context =>
 {
   context.Response.Redirect("/ride/swagger/");
@@ -213,5 +201,8 @@ app.MapGet("/", context =>
 });
 
 app.MapControllers();
+
+app.MapHealthChecks("/health", new HealthCheckOptions { Predicate = _ => false });
+app.MapHealthChecks("/ready", new HealthCheckOptions { Predicate = check => check.Tags.Contains("ready") });
 
 app.Run();

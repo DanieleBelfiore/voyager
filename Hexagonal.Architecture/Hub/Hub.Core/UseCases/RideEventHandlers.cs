@@ -14,7 +14,7 @@ namespace Hub.Core.UseCases;
 public class NewRideRequestedHandler(IHubRelay relay) : INotificationHandler<NewRideRequested>
 {
   public Task Handle(NewRideRequested notification, CancellationToken cancellationToken) =>
-    relay.SendToDriverNewRideRequest(notification.RideId, cancellationToken);
+    relay.SendToDriverNewRideRequest(notification.RideId, notification.DriverId, cancellationToken);
 }
 
 public class RideAcceptedHandler(IHubRelay relay) : INotificationHandler<RideAccepted>

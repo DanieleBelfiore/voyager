@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Driver.Api.Persistence;
@@ -12,7 +13,7 @@ public class UpdateAvailabilityHandler(DriverDbContext db) : IRequestHandler<Upd
   public async Task Handle(UpdateAvailability request, CancellationToken cancellationToken)
   {
     var driver = await db.Drivers.FirstOrDefaultAsync(d => d.Id == request.Id, cancellationToken)
-      ?? throw new Exception("driver_not_found");
+      ?? throw new KeyNotFoundException("driver_not_found");
 
     driver.UpdateAvailability(request.Status);
 

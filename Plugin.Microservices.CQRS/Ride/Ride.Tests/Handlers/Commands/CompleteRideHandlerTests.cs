@@ -1,11 +1,12 @@
-using Hub.API;
-using Hub.Core.Interfaces;
+using Common.Core.Exceptions;
 using MediatR;
-using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Configuration;
 using NetTopologySuite.Geometries;
 using NSubstitute;
 using Ride.Core.CQRS.Commands;
+using Ride.Core.CQRS.Events;
 using Ride.Core.Enums;
+using Ride.Handlers;
 using Ride.Handlers.CQRS.Commands;
 using Xunit;
 
@@ -15,55 +16,61 @@ public class CompleteRideHandlerTests
 {
   private readonly IMediator _mediator;
   private readonly TestApplicationDbContext _context;
-  private readonly IVoyagerShareClient _clientProxy;
+  private readonly IConfiguration _configuration;
 
   public CompleteRideHandlerTests()
   {
     _context = TestBase.CreateTestDbContext();
-
-    _clientProxy = Substitute.For<IVoyagerShareClient>();
-    var clientsProxy = Substitute.For<IHubClients<IVoyagerShareClient>>();
-    var hubContext = Substitute.For<IHubContext<VoyagerHub, IVoyagerShareClient>>();
-    clientsProxy.Group(Arg.Any<string>()).Returns(_clientProxy);
-    hubContext.Clients.Returns(clientsProxy);
+    _configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+    {
+      ["BaseFare"] = "2.5",
+      ["PerKmRate"] = "1.2",
+      ["PerMinuteRate"] = "0.25"
+    }).Build();
 
     var mediatorMock = Substitute.For<IMediator>();
     _mediator = mediatorMock;
 
     mediatorMock.Send(Arg.Any<CompleteRide>(), Arg.Any<CancellationToken>())
-      .Returns(c => new CompleteRideHandler(_context, hubContext)
+      .Returns(c => new CompleteRideHandler(_context, _mediator, _configuration)
         .Handle(c.Arg<CompleteRide>(), c.Arg<CancellationToken>()));
   }
 
   [Fact]
-  public async Task Handle_CompletesRideAndPushesToHub_WhenRideExists()
+  public async Task Handle_CompletesRideAndPublishesEvent_WhenRideExists()
   {
     // Arrange
     var rideId = Guid.NewGuid();
     var driverId = Guid.NewGuid();
-    _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, DriverId = driverId, Status = RideStatus.InProgress });
+    var pickup = new Point(0, 0);
+    _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, DriverId = driverId, Status = RideStatus.InProgress, PickupLocation = pickup, StartAt = DateTime.UtcNow.AddMinutes(-10) });
     await _context.SaveChangesAsync();
-    var dropoff = new Point(3, 3);
+    var dropoff = new Point(0, 1);
 
     // Act
-    await _mediator.Send(new CompleteRide { Id = rideId, CallerId = driverId, Location = dropoff, Price = 42.5 });
+    await _mediator.Send(new CompleteRide { Id = rideId, CallerId = driverId, Location = dropoff });
 
-    // Assert
+    // Assert: server computes price from distance (pickup at (0,0) to dropoff at (0,1) is
+    // ~111.2km) and elapsed time (~10 minutes) — never trusts a client-supplied value. Pin the
+    // actual formula (not just "some positive amount above BaseFare") so a regression that drops
+    // a term or swaps distance/duration would fail this test.
     var ride = await _context.Rides.FindAsync(rideId);
+    var distanceInMeters = RideGeoCalculator.DistanceInMeters(pickup, dropoff);
+    var expectedPrice = 2.5 + 1.2 * (distanceInMeters / 1000) + 0.25 * 10;
     Assert.Equal(RideStatus.Completed, ride!.Status);
     Assert.Equal(dropoff, ride.DropoffLocation);
-    Assert.Equal(42.5, ride.Price);
-    await _clientProxy.Received(1).SendToRiderRideCompleted(rideId);
+    Assert.InRange(ride.Price!.Value, expectedPrice - 0.1, expectedPrice + 0.1);
+    await _mediator.Received(1).Publish(Arg.Is<RideCompleted>(e => e.RideId == rideId), Arg.Any<CancellationToken>());
   }
 
   [Fact]
   public async Task Handle_Throws_WhenRideNotFound()
   {
     // Arrange
-    var act = () => _mediator.Send(new CompleteRide { Id = Guid.NewGuid(), Location = new Point(0, 0), Price = 0 });
+    var act = () => _mediator.Send(new CompleteRide { Id = Guid.NewGuid(), Location = new Point(0, 0) });
 
     // Act & Assert
-    var ex = await Assert.ThrowsAsync<Exception>(act);
+    var ex = await Assert.ThrowsAsync<NotFoundException>(act);
     Assert.Equal("no_ride_found", ex.Message);
   }
 
@@ -75,7 +82,7 @@ public class CompleteRideHandlerTests
     var driverId = Guid.NewGuid();
     _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, DriverId = driverId, Status = RideStatus.InProgress });
     await _context.SaveChangesAsync();
-    var act = () => _mediator.Send(new CompleteRide { Id = rideId, CallerId = Guid.NewGuid(), Location = new Point(0, 0), Price = 0 });
+    var act = () => _mediator.Send(new CompleteRide { Id = rideId, CallerId = Guid.NewGuid(), Location = new Point(0, 0) });
 
     // Act & Assert
     var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(act);
@@ -90,10 +97,10 @@ public class CompleteRideHandlerTests
     var driverId = Guid.NewGuid();
     _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, DriverId = driverId, Status = RideStatus.DriverAssigned });
     await _context.SaveChangesAsync();
-    var act = () => _mediator.Send(new CompleteRide { Id = rideId, CallerId = driverId, Location = new Point(0, 0), Price = 0 });
+    var act = () => _mediator.Send(new CompleteRide { Id = rideId, CallerId = driverId, Location = new Point(0, 0) });
 
     // Act & Assert
-    var ex = await Assert.ThrowsAsync<Exception>(act);
+    var ex = await Assert.ThrowsAsync<ConflictException>(act);
     Assert.Equal("operation_not_permitted", ex.Message);
   }
 }

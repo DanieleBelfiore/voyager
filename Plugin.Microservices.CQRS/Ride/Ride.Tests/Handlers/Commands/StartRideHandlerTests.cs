@@ -1,3 +1,4 @@
+using Common.Core.Exceptions;
 using MediatR;
 using NetTopologySuite.Geometries;
 using NSubstitute;
@@ -75,7 +76,7 @@ public class StartRideHandlerTests
     var act = () => _mediator.Send(new StartRide { Id = id, CallerId = driverId, Location = new Point(12.0, 42.0) }, CancellationToken.None);
 
     // Act & Assert
-    var ex = await Assert.ThrowsAsync<Exception>(act);
+    var ex = await Assert.ThrowsAsync<ConflictException>(act);
     Assert.Equal("operation_not_permitted", ex.Message);
   }
 }

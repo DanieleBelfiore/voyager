@@ -26,7 +26,7 @@ public class RequestRideHandler(IRideRepository repository, RideMapper mapper, I
     // in-memory check, so callers see a consistent error either way. See RideRepository.
     await repository.SaveChangesAsync(cancellationToken);
 
-    await events.NewRideRequestedAsync(ride.Id, cancellationToken);
+    await events.NewRideRequestedAsync(ride.Id, ride.DriverId, cancellationToken);
 
     return mapper.ToRideDetails(ride);
   }

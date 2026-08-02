@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Driver.Application.Ports;
@@ -13,7 +14,7 @@ public class UpdateLocationHandler(IDriverRepository repository, ICacheService c
 
   public async Task Handle(UpdateLocation request, CancellationToken cancellationToken)
   {
-    var driver = await repository.GetByIdAsync(request.Id, cancellationToken) ?? throw new Exception("driver_not_found");
+    var driver = await repository.GetByIdAsync(request.Id, cancellationToken) ?? throw new KeyNotFoundException("driver_not_found");
 
     driver.UpdateLocation(request.Location);
 

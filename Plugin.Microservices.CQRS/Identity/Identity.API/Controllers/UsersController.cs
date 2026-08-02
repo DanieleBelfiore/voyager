@@ -154,11 +154,19 @@ public partial class UsersController(IdentityContext db, SignInManager<VoyagerUs
     var identity = principal.Identities.FirstOrDefault();
 
     identity?.AddClaim(ClaimTypes.NameIdentifier, user.Id.ToString());
-    identity?.AddClaim(Constants.IS_DRIVER, user.IsDriver);
+    // Not the AddClaim(string, bool) overload: it stringifies as JSON-style "true"/"false",
+    // but RequireDriver's policy (Ride/Program.cs) checks for .NET's bool.ToString() — "True".
+    identity?.AddClaim(new Claim(Constants.IS_DRIVER, user.IsDriver.ToString()));
 
     var scopes = new List<string>(request.GetScopes());
 
     principal.SetScopes(scopes);
+
+    // OpenIddict.AddClaim(...) attaches a claim to the principal but gives it no destination,
+    // so it's silently dropped from the issued access token unless told otherwise — every claim
+    // added above (is_driver in particular, which [Authorize(Policy = "RequireDriver")] reads
+    // from the token) would never actually reach the token without this.
+    principal.SetDestinations(_ => [OpenIddictConstants.Destinations.AccessToken]);
 
     return principal;
   }

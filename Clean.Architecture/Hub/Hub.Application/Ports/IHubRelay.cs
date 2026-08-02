@@ -11,7 +11,7 @@ namespace Hub.Application.Ports;
 /// </summary>
 public interface IHubRelay
 {
-  Task SendToDriverNewRideRequest(Guid rideId, CancellationToken cancellationToken);
+  Task SendToDriverNewRideRequest(Guid rideId, Guid driverId, CancellationToken cancellationToken);
   Task SendToDriverRideCancel(Guid rideId, CancellationToken cancellationToken);
   Task SendToDriverNewRateReceived(Guid rideId, int rating, CancellationToken cancellationToken);
   Task SendToRiderNewDriverLocation(Guid rideId, Point location, CancellationToken cancellationToken);

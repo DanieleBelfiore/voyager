@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Ride.Core.Dtos;
@@ -11,7 +12,7 @@ public class GetRideCurrentLocationUseCase(IRideRepository repository) : IGetRid
 {
   public async Task<RideCurrentLocationResponse> Handle(GetRideCurrentLocation request, CancellationToken cancellationToken)
   {
-    var ride = await repository.GetByIdReadOnlyAsync(request.Id, cancellationToken) ?? throw new Exception("ride_not_found");
+    var ride = await repository.GetByIdReadOnlyAsync(request.Id, cancellationToken) ?? throw new KeyNotFoundException("ride_not_found");
 
     if (ride.UserId != request.CallerId && ride.DriverId != request.CallerId)
       throw new UnauthorizedAccessException("not_ride_participant");

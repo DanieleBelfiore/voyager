@@ -44,10 +44,14 @@ public class Ride
 
   public void Accept(Guid driverId)
   {
+    // The rider already picked a driver at RequestRide time (DriverId is set in the
+    // constructor) — Accept only confirms it's that same driver calling, never reassigns it.
+    if (DriverId != driverId)
+      throw new UnauthorizedAccessException("not_ride_participant");
+
     if (Status != RideStatus.Requested)
       throw new InvalidOperationException("operation_not_permitted");
 
-    DriverId = driverId;
     Status = RideStatus.DriverAssigned;
     LastUpdateDate = DateTime.UtcNow;
   }

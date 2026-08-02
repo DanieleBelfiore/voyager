@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Identity.Core.Ports.Secondary;
@@ -11,7 +12,7 @@ public class UpdateUserRatingUseCase(IUserRepository repository) : IUpdateUserRa
 {
   public async Task<double> Handle(UpdateUserRating request, CancellationToken cancellationToken)
   {
-    var user = await repository.GetByIdAsync(request.UserId, cancellationToken) ?? throw new InvalidOperationException("user_not_found");
+    var user = await repository.GetByIdAsync(request.UserId, cancellationToken) ?? throw new KeyNotFoundException("user_not_found");
 
     user.UpdateRating(request.Rating);
 

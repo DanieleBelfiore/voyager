@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
@@ -13,7 +14,7 @@ internal class GetRideDetailsHandler(RideDbContext db) : IRequestHandler<GetRide
   public async Task<RideDetailsResponse> Handle(GetRideDetails request, CancellationToken cancellationToken)
   {
     var ride = await db.Rides.AsNoTracking().FirstOrDefaultAsync(r => r.Id == request.Id, cancellationToken)
-      ?? throw new Exception("ride_not_found");
+      ?? throw new KeyNotFoundException("ride_not_found");
 
     if (ride.UserId != request.CallerId && ride.DriverId != request.CallerId)
       throw new UnauthorizedAccessException("not_ride_participant");

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
@@ -14,7 +15,7 @@ internal class RateDriverHandler(RideDbContext db, IMediator mediator) : IReques
   public async Task Handle(RateDriver request, CancellationToken cancellationToken)
   {
     var ride = await db.Rides.AsNoTracking().FirstOrDefaultAsync(r => r.Id == request.RideId, cancellationToken)
-      ?? throw new Exception("ride_not_found");
+      ?? throw new KeyNotFoundException("ride_not_found");
 
     if (ride.UserId != request.CallerId)
       throw new UnauthorizedAccessException("not_ride_participant");

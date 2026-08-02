@@ -63,6 +63,12 @@ services:
       - "5400:8080"
     networks:
       - voyager-monolith-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
 volumes:
   sqlserver_data:

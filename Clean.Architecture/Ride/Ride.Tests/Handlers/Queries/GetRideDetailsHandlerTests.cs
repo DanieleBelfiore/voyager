@@ -43,7 +43,7 @@ public class GetRideDetailsHandlerTests
     var act = () => _handler.Handle(new GetRideDetails { Id = Guid.NewGuid() }, CancellationToken.None);
 
     // Act & Assert
-    var ex = await Assert.ThrowsAsync<Exception>(act);
+    var ex = await Assert.ThrowsAsync<KeyNotFoundException>(act);
     Assert.Equal("ride_not_found", ex.Message);
   }
 

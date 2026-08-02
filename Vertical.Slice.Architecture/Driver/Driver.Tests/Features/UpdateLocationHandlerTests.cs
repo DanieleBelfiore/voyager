@@ -50,7 +50,7 @@ public class UpdateLocationHandlerTests
     var act = () => handler.Handle(new Voyager.Contracts.Driver.UpdateLocation { Id = Guid.NewGuid(), Location = new Point(0, 0) }, CancellationToken.None);
 
     // Act & Assert
-    var ex = await Assert.ThrowsAsync<Exception>(act);
+    var ex = await Assert.ThrowsAsync<KeyNotFoundException>(act);
     Assert.Equal("driver_not_found", ex.Message);
   }
 }

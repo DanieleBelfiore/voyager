@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Driver.Module.Persistence;
@@ -20,7 +21,7 @@ internal class GetDriverStatusHandler(DriverDbContext db, ICacheService cache) :
     return await cache.GetOrCreateAsync(cacheKey, async () =>
     {
       var driver = await db.Drivers.AsNoTracking().FirstOrDefaultAsync(d => d.Id == request.Id, cancellationToken)
-        ?? throw new Exception("driver_not_found");
+        ?? throw new KeyNotFoundException("driver_not_found");
 
       return new DriverStatusResponse
       {

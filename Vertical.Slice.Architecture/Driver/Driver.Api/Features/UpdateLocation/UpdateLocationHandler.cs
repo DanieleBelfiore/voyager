@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Driver.Api.Persistence;
@@ -16,7 +17,7 @@ public class UpdateLocationHandler(DriverDbContext db, ICacheService cache) : IR
   public async Task Handle(Voyager.Contracts.Driver.UpdateLocation request, CancellationToken cancellationToken)
   {
     var driver = await db.Drivers.FirstOrDefaultAsync(d => d.Id == request.Id, cancellationToken)
-      ?? throw new Exception("driver_not_found");
+      ?? throw new KeyNotFoundException("driver_not_found");
 
     driver.UpdateLocation(request.Location);
 

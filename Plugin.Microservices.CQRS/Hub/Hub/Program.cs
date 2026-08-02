@@ -6,11 +6,10 @@ using System.Reflection;
 using System.Threading.Tasks;
 using Arbitrer;
 using Common.Core;
+using Common.Core.Exceptions;
 using Hub.API;
 using Hub.Middlewares;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,6 +21,19 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using OpenIddict.Validation.AspNetCore;
 using Swashbuckle.AspNetCore.SwaggerUI;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using StackExchange.Redis;
+using Common.Core.Diagnostics;
+
+// Arbitrer serializes cross-process request/notification payloads over RabbitMQ using
+// Newtonsoft's process-wide JsonConvert.DefaultSettings — it exposes no per-call settings hook.
+// Without GeometryConverter here, any payload carrying a Point (e.g. Driver.UpdateLocation, sent
+// by Hub's VoyagerHub) fails on the receiving end: Newtonsoft's default reflection-based binder
+// can't construct NTS's Point from its internal CoordinateSequence/Factory graph.
+JsonConvert.DefaultSettings = () => new JsonSerializerSettings
+{
+  Converters = { new StringEnumConverter(), new GeometryConverter() }
+};
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -69,11 +81,33 @@ builder.Services.AddSignalR(options =>
 }).AddNewtonsoftJsonProtocol(options =>
 {
   options.PayloadSerializerSettings.Converters.Add(new StringEnumConverter());
+  // Without this, a Point argument/payload (UpdateDriverLocation, SendToRiderNewDriverLocation)
+  // serializes as NTS's internal Coordinate/CoordinateSequence/Factory graph instead of GeoJSON,
+  // and won't round-trip back into a Point on the other end. Same converter the MVC pipeline
+  // below already registers for controller request/response bodies.
+  options.PayloadSerializerSettings.Converters.Add(new GeometryConverter());
   options.PayloadSerializerSettings.MissingMemberHandling = MissingMemberHandling.Ignore;
   options.PayloadSerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
   options.PayloadSerializerSettings.DateFormatHandling = DateFormatHandling.IsoDateFormat;
   options.PayloadSerializerSettings.DateTimeZoneHandling = DateTimeZoneHandling.Utc;
   options.PayloadSerializerSettings.NullValueHandling = NullValueHandling.Ignore;
+// A single Hub instance is fine for this exercise's scale, but the backplane is what makes
+// horizontal scaling (Scalability & performance in DESIGN.md) actually work for SignalR: without
+// it, a client connected to Hub instance A never receives a group message published from instance
+// B, since group membership and Clients.Group(...) dispatch are both in-memory and per-instance.
+}).AddStackExchangeRedis(options =>
+{
+  // Same connect options the cache side already uses (see CacheExtensions):
+  // AbortOnConnectFail=false so an instance still starts when Redis is briefly
+  // unreachable and reconnects on its own, rather than throwing at startup.
+  options.Configuration = new ConfigurationOptions
+  {
+    EndPoints = { configuration["Redis:ConnectionString"] },
+    AbortOnConnectFail = false,
+    ConnectTimeout = 6000,
+    SyncTimeout = 6000,
+    ConnectRetry = 3
+  };
 });
 
 builder.Services.AddControllers().AddNewtonsoftJson(options =>
@@ -152,30 +186,21 @@ builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddTransient<QueryStringTokenMiddleware>();
 
+builder.Services.AddHealthChecks().AddRedis(configuration["Redis:ConnectionString"], "redis", tags: ["ready"]);
+
+// Runs after the server is listening, so /health answers during migration; /ready
+// stays unhealthy until it finishes. Every IModule.OnStartup in this variant does nothing but
+// run its own EF migration, and reads only app.ApplicationServices off the builder it's handed —
+// so a throwaway ApplicationBuilder over the root provider satisfies the contract without
+// dragging the real request pipeline into a hosted service.
+builder.Services.AddStartupMigration(sp => Loader.Current.AddModules(new ApplicationBuilder(sp)));
+
 var app = builder.Build();
 
 // Only for development
 const string scheme = "http";
 
-if (app.Environment.IsDevelopment())
-{
-  app.UseDeveloperExceptionPage();
-}
-else
-{
-  // Do not leak stack traces/paths outside Development: a generic response, with
-  // UnauthorizedAccessException mapped to 403 since handlers already use it for that.
-  app.UseExceptionHandler(errorApp => errorApp.Run(async context =>
-  {
-    var statusCode = context.Features.Get<IExceptionHandlerFeature>()?.Error is UnauthorizedAccessException
-      ? StatusCodes.Status403Forbidden
-      : StatusCodes.Status500InternalServerError;
-
-    context.Response.StatusCode = statusCode;
-    context.Response.ContentType = "application/json";
-    await context.Response.WriteAsJsonAsync(new { error = statusCode == StatusCodes.Status403Forbidden ? "forbidden" : "internal_server_error" });
-  }));
-}
+app.UseDomainExceptionHandler();
 
 app.UseRouting();
 app.UseSwagger(options =>
@@ -207,8 +232,6 @@ app.UseMiddleware<QueryStringTokenMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 
-Loader.Current.AddModules(app);
-
 app.MapGet("/", context =>
 {
   context.Response.Redirect($"/{modulePath}/swagger/");
@@ -219,5 +242,8 @@ app.MapHub<VoyagerHub>("/voyagerhub");
 
 foreach (var m in Loader.Current.Modules)
   m.UseEndpoints(app);
+
+app.MapHealthChecks("/health", new HealthCheckOptions { Predicate = _ => false });
+app.MapHealthChecks("/ready", new HealthCheckOptions { Predicate = check => check.Tags.Contains("ready") });
 
 app.Run();

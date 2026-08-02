@@ -61,7 +61,7 @@ public class GetRideETAForHubUseCaseTests
     var act = () => _useCase.Handle(new SharedGetRideETA { Id = Guid.NewGuid() }, CancellationToken.None);
 
     // Act & Assert
-    var ex = await Assert.ThrowsAsync<Exception>(act);
+    var ex = await Assert.ThrowsAsync<KeyNotFoundException>(act);
     Assert.Equal("ride_not_found", ex.Message);
   }
 }

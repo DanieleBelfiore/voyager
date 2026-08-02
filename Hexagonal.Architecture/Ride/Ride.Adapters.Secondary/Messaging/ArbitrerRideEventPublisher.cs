@@ -9,8 +9,8 @@ namespace Ride.Adapters.Secondary.Messaging;
 
 public class ArbitrerRideEventPublisher(IMediator mediator) : IRideEventPublisher
 {
-  public Task NewRideRequestedAsync(Guid rideId, CancellationToken cancellationToken) =>
-    mediator.Publish(new NewRideRequested { RideId = rideId }, cancellationToken);
+  public Task NewRideRequestedAsync(Guid rideId, Guid driverId, CancellationToken cancellationToken) =>
+    mediator.Publish(new NewRideRequested { RideId = rideId, DriverId = driverId }, cancellationToken);
 
   public Task RideAcceptedAsync(Guid rideId, CancellationToken cancellationToken) =>
     mediator.Publish(new RideAccepted { RideId = rideId }, cancellationToken);
