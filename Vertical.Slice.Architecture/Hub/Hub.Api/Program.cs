@@ -167,7 +167,13 @@ builder.Services.AddTransient<QueryStringTokenMiddleware>();
 
 builder.Services.AddHealthChecks().AddRedis(configuration["Redis:ConnectionString"], "redis", tags: ["ready"]);
 
+builder.Services.AddForwardedHeaders(configuration);
+
 var app = builder.Build();
+
+// First in the pipeline: everything downstream (rate-limit partitioning, the
+// issuer/redirect scheme) reads the client IP and scheme this corrects.
+app.UseForwardedHeaders();
 
 // Only for development
 const string scheme = "http";

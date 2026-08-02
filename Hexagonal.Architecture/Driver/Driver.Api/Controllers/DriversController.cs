@@ -29,6 +29,11 @@ public class DriversController(
   IGetDriverStatusUseCase getDriverStatus,
   ISearchBestDriverUseCase searchBestDriver) : ControllerBase
 {
+  // Clamped the same way RideController clamps `take`: DistanceThresholdInKm is caller-supplied
+  // and drives a spatial scan, so an absurd radius is capped rather than trusted. MaxCandidates
+  // bounds the result set on top of this.
+  private const int MaxSearchRadiusKm = 50;
+
   [EnableRateLimiting("driver_registration")]
   [HttpPost]
   public async Task<ActionResult> AddDriver(CancellationToken cancellationToken)
@@ -67,6 +72,6 @@ public class DriversController(
   [HttpPost("search")]
   public async Task<ActionResult<List<SearchBestDriverResponse>>> SearchBestDriver([FromBody] SearchBestDriverRequest request, CancellationToken cancellationToken)
   {
-    return Ok(await searchBestDriver.Handle(new SearchBestDriver { UserId = this.GetUserId(), Location = request.Location, DistanceThresholdInMeters = request.DistanceThresholdInKm * 1000 }, cancellationToken));
+    return Ok(await searchBestDriver.Handle(new SearchBestDriver { UserId = this.GetUserId(), Location = request.Location, DistanceThresholdInMeters = Math.Clamp(request.DistanceThresholdInKm, 1, MaxSearchRadiusKm) * 1000 }, cancellationToken));
   }
 }

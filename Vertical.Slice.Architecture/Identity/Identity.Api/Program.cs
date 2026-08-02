@@ -29,10 +29,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 var configuration = builder.Configuration;
 
-builder.Services.Configure<ForwardedHeadersOptions>(options =>
-{
-  options.ForwardedHeaders = ForwardedHeaders.XForwardedProto;
-});
+builder.Services.AddForwardedHeaders(configuration);
 
 // No repository, no separate password-hasher/driver-registration port: every feature's handler
 // takes IdentityDbContext, PasswordHasher<object> and/or IMediator directly.
@@ -180,6 +177,10 @@ builder.Services.AddStartupMigration(sp =>
 
 var app = builder.Build();
 
+// First in the pipeline: everything downstream (rate-limit partitioning, the
+// issuer/redirect scheme) reads the client IP and scheme this corrects.
+app.UseForwardedHeaders();
+
 app.UseCors(corsPolicyBuilder =>
 {
   corsPolicyBuilder.AllowAnyHeader();
@@ -187,7 +188,6 @@ app.UseCors(corsPolicyBuilder =>
   corsPolicyBuilder.WithOrigins(allowedOrigins);
 });
 
-app.UseForwardedHeaders();
 
 app.UseAuthentication();
 app.UseAuthorization();

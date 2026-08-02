@@ -8,4 +8,5 @@ public class MatchingWeights : IMatchingWeights
   public double RatingWeight { get; set; }
   public double UserMinRating { get; set; }
   public double UserMaxRating { get; set; }
+  public int MaxCandidates { get; set; } = 200;
 }

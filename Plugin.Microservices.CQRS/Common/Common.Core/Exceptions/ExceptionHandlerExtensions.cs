@@ -30,6 +30,7 @@ public static class ExceptionHandlerExtensions
     {
       var (statusCode, error) = context.Features.Get<IExceptionHandlerFeature>()?.Error switch
       {
+        InvalidInputException => (StatusCodes.Status400BadRequest, "invalid_input"),
         UnauthorizedAccessException => (StatusCodes.Status403Forbidden, "forbidden"),
         NotFoundException => (StatusCodes.Status404NotFound, "not_found"),
         ConflictException => (StatusCodes.Status409Conflict, "conflict"),

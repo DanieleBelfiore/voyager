@@ -35,6 +35,9 @@ namespace Ride.Api.Migrations
                     b.Property<Guid>("DriverId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<int?>("DriverRating")
+                        .HasColumnType("int");
+
                     b.Property<Point>("DropoffLocation")
                         .HasColumnType("geography");
 
@@ -55,6 +58,9 @@ namespace Ride.Api.Migrations
 
                     b.Property<DateTime>("RequestedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<int?>("RiderRating")
+                        .HasColumnType("int");
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()

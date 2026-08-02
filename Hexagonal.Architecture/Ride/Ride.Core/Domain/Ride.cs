@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using NetTopologySuite.Geometries;
+using Voyager.Errors;
 
 namespace Ride.Core.Domain;
 
@@ -12,6 +13,9 @@ public class Ride
 {
   private static readonly List<RideStatus> CancellableStatuses = [RideStatus.Requested, RideStatus.DriverAssigned];
   private static readonly List<RideStatus> ActiveStatuses = [RideStatus.DriverAssigned, RideStatus.InProgress];
+
+  public const int MinRating = 1;
+  public const int MaxRating = 5;
 
   public Guid Id { get; private set; } = Guid.NewGuid();
   public Guid UserId { get; private set; }
@@ -27,6 +31,8 @@ public class Ride
   public Point LastLocation { get; private set; }
   public DateTime LastUpdateDate { get; private set; } = DateTime.UtcNow;
   public byte[] RowVersion { get; private set; }
+  public int? DriverRating { get; private set; }
+  public int? RiderRating { get; private set; }
 
   private Ride()
   {
@@ -50,7 +56,7 @@ public class Ride
       throw new UnauthorizedAccessException("not_ride_participant");
 
     if (Status != RideStatus.Requested)
-      throw new InvalidOperationException("operation_not_permitted");
+      throw new ConflictException("operation_not_permitted");
 
     Status = RideStatus.DriverAssigned;
     LastUpdateDate = DateTime.UtcNow;
@@ -59,7 +65,7 @@ public class Ride
   public void Cancel(string cancellationReason)
   {
     if (!CancellableStatuses.Contains(Status))
-      throw new InvalidOperationException("operation_not_permitted");
+      throw new ConflictException("operation_not_permitted");
 
     Status = RideStatus.Cancelled;
     CancellationReason = cancellationReason;
@@ -70,7 +76,7 @@ public class Ride
   public void Start(Point location)
   {
     if (Status != RideStatus.DriverAssigned)
-      throw new InvalidOperationException("operation_not_permitted");
+      throw new ConflictException("operation_not_permitted");
 
     Status = RideStatus.InProgress;
     PickupLocation = location;
@@ -82,7 +88,7 @@ public class Ride
   public void Complete(Point location, double price)
   {
     if (Status != RideStatus.InProgress)
-      throw new InvalidOperationException("operation_not_permitted");
+      throw new ConflictException("operation_not_permitted");
 
     Status = RideStatus.Completed;
     DropoffLocation = location;
@@ -90,5 +96,45 @@ public class Ride
     LastUpdateDate = DateTime.UtcNow;
     EndAt = LastUpdateDate;
     Price = price;
+  }
+
+  /// <summary>
+  /// The rider rates the driver. Recorded on the ride itself, not just forwarded to Identity,
+  /// because the value feeds a running average there: without a persisted marker the same ride
+  /// could be rated over and over, and each replay permanently moves the driver's score and the
+  /// matching rank built on top of it.
+  /// </summary>
+  public void RateDriver(int rating)
+  {
+    GuardRatable(rating);
+
+    if (DriverRating.HasValue)
+      throw new ConflictException("ride_already_rated");
+
+    DriverRating = rating;
+    LastUpdateDate = DateTime.UtcNow;
+  }
+
+  /// <summary>The driver rates the rider. Same one-shot rule, mirrored.</summary>
+  public void RateRider(int rating)
+  {
+    GuardRatable(rating);
+
+    if (RiderRating.HasValue)
+      throw new ConflictException("ride_already_rated");
+
+    RiderRating = rating;
+    LastUpdateDate = DateTime.UtcNow;
+  }
+
+  private void GuardRatable(int rating)
+  {
+    // Only a trip that actually happened can be rated — otherwise a rider could request a ride
+    // and immediately rate the driver down without ever taking it.
+    if (Status != RideStatus.Completed)
+      throw new ConflictException("operation_not_permitted");
+
+    if (rating is < MinRating or > MaxRating)
+      throw new InvalidInputException("rating_out_of_range");
   }
 }

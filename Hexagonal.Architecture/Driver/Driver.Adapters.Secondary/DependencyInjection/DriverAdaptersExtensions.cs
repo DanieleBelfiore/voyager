@@ -40,7 +40,8 @@ public static class DriverAdaptersExtensions
       DistanceWeight = configuration.GetValue<double>("DistanceWeight"),
       RatingWeight = configuration.GetValue<double>("RatingWeight"),
       UserMinRating = configuration.GetValue<double>("UserMinRating"),
-      UserMaxRating = configuration.GetValue<double>("UserMaxRating")
+      UserMaxRating = configuration.GetValue<double>("UserMaxRating"),
+      MaxCandidates = configuration.GetValue<int?>("MaxCandidates") ?? 200
     });
 
     return services;

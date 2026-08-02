@@ -55,6 +55,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hub.Tests", "Hub\Hub.Tests\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Demo", "Demo\Demo.csproj", "{E21D62B5-9300-48CF-872B-594E1F9C1B0B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Voyager.Errors", "..\Commons\Voyager.Errors\Voyager.Errors.csproj", "{E8F8E2FC-2706-45A3-BF05-B9A17214293B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -329,6 +331,18 @@ Global
 		{E21D62B5-9300-48CF-872B-594E1F9C1B0B}.Release|x64.Build.0 = Release|Any CPU
 		{E21D62B5-9300-48CF-872B-594E1F9C1B0B}.Release|x86.ActiveCfg = Release|Any CPU
 		{E21D62B5-9300-48CF-872B-594E1F9C1B0B}.Release|x86.Build.0 = Release|Any CPU
+		{E8F8E2FC-2706-45A3-BF05-B9A17214293B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E8F8E2FC-2706-45A3-BF05-B9A17214293B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E8F8E2FC-2706-45A3-BF05-B9A17214293B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{E8F8E2FC-2706-45A3-BF05-B9A17214293B}.Debug|x64.Build.0 = Debug|Any CPU
+		{E8F8E2FC-2706-45A3-BF05-B9A17214293B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{E8F8E2FC-2706-45A3-BF05-B9A17214293B}.Debug|x86.Build.0 = Debug|Any CPU
+		{E8F8E2FC-2706-45A3-BF05-B9A17214293B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E8F8E2FC-2706-45A3-BF05-B9A17214293B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E8F8E2FC-2706-45A3-BF05-B9A17214293B}.Release|x64.ActiveCfg = Release|Any CPU
+		{E8F8E2FC-2706-45A3-BF05-B9A17214293B}.Release|x64.Build.0 = Release|Any CPU
+		{E8F8E2FC-2706-45A3-BF05-B9A17214293B}.Release|x86.ActiveCfg = Release|Any CPU
+		{E8F8E2FC-2706-45A3-BF05-B9A17214293B}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

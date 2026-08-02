@@ -6,6 +6,7 @@ using Ride.Module.Features.CancelRide;
 using Ride.Module.Persistence;
 using Voyager.Contracts.Driver;
 using Voyager.Contracts.Ride;
+using Voyager.Errors;
 using Xunit;
 using RideEntity = Ride.Module.Entities.Ride;
 using RideStatus = Ride.Module.Entities.RideStatus;
@@ -73,6 +74,6 @@ public class CancelRideHandlerTests
     var act = () => handler.Handle(new CancelRide { Id = ride.Id, CancellationReason = "x", CallerId = ride.UserId }, CancellationToken.None);
 
     // Act & Assert
-    await Assert.ThrowsAsync<InvalidOperationException>(act);
+    await Assert.ThrowsAsync<ConflictException>(act);
   }
 }

@@ -32,6 +32,17 @@ public class RideContext(DbContextOptions<RideContext> options) : DbContext(opti
     modelBuilder.BuildIndexesFromAnnotations();
 
     modelBuilder.Entity<Ride>().Property(r => r.RowVersion).IsRowVersion();
+
+    // Enforces "one active ride per user" at the DB level, mirroring the in-memory check in
+    // RequestRideHandler so a race between two concurrent requests can't both pass that check
+    // and insert two in-flight rides for the same user. Fluent rather than an [Index] attribute
+    // because BuildIndexesFromAnnotations cannot express a filtered index. Statuses 0/1/2 are
+    // Requested/DriverAssigned/InProgress.
+    modelBuilder.Entity<Ride>()
+      .HasIndex(r => r.UserId)
+      .HasDatabaseName("IX_Rides_UserId_ActiveOnly")
+      .IsUnique()
+      .HasFilter("[Status] IN (0, 1, 2)");
   }
 
   public new void Add<TEntity>(TEntity entity) where TEntity : class
@@ -53,12 +64,14 @@ public class RideSQLContextFactory : IDesignTimeDbContextFactory<SQLMigrationCon
 
 public class SlowQueryInterceptor(ILogger<SlowQueryInterceptor> logger) : DbCommandInterceptor
 {
-  private const int SlowQueryThreshold = 1;
+  private const double SlowQueryThresholdSeconds = 1;
 
   public override ValueTask<DbDataReader> ReaderExecutedAsync(DbCommand command, CommandExecutedEventData eventData, DbDataReader result, CancellationToken cancellationToken = default)
   {
-    if (eventData.Duration.Seconds >= SlowQueryThreshold)
-      logger.LogWarning($"Slow query detected ({eventData.Duration.TotalMilliseconds} ms): {command.CommandText}");
+    // TotalSeconds, not Seconds: TimeSpan.Seconds is the 0-59 component, so a 60s query
+    // reported 0 and was never logged while a 61s one reported 1 and was.
+    if (eventData.Duration.TotalSeconds >= SlowQueryThresholdSeconds)
+      logger.LogWarning("Slow query detected ({ElapsedMilliseconds} ms): {CommandText}", eventData.Duration.TotalMilliseconds, command.CommandText);
 
     return base.ReaderExecutedAsync(command, eventData, result, cancellationToken);
   }

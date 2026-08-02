@@ -34,6 +34,10 @@ public class SearchBestDriverHandler(IDriverContext db, IMediator mediator, ICon
       .Where(f => f.Status == DriverStatus.Available && f.LastLocation != null
         && f.LastLocation.Distance(request.Location) <= request.DistanceThresholdInMeters)
       .Select(f => new { f.Id, Distance = f.LastLocation!.Distance(request.Location) })
+      // Nearest-first then capped: an unbounded threshold otherwise materialises every
+      // available driver and feeds all their ids into GetUsersRatings as one IN (...).
+      .OrderBy(f => f.Distance)
+      .Take(configuration.GetValue<int?>("MaxCandidates") ?? 200)
       .ToListAsync(cancellationToken);
 
     if (drivers.Count == 0)

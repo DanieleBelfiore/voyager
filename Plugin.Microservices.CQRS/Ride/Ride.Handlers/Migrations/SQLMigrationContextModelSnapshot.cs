@@ -36,6 +36,9 @@ namespace Ride.Handlers.Migrations
                     b.Property<Guid>("DriverId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<int?>("DriverRating")
+                        .HasColumnType("int");
+
                     b.Property<Point>("DropoffLocation")
                         .HasColumnType("geography");
 
@@ -69,6 +72,9 @@ namespace Ride.Handlers.Migrations
                     b.Property<DateTime>("RequestedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("RiderRating")
+                        .HasColumnType("int");
+
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
@@ -84,6 +90,11 @@ namespace Ride.Handlers.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Rides_UserId_ActiveOnly")
+                        .HasFilter("[Status] IN (0, 1, 2)");
 
                     b.HasIndex(new[] { "DriverId", "Status", "RequestedAt" }, "IX_Rides_DriverId_Status_RequestedAt")
                         .IsDescending(false, false, true);

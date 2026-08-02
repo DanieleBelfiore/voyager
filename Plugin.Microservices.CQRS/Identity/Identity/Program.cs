@@ -52,10 +52,7 @@ builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>
   options.TokenLifespan = TimeSpan.FromDays(5);
 });
 
-builder.Services.Configure<ForwardedHeadersOptions>(options =>
-{
-  options.ForwardedHeaders = ForwardedHeaders.XForwardedProto;
-});
+builder.Services.AddForwardedHeaders(configuration);
 
 builder.Services.AddOpenIddict()
   .AddCore(options =>
@@ -213,6 +210,10 @@ builder.Services.AddStartupMigration(sp => Loader.Current.AddModules(new Applica
 
 var app = builder.Build();
 
+// First in the pipeline: everything downstream (rate-limit partitioning, the
+// issuer/redirect scheme) reads the client IP and scheme this corrects.
+app.UseForwardedHeaders();
+
 var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 
 app.UseCors(corsPolicyBuilder =>
@@ -222,7 +223,6 @@ app.UseCors(corsPolicyBuilder =>
   corsPolicyBuilder.WithOrigins(allowedOrigins);
 });
 
-app.UseForwardedHeaders();
 
 app.UseStaticFiles();
 

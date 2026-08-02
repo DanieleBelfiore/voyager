@@ -1,8 +1,10 @@
+using RideEntity = Ride.Domain.Entities.Ride;
 using NetTopologySuite.Geometries;
 using Ride.Application.CQRS.Commands;
 using Ride.Application.Mapping;
 using Ride.Application.Ports;
 using NSubstitute;
+using Voyager.Errors;
 using Xunit;
 
 namespace Ride.Tests.Handlers.Commands;
@@ -13,11 +15,17 @@ public class RequestRideHandlerTests
   private static readonly Point Dropoff = new(1, 1);
   private readonly IRideRepository _repository = Substitute.For<IRideRepository>();
   private readonly IRideEventPublisher _events = Substitute.For<IRideEventPublisher>();
+  private readonly IDriverAvailabilityQuery _driverAvailability = Substitute.For<IDriverAvailabilityQuery>();
   private readonly RequestRideHandler _handler;
 
   public RequestRideHandlerTests()
   {
-    _handler = new RequestRideHandler(_repository, new RideMapper(), _events);
+    // Default to an available driver: every pre-existing test predates the driver check and
+    // is asserting something else about the handler.
+    _driverAvailability.GetAvailabilityAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+      .Returns(new DriverAvailability(true, true));
+
+    _handler = new RequestRideHandler(_repository, new RideMapper(), _events, _driverAvailability);
   }
 
   [Fact]
@@ -48,7 +56,33 @@ public class RequestRideHandlerTests
     var act = () => _handler.Handle(new RequestRide { UserId = Guid.NewGuid(), DriverId = Guid.NewGuid(), PickupLocation = Pickup, DropoffLocation = Dropoff }, CancellationToken.None);
 
     // Act & Assert
-    await Assert.ThrowsAsync<InvalidOperationException>(act);
+    await Assert.ThrowsAsync<ConflictException>(act);
     _repository.DidNotReceive().Add(Arg.Any<Ride.Domain.Entities.Ride>());
   }
+
+  [Fact]
+  public async Task Handle_Throws_WhenDriverDoesNotExist()
+  {{
+    // Arrange: DriverId is caller-supplied, so an arbitrary GUID must not become a ride.
+    _driverAvailability.GetAvailabilityAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+      .Returns(new DriverAvailability(false, false));
+    var act = () => _handler.Handle(new RequestRide { UserId = Guid.NewGuid(), DriverId = Guid.NewGuid(), PickupLocation = Pickup, DropoffLocation = Dropoff }, CancellationToken.None);
+
+    // Act & Assert
+    await Assert.ThrowsAsync<KeyNotFoundException>(act);
+    _repository.DidNotReceive().Add(Arg.Any<RideEntity>());
+  }}
+
+  [Fact]
+  public async Task Handle_Throws_WhenDriverIsNotAvailable()
+  {{
+    // Arrange: the driver exists but is already committed to someone else's trip.
+    _driverAvailability.GetAvailabilityAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+      .Returns(new DriverAvailability(true, false));
+    var act = () => _handler.Handle(new RequestRide { UserId = Guid.NewGuid(), DriverId = Guid.NewGuid(), PickupLocation = Pickup, DropoffLocation = Dropoff }, CancellationToken.None);
+
+    // Act & Assert
+    await Assert.ThrowsAsync<ConflictException>(act);
+    _repository.DidNotReceive().Add(Arg.Any<RideEntity>());
+  }}
 }

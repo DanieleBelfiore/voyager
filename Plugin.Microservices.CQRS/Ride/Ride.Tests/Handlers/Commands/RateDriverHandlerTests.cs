@@ -72,4 +72,66 @@ public class RateDriverHandlerTests
     var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(act);
     Assert.Equal("not_ride_participant", ex.Message);
   }
+
+  [Fact]
+  public async Task Handle_Throws_WhenRideIsNotCompleted()
+  {
+    // Arrange: otherwise a rider could request a ride and immediately rate the driver down
+    // without ever taking it.
+    var userId = Guid.NewGuid();
+    var driverId = Guid.NewGuid();
+    var rideId = Guid.NewGuid();
+    _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, UserId = userId, DriverId = driverId, Status = Ride.Core.Enums.RideStatus.Requested });
+    await _context.SaveChangesAsync();
+
+    var handler = new RateDriverHandler(_context, _mediator);
+    var act = () => handler.Handle(new RateDriver { RideId = rideId, Rating = 5, CallerId = userId }, CancellationToken.None);
+
+    // Act & Assert
+    await Assert.ThrowsAsync<ConflictException>(act);
+    await _mediator.DidNotReceive().Send(Arg.Any<UpdateUserRating>(), Arg.Any<CancellationToken>());
+  }
+
+  [Theory]
+  [InlineData(0)]
+  [InlineData(6)]
+  [InlineData(int.MaxValue)]
+  public async Task Handle_Throws_WhenRatingIsOutOfRange(int rating)
+  {
+    // Arrange: the value feeds a running average in Identity, so an out-of-range rating
+    // permanently skews the target's score and the matching rank built on it.
+    var userId = Guid.NewGuid();
+    var driverId = Guid.NewGuid();
+    var rideId = Guid.NewGuid();
+    _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, UserId = userId, DriverId = driverId, Status = Ride.Core.Enums.RideStatus.Completed });
+    await _context.SaveChangesAsync();
+
+    var handler = new RateDriverHandler(_context, _mediator);
+    var act = () => handler.Handle(new RateDriver { RideId = rideId, Rating = rating, CallerId = userId }, CancellationToken.None);
+
+    // Act & Assert
+    await Assert.ThrowsAsync<InvalidInputException>(act);
+    await _mediator.DidNotReceive().Send(Arg.Any<UpdateUserRating>(), Arg.Any<CancellationToken>());
+  }
+
+  [Fact]
+  public async Task Handle_Throws_WhenRideWasAlreadyRated()
+  {
+    // Arrange: without a persisted marker the same ride could be rated repeatedly, and each
+    // replay moves the average again.
+    var userId = Guid.NewGuid();
+    var driverId = Guid.NewGuid();
+    var rideId = Guid.NewGuid();
+    _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, UserId = userId, DriverId = driverId, Status = Ride.Core.Enums.RideStatus.Completed });
+    await _context.SaveChangesAsync();
+
+    var handler = new RateDriverHandler(_context, _mediator);
+    await handler.Handle(new RateDriver { RideId = rideId, Rating = 5, CallerId = userId }, CancellationToken.None);
+
+    var act = () => handler.Handle(new RateDriver { RideId = rideId, Rating = 1, CallerId = userId }, CancellationToken.None);
+
+    // Act & Assert
+    await Assert.ThrowsAsync<ConflictException>(act);
+    await _mediator.Received(1).Send(Arg.Any<UpdateUserRating>(), Arg.Any<CancellationToken>());
+  }
 }

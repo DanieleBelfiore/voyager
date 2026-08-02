@@ -9,6 +9,7 @@ using Ride.Core.Ports.Secondary;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using RideEntity = Ride.Core.Domain.Ride;
+using Voyager.Errors;
 
 namespace Ride.Adapters.Secondary.Repositories;
 
@@ -84,7 +85,7 @@ public class RideRepository(RideDbContext db) : IRideRepository
     {
       // Unique constraint violation on IX_Rides_UserId_ActiveRide: another request won the race
       // to insert the user's active ride between our in-memory check and this insert.
-      throw new InvalidOperationException();
+      throw new ConflictException("ride_already_in_progress");
     }
   }
 }

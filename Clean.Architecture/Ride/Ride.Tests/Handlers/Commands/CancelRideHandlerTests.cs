@@ -3,6 +3,7 @@ using Ride.Application.CQRS.Commands;
 using Ride.Application.Ports;
 using RideEntity = Ride.Domain.Entities.Ride;
 using NSubstitute;
+using Voyager.Errors;
 using Xunit;
 
 namespace Ride.Tests.Handlers.Commands;
@@ -61,7 +62,7 @@ public class CancelRideHandlerTests
     var act = () => _handler.Handle(new CancelRide { Id = ride.Id, CancellationReason = "x", CallerId = ride.UserId }, CancellationToken.None);
 
     // Act & Assert
-    await Assert.ThrowsAsync<InvalidOperationException>(act);
+    await Assert.ThrowsAsync<ConflictException>(act);
   }
 
   [Fact]

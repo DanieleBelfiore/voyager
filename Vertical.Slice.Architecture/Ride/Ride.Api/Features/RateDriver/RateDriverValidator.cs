@@ -6,6 +6,6 @@ public class RateDriverValidator : AbstractValidator<RateDriver>
 {
   public RateDriverValidator()
   {
-    RuleFor(x => x.Rating).InclusiveBetween(1, 5);
+    RuleFor(x => x.Rating).InclusiveBetween(Entities.Ride.MinRating, Entities.Ride.MaxRating);
   }
 }

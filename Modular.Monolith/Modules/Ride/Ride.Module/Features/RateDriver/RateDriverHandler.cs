@@ -14,11 +14,19 @@ internal class RateDriverHandler(RideDbContext db, IMediator mediator) : IReques
 {
   public async Task Handle(RateDriver request, CancellationToken cancellationToken)
   {
-    var ride = await db.Rides.AsNoTracking().FirstOrDefaultAsync(r => r.Id == request.RideId, cancellationToken)
+    var ride = await db.Rides.FirstOrDefaultAsync(r => r.Id == request.RideId, cancellationToken)
       ?? throw new KeyNotFoundException("ride_not_found");
 
     if (ride.UserId != request.CallerId)
       throw new UnauthorizedAccessException("not_ride_participant");
+
+    ride.RateDriver(request.Rating);
+
+    // Persist the marker before telling Identity. If this order were reversed, a failure in
+    // between would leave the rating counted upstream but not recorded here, so a retry would
+    // count it twice and permanently skew the average — losing a rating is recoverable, double
+    // counting is not.
+    await db.SaveChangesAsync(cancellationToken);
 
     await mediator.Send(new UpdateUserRating { UserId = ride.DriverId, Rating = request.Rating }, cancellationToken);
 

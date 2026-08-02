@@ -181,7 +181,13 @@ builder.Services.AddHealthChecks().AddDbContextCheck<RideContext>("ride-database
 // dragging the real request pipeline into a hosted service.
 builder.Services.AddStartupMigration(sp => Loader.Current.AddModules(new ApplicationBuilder(sp)));
 
+builder.Services.AddForwardedHeaders(configuration);
+
 var app = builder.Build();
+
+// First in the pipeline: everything downstream (rate-limit partitioning, the
+// issuer/redirect scheme) reads the client IP and scheme this corrects.
+app.UseForwardedHeaders();
 
 // Only for development
 const string scheme = "http";

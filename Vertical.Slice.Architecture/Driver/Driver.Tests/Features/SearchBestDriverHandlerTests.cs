@@ -111,4 +111,31 @@ public class SearchBestDriverHandlerTests
     Assert.Equal(closeDriver.Id, result[0].DriverId);
     Assert.Equal(farDriver.Id, result[1].DriverId);
   }
+
+  [Fact]
+  public async Task Handle_CapsCandidates_WhenManyDriversAreWithinThreshold()
+  {
+    // Arrange: five drivers all inside the threshold, but MaxCandidates allows two. Without the
+    // cap every available driver would be materialised and every id forwarded to GetUsersRatings.
+    await using var db = NewContext();
+    for (var i = 1; i <= 5; i++)
+      db.Drivers.Add(DriverAt(new Point(0, i * 0.001)));
+    await db.SaveChangesAsync();
+
+    var weights = Options.Create(new MatchingWeights
+    {
+      DistanceWeight = 0.5,
+      RatingWeight = 0.5,
+      UserMinRating = 0.0,
+      UserMaxRating = 5.0,
+      MaxCandidates = 2
+    });
+    var handler = new SearchBestDriverHandler(db, weights, _mediator);
+
+    // Act
+    var result = await handler.Handle(new SearchBestDriver { UserId = Guid.NewGuid(), Location = new Point(0, 0), DistanceThresholdInMeters = 5000 }, CancellationToken.None);
+
+    // Assert
+    Assert.Equal(2, result.Count);
+  }
 }

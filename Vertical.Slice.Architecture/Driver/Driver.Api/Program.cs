@@ -153,7 +153,13 @@ builder.Services.AddStartupMigration(sp =>
   scope.ServiceProvider.GetRequiredService<DriverDbContext>().Database.Migrate();
 });
 
+builder.Services.AddForwardedHeaders(configuration);
+
 var app = builder.Build();
+
+// First in the pipeline: everything downstream (rate-limit partitioning, the
+// issuer/redirect scheme) reads the client IP and scheme this corrects.
+app.UseForwardedHeaders();
 
 // Only for development
 const string scheme = "http";

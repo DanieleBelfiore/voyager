@@ -28,10 +28,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 var configuration = builder.Configuration;
 
-builder.Services.Configure<ForwardedHeadersOptions>(options =>
-{
-  options.ForwardedHeaders = ForwardedHeaders.XForwardedProto;
-});
+builder.Services.AddForwardedHeaders(configuration);
 
 // Composition root: secondary adapters wired into Core's secondary ports, primary ports wired
 // directly to their use case implementations for local (non-mediator) injection.
@@ -165,6 +162,10 @@ builder.Services.AddStartupMigration(sp => sp.MigrateIdentityDatabase());
 
 var app = builder.Build();
 
+// First in the pipeline: everything downstream (rate-limit partitioning, the
+// issuer/redirect scheme) reads the client IP and scheme this corrects.
+app.UseForwardedHeaders();
+
 var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 
 app.UseCors(corsPolicyBuilder =>
@@ -174,7 +175,6 @@ app.UseCors(corsPolicyBuilder =>
   corsPolicyBuilder.WithOrigins(allowedOrigins);
 });
 
-app.UseForwardedHeaders();
 
 app.UseAuthentication();
 app.UseAuthorization();

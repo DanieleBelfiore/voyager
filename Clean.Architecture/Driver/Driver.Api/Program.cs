@@ -130,7 +130,13 @@ builder.Services.AddHealthChecks().AddDbContextCheck<DriverDbContext>("driver-da
 // stays unhealthy until it finishes.
 builder.Services.AddStartupMigration(sp => sp.MigrateDriverDatabase());
 
+builder.Services.AddForwardedHeaders(configuration);
+
 var app = builder.Build();
+
+// First in the pipeline: everything downstream (rate-limit partitioning, the
+// issuer/redirect scheme) reads the client IP and scheme this corrects.
+app.UseForwardedHeaders();
 
 // Only for development
 const string scheme = "http";

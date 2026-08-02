@@ -8,6 +8,7 @@ using Ride.Domain.Enums;
 using Ride.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using RideEntity = Ride.Domain.Entities.Ride;
+using Voyager.Errors;
 
 namespace Ride.Infrastructure.Repositories;
 
@@ -86,7 +87,7 @@ public class RideRepository(RideDbContext db) : IRideRepository
       // IX_Rides_UserId_ActiveOnly (RideConfiguration). Translate to the same exception
       // RequestRideHandler already throws for the in-memory check, so callers get a
       // consistent error either way.
-      throw new InvalidOperationException("duplicate_active_ride", ex);
+      throw new ConflictException("duplicate_active_ride", ex);
     }
   }
 }

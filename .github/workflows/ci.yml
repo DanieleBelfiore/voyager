@@ -51,11 +51,11 @@ jobs:
           - name: Vertical.Slice.Architecture
             solution: Vertical.Slice.Architecture/Voyager.VerticalSliceArchitecture.sln
             coverage_packages: Driver.Api,Hub.Api,Identity.Api,Ride.Api
-            class_exclude: '^Program|Controller|\.Persistence\.|Validator$|VoyagerHub|Middleware|^AddPasswordGrantParams'
+            class_exclude: '^Program|Controller|\.Migrations\.|\.Persistence\.|Validator$|VoyagerHub|Middleware|^AddPasswordGrantParams'
           - name: Modular.Monolith
             solution: Modular.Monolith/Voyager.ModularMonolith.sln
             coverage_packages: Driver.Module,Hub.Module,Identity.Module,Ride.Module
-            class_exclude: '^Program|Controller|\.Persistence\.|Validator$|VoyagerHub|Middleware|^AddPasswordGrantParams|\.DependencyInjection\.'
+            class_exclude: '^Program|Controller|\.Migrations\.|\.Persistence\.|Validator$|VoyagerHub|Middleware|^AddPasswordGrantParams|\.DependencyInjection\.'
 
     steps:
       - uses: actions/checkout@v7

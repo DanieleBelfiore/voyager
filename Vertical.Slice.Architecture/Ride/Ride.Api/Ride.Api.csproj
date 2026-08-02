@@ -7,6 +7,7 @@
     <Description>Single project, no horizontal layers: Entities/, Persistence/, Shared/ (cross-feature response shapes and ETA math) and one Features/ folder per use case. Handlers depend on RideDbContext and IMediator directly — no repository, event-publisher or cross-service query port.</Description>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\Commons\Voyager.Errors\Voyager.Errors.csproj" />
     <ProjectReference Include="..\..\..\Commons\Voyager.Shared\Voyager.Shared.csproj" />
     <ProjectReference Include="..\..\..\Commons\Voyager.Contracts\Voyager.Contracts.csproj" />
   </ItemGroup>

@@ -8,6 +8,7 @@
     <Description>Ride use cases: CQRS commands/queries/handlers and the ports Infrastructure must implement. References Commons/Voyager.Contracts for cross-service message shapes only.</Description>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\Commons\Voyager.Errors\Voyager.Errors.csproj" />
     <ProjectReference Include="..\Ride.Domain\Ride.Domain.csproj" />
     <ProjectReference Include="..\..\..\Commons\Voyager.Contracts\Voyager.Contracts.csproj" />
   </ItemGroup>

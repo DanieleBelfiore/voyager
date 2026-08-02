@@ -27,10 +27,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 var configuration = builder.Configuration;
 
-builder.Services.Configure<ForwardedHeadersOptions>(options =>
-{
-  options.ForwardedHeaders = ForwardedHeaders.XForwardedProto;
-});
+builder.Services.AddForwardedHeaders(configuration);
 
 // Composition root: layers are wired explicitly here instead of being discovered at
 // runtime by a plugin loader (contrast with Plugin.Microservices.CQRS's Common.Core.Loader).
@@ -168,6 +165,10 @@ builder.Services.AddStartupMigration(sp => sp.MigrateIdentityDatabase());
 
 var app = builder.Build();
 
+// First in the pipeline: everything downstream (rate-limit partitioning, the
+// issuer/redirect scheme) reads the client IP and scheme this corrects.
+app.UseForwardedHeaders();
+
 var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 
 app.UseCors(corsPolicyBuilder =>
@@ -177,7 +178,6 @@ app.UseCors(corsPolicyBuilder =>
   corsPolicyBuilder.WithOrigins(allowedOrigins);
 });
 
-app.UseForwardedHeaders();
 
 app.UseAuthentication();
 app.UseAuthorization();

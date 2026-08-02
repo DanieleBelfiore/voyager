@@ -23,7 +23,7 @@ public class SearchBestDriverHandler(
     // TTL-cached "all available drivers" list is either stale or constantly invalidated. A
     // fresh, spatially-indexed query is both more correct and cheaper than pulling the full
     // table through a cache that adds staleness without saving much.
-    var nearbyDrivers = await repository.GetAvailableWithinDistanceAsync(request.Location, request.DistanceThresholdInMeters, cancellationToken);
+    var nearbyDrivers = await repository.GetAvailableWithinDistanceAsync(request.Location, request.DistanceThresholdInMeters, weights.MaxCandidates, cancellationToken);
     if (nearbyDrivers.Count == 0)
       return [];
 

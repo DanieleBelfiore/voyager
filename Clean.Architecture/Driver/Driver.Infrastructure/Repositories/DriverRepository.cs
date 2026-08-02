@@ -24,12 +24,16 @@ public class DriverRepository(DriverDbContext db) : IDriverRepository
   // spatial index on LastLocation (see the AddDriverLastLocationSpatialIndex migration) so the
   // query optimizer isn't forced into a full table scan.
   public async Task<List<NearbyDriver>> GetAvailableWithinDistanceAsync(
-    Point center, double radiusMeters, CancellationToken cancellationToken)
+    Point center, double radiusMeters, int maxCandidates, CancellationToken cancellationToken)
   {
     return await db.Drivers.AsNoTracking()
       .Where(f => f.Status == Domain.Enums.DriverStatus.Available && f.LastLocation != null
         && f.LastLocation.Distance(center) <= radiusMeters)
       .Select(f => new NearbyDriver { Driver = f, DistanceInMeters = f.LastLocation!.Distance(center) })
+      // Nearest-first then capped: an unbounded threshold otherwise materialises every
+      // available driver and feeds all their ids into GetUsersRatings as one IN (...).
+      .OrderBy(f => f.DistanceInMeters)
+      .Take(maxCandidates)
       .ToListAsync(cancellationToken);
   }
 

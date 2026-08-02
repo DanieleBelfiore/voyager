@@ -16,6 +16,7 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Driver.Api\Driver.Api.csproj" />
     <ProjectReference Include="..\Driver.Application\Driver.Application.csproj" />
   </ItemGroup>
 </Project>

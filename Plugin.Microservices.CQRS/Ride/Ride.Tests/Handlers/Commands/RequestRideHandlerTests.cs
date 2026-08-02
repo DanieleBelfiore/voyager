@@ -1,4 +1,7 @@
 using Common.Core.Exceptions;
+using Driver.Core.CQRS.Queries;
+using Driver.Core.Dtos;
+using Driver.Core.Enums;
 using MediatR;
 using NetTopologySuite.Geometries;
 using NSubstitute;
@@ -24,6 +27,11 @@ public class RequestRideHandlerTests
 
     var mediatorMock = Substitute.For<IMediator>();
     _mediator = mediatorMock;
+
+    // The handler now checks the driver exists and is free before creating the ride; default to
+    // an available driver so the pre-existing cases keep asserting what they were written for.
+    mediatorMock.Send(Arg.Any<GetDriverStatus>(), Arg.Any<CancellationToken>())
+      .Returns(new DriverStatusResponse { Id = Guid.NewGuid(), Status = DriverStatus.Available });
 
     mediatorMock.Send(Arg.Any<RequestRide>(), Arg.Any<CancellationToken>())
       .Returns(c => new RequestRideHandler(_context, new RideMapper(), _mediator)
@@ -59,5 +67,22 @@ public class RequestRideHandlerTests
 
     // Act & Assert
     await Assert.ThrowsAsync<ConflictException>(act);
+  }
+
+  [Fact]
+  public async Task Handle_Throws_WhenDriverIsNotAvailable()
+  {
+    // Arrange: DriverId is caller-supplied. A driver already committed to someone else's trip
+    // must not have another ride pinned onto them.
+    var mediatorMock = Substitute.For<IMediator>();
+    mediatorMock.Send(Arg.Any<GetDriverStatus>(), Arg.Any<CancellationToken>())
+      .Returns(new DriverStatusResponse { Id = Guid.NewGuid(), Status = DriverStatus.OnRide });
+
+    var handler = new RequestRideHandler(_context, new RideMapper(), mediatorMock);
+    var act = () => handler.Handle(new RequestRide { UserId = Guid.NewGuid(), DriverId = Guid.NewGuid(), PickupLocation = Pickup, DropoffLocation = Dropoff }, CancellationToken.None);
+
+    // Act & Assert
+    await Assert.ThrowsAsync<ConflictException>(act);
+    Assert.Empty(_context.Rides);
   }
 }

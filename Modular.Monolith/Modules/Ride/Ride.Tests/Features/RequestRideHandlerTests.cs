@@ -5,8 +5,10 @@ using NSubstitute;
 using Ride.Module.Features.RequestRide;
 using Ride.Module.Persistence;
 using Voyager.Contracts.Ride;
+using Voyager.Errors;
 using Xunit;
 using RideStatus = Ride.Module.Entities.RideStatus;
+using Voyager.Contracts.Driver;
 
 namespace Ride.Tests.Features;
 
@@ -30,6 +32,10 @@ public class RequestRideHandlerTests
     // Arrange
     await using var db = NewContext();
     var mediator = Substitute.For<IMediator>();
+    // The handler now checks the driver exists and is free before creating the ride; default
+    // to an available driver so the pre-existing cases keep asserting what they were for.
+    mediator.Send(Arg.Any<GetDriverAvailability>(), Arg.Any<CancellationToken>())
+      .Returns(new DriverAvailabilityInfo { Exists = true, IsAvailable = true });
     var handler = new RequestRideHandler(db, mediator);
     var userId = Guid.NewGuid();
     var driverId = Guid.NewGuid();
@@ -53,10 +59,45 @@ public class RequestRideHandlerTests
     var userId = Guid.NewGuid();
     db.Rides.Add(new Ride.Module.Entities.Ride(userId, Guid.NewGuid(), Pickup, Dropoff));
     await db.SaveChangesAsync();
-    var handler = new RequestRideHandler(db, Substitute.For<IMediator>());
+    var mediator = Substitute.For<IMediator>();
+    mediator.Send(Arg.Any<GetDriverAvailability>(), Arg.Any<CancellationToken>())
+      .Returns(new DriverAvailabilityInfo { Exists = true, IsAvailable = true });
+    var handler = new RequestRideHandler(db, mediator);
     var act = () => handler.Handle(new RequestRide { UserId = userId, DriverId = Guid.NewGuid(), PickupLocation = Pickup, DropoffLocation = Dropoff }, CancellationToken.None);
 
     // Act & Assert
-    await Assert.ThrowsAsync<InvalidOperationException>(act);
+    await Assert.ThrowsAsync<ConflictException>(act);
+  }
+
+  [Fact]
+  public async Task Handle_Throws_WhenDriverDoesNotExist()
+  {
+    // Arrange: DriverId is caller-supplied, so an arbitrary GUID must not become a ride.
+    await using var db = NewContext();
+    var mediator = Substitute.For<IMediator>();
+    mediator.Send(Arg.Any<GetDriverAvailability>(), Arg.Any<CancellationToken>())
+      .Returns(new DriverAvailabilityInfo { Exists = false, IsAvailable = false });
+    var handler = new RequestRideHandler(db, mediator);
+    var act = () => handler.Handle(new RequestRide { UserId = Guid.NewGuid(), DriverId = Guid.NewGuid(), PickupLocation = Pickup, DropoffLocation = Dropoff }, CancellationToken.None);
+
+    // Act & Assert
+    await Assert.ThrowsAsync<KeyNotFoundException>(act);
+    Assert.Empty(db.Rides);
+  }
+
+  [Fact]
+  public async Task Handle_Throws_WhenDriverIsNotAvailable()
+  {
+    // Arrange: the driver exists but is already committed to someone else's trip.
+    await using var db = NewContext();
+    var mediator = Substitute.For<IMediator>();
+    mediator.Send(Arg.Any<GetDriverAvailability>(), Arg.Any<CancellationToken>())
+      .Returns(new DriverAvailabilityInfo { Exists = true, IsAvailable = false });
+    var handler = new RequestRideHandler(db, mediator);
+    var act = () => handler.Handle(new RequestRide { UserId = Guid.NewGuid(), DriverId = Guid.NewGuid(), PickupLocation = Pickup, DropoffLocation = Dropoff }, CancellationToken.None);
+
+    // Act & Assert
+    await Assert.ThrowsAsync<ConflictException>(act);
+    Assert.Empty(db.Rides);
   }
 }

@@ -22,6 +22,11 @@ namespace Driver.API.Controllers;
 [Route("api/v1/drivers")]
 public class DriverController(IMediator mediator) : ControllerBase
 {
+  // Clamped the same way RideController clamps `take`: DistanceThresholdInKm is caller-supplied
+  // and drives a spatial scan, so an absurd radius is capped rather than trusted. MaxCandidates
+  // bounds the result set on top of this.
+  private const int MaxSearchRadiusKm = 50;
+
   /// <summary>
   /// Registers a new driver.
   /// </summary>
@@ -79,7 +84,7 @@ public class DriverController(IMediator mediator) : ControllerBase
   [HttpPost("search")]
   public async Task<ActionResult<List<SearchBestDriverResponse>>> SearchBestDriver([FromBody] SearchBestDriverRequest request)
   {
-    return Ok(await mediator.Send(new SearchBestDriver { UserId = this.GetUserId(), Location = request.Location, DistanceThresholdInMeters = request.DistanceThresholdInKm * 1000 }));
+    return Ok(await mediator.Send(new SearchBestDriver { UserId = this.GetUserId(), Location = request.Location, DistanceThresholdInMeters = Math.Clamp(request.DistanceThresholdInKm, 1, MaxSearchRadiusKm) * 1000 }));
   }
 
   /// <summary>

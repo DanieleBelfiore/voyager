@@ -34,5 +34,7 @@ public class Ride
   [StringLength(64)]
   public string LastLocationGeoJSON { get; set; }
   public DateTime LastUpdateDate { get; set; } = DateTime.UtcNow;
+  public int? DriverRating { get; set; }
+  public int? RiderRating { get; set; }
   public byte[] RowVersion { get; set; }
 }

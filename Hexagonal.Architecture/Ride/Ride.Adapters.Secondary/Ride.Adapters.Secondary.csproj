@@ -8,6 +8,7 @@
     <Description>Secondary adapters: EF Core repository + migrations, Arbitrer-based cross-service rating/location queries and ride-event publishing, config-bound ETA settings.</Description>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\Commons\Voyager.Errors\Voyager.Errors.csproj" />
     <ProjectReference Include="..\Ride.Core\Ride.Core.csproj" />
     <ProjectReference Include="..\..\..\Commons\Voyager.Shared\Voyager.Shared.csproj" />
     <ProjectReference Include="..\..\..\Commons\Voyager.Contracts\Voyager.Contracts.csproj" />

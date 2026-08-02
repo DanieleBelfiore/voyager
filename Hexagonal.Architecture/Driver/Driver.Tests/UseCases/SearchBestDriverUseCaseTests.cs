@@ -24,6 +24,7 @@ public class SearchBestDriverUseCaseTests
     _weights.RatingWeight.Returns(0.5);
     _weights.UserMinRating.Returns(0.0);
     _weights.UserMaxRating.Returns(5.0);
+    _weights.MaxCandidates.Returns(200);
 
     _useCase = new SearchBestDriverUseCase(_repository, _ratingsQuery, _weights);
   }
@@ -40,7 +41,7 @@ public class SearchBestDriverUseCaseTests
   // directly instead of relying on NTS's in-memory (non-geodetic) Point.Distance().
   private void ReturnsNearbyDrivers(params (DriverEntity Driver, double DistanceInMeters)[] drivers)
   {
-    _repository.GetAvailableWithinDistanceAsync(Arg.Any<Point>(), Arg.Any<double>(), Arg.Any<CancellationToken>())
+    _repository.GetAvailableWithinDistanceAsync(Arg.Any<Point>(), Arg.Any<double>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
       .Returns(drivers.Select(d => new NearbyDriver { Driver = d.Driver, DistanceInMeters = d.DistanceInMeters }).ToList());
   }
 
@@ -115,5 +116,18 @@ public class SearchBestDriverUseCaseTests
     // have been 0.5*0.2224 + 0.5*(1-0) = 0.6112.
     var response = Assert.Single(result);
     Assert.InRange(response.Score, 0.35, 0.37);
+  }
+
+  [Fact]
+  public async Task Handle_ForwardsMaxCandidates_ToTheProximityQuery()
+  {
+    // The cap has to reach the database: without it an oversized threshold materialises every
+    // available driver and forwards every id to the ratings lookup as one IN (...) list.
+    ReturnsNearbyDrivers();
+
+    await _useCase.Handle(new SearchBestDriver { UserId = Guid.NewGuid(), Location = new Point(0, 0), DistanceThresholdInMeters = 5000 }, CancellationToken.None);
+
+    await _repository.Received(1).GetAvailableWithinDistanceAsync(
+      Arg.Any<Point>(), Arg.Any<double>(), 200, Arg.Any<CancellationToken>());
   }
 }

@@ -4,6 +4,7 @@ using Ride.Core.Ports.Secondary;
 using Ride.Core.UseCases;
 using RideEntity = Ride.Core.Domain.Ride;
 using NSubstitute;
+using Voyager.Errors;
 using Xunit;
 
 namespace Ride.Tests.UseCases;
@@ -62,6 +63,6 @@ public class CancelRideUseCaseTests
     var act = () => _useCase.Handle(new CancelRide { Id = ride.Id, CancellationReason = "x", CallerId = ride.UserId }, CancellationToken.None);
 
     // Act & Assert
-    await Assert.ThrowsAsync<InvalidOperationException>(act);
+    await Assert.ThrowsAsync<ConflictException>(act);
   }
 }

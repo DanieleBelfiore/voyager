@@ -1,3 +1,4 @@
+using Voyager.Errors;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using NetTopologySuite.Geometries;
@@ -75,5 +76,80 @@ public class RateRideHandlerTests
 
     // Act & Assert
     await Assert.ThrowsAsync<UnauthorizedAccessException>(act);
+  }
+
+  [Fact]
+  public async Task Handle_Throws_WhenRideIsNotCompleted()
+  {
+    // Arrange: otherwise a rider could request a ride and immediately rate the driver down
+    // without ever taking it.
+    await using var db = NewContext();
+    var userId = Guid.NewGuid();
+    var driverId = Guid.NewGuid();
+    var ride = new RideEntity(userId, driverId, SomePoint, SomePoint);
+    db.Rides.Add(ride);
+    await db.SaveChangesAsync();
+    var mediator = Substitute.For<IMediator>();
+    var handler = new RateRideHandler(db, mediator);
+    var act = () => handler.Handle(new RateRide { RideId = ride.Id, Rating = 5, CallerId = driverId }, CancellationToken.None);
+
+    // Act & Assert
+    await Assert.ThrowsAsync<ConflictException>(act);
+    await mediator.DidNotReceive().Send(Arg.Any<UpdateUserRating>(), Arg.Any<CancellationToken>());
+  }
+
+  [Theory]
+  [InlineData(0)]
+  [InlineData(6)]
+  [InlineData(int.MaxValue)]
+  public async Task Handle_Throws_WhenRatingIsOutOfRange(int rating)
+  {
+    // Arrange: the value feeds a running average in Identity, so an out-of-range rating
+    // permanently skews the target's score and the matching rank built on it.
+    await using var db = NewContext();
+    var userId = Guid.NewGuid();
+    var driverId = Guid.NewGuid();
+    db.Rides.Add(CompletedRide(userId, driverId));
+    await db.SaveChangesAsync();
+    var ride = db.Rides.Single();
+    var mediator = Substitute.For<IMediator>();
+    var handler = new RateRideHandler(db, mediator);
+    var act = () => handler.Handle(new RateRide { RideId = ride.Id, Rating = rating, CallerId = driverId }, CancellationToken.None);
+
+    // Act & Assert
+    await Assert.ThrowsAsync<InvalidInputException>(act);
+    await mediator.DidNotReceive().Send(Arg.Any<UpdateUserRating>(), Arg.Any<CancellationToken>());
+  }
+
+  [Fact]
+  public async Task Handle_Throws_WhenRideWasAlreadyRated()
+  {
+    // Arrange: without a persisted marker the same ride could be rated repeatedly, and each
+    // replay moves the average again.
+    await using var db = NewContext();
+    var userId = Guid.NewGuid();
+    var driverId = Guid.NewGuid();
+    db.Rides.Add(CompletedRide(userId, driverId));
+    await db.SaveChangesAsync();
+    var ride = db.Rides.Single();
+    var mediator = Substitute.For<IMediator>();
+    var handler = new RateRideHandler(db, mediator);
+    await handler.Handle(new RateRide { RideId = ride.Id, Rating = 5, CallerId = driverId }, CancellationToken.None);
+
+    var act = () => handler.Handle(new RateRide { RideId = ride.Id, Rating = 1, CallerId = driverId }, CancellationToken.None);
+
+    // Act & Assert
+    await Assert.ThrowsAsync<ConflictException>(act);
+    await mediator.Received(1).Send(Arg.Any<UpdateUserRating>(), Arg.Any<CancellationToken>());
+  }
+
+  private static RideEntity CompletedRide(Guid userId, Guid driverId)
+  {
+    var ride = new RideEntity(userId, driverId, SomePoint, SomePoint);
+    ride.Accept(driverId);
+    ride.Start(SomePoint);
+    ride.Complete(SomePoint, 10);
+
+    return ride;
   }
 }

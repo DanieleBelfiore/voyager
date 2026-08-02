@@ -19,6 +19,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Identity\Identity.Handlers\Identity.Handlers.csproj" />
+    <ProjectReference Include="..\Driver.API\Driver.API.csproj" />
     <ProjectReference Include="..\Driver.Core\Driver.Core.csproj" />
     <ProjectReference Include="..\Driver.Handlers\Driver.Handlers.csproj" />
   </ItemGroup>

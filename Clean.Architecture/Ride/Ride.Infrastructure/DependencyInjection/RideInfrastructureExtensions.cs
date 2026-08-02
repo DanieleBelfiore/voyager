@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using IDriverAvailabilityNotifier = Ride.Application.Ports.IDriverAvailabilityNotifier;
+using IDriverAvailabilityQuery = Ride.Application.Ports.IDriverAvailabilityQuery;
 using IDriverLocationQuery = Ride.Application.Ports.IDriverLocationQuery;
 using IEtaConfig = Ride.Application.Ports.IEtaConfig;
 using IFareConfig = Ride.Application.Ports.IFareConfig;
@@ -32,6 +33,7 @@ public static class RideInfrastructureExtensions
 
     services.AddScoped<IRatingUpdateService, ArbitrerRatingUpdateService>();
     services.AddScoped<IDriverLocationQuery, ArbitrerDriverLocationQuery>();
+    services.AddScoped<IDriverAvailabilityQuery, ArbitrerDriverAvailabilityQuery>();
     services.AddScoped<IRideEventPublisher, ArbitrerRideEventPublisher>();
     services.AddScoped<IDriverAvailabilityNotifier, ArbitrerDriverAvailabilityNotifier>();
 

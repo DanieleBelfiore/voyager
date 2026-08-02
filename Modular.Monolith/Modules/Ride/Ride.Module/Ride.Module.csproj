@@ -11,6 +11,7 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\..\Commons\Voyager.Errors\Voyager.Errors.csproj" />
     <ProjectReference Include="..\..\..\..\Commons\Voyager.Shared\Voyager.Shared.csproj" />
     <ProjectReference Include="..\..\..\..\Commons\Voyager.Contracts\Voyager.Contracts.csproj" />
   </ItemGroup>

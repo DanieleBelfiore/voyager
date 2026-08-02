@@ -24,6 +24,8 @@ namespace Common.Core;
 /// </summary>
 public class Loader
 {
+  private readonly List<SkippedFile> _skippedFiles = [];
+
   private Loader()
   {
   }
@@ -33,42 +35,51 @@ public class Loader
   public IEnumerable<IModule> Modules { get; set; }
   public IEnumerable<Assembly> Assemblies { get; private set; }
 
+  /// <summary>
+  /// Files under <see cref="Directories"/> that could not be probed as managed assemblies —
+  /// native and non-.NET DLLs land here and genuinely are not modules, so this is not an error
+  /// condition. It is recorded rather than discarded because "the module silently failed to
+  /// load" was previously indistinguishable from "the module registered nothing", and the first
+  /// case only surfaced much later as an unrelated NullReferenceException at request time.
+  /// </summary>
+  public IReadOnlyList<SkippedFile> SkippedFiles => _skippedFiles;
+
   public void Compose()
   {
     // Catalogs does not exists in Dotnet Core, so you need to manage your own.
-    var assemblies = new List<Assembly> { Assembly.GetEntryAssembly() };
+    var entryAssembly = Assembly.GetEntryAssembly();
+    var assemblies = entryAssembly != null ? [entryAssembly] : new List<Assembly>();
     var modules = new List<IModule>();
 
     // All dlls in given directories except runtimes folder
     foreach (var dir in Directories)
     {
+      // One load context per directory, not per file. The previous version allocated a
+      // non-collectible AssemblyLoadContext inside the file loop, so every DLL in the tree got
+      // its own context: a shared dependency could be loaded many times over as mutually
+      // incompatible types, and none of it was ever released.
+      var loadContext = new ModuleLoader(dir);
+
       var files = Directory.GetFiles(dir, "*.dll", SearchOption.AllDirectories).Where(f => !f.Contains("runtimes"));
       foreach (var f in files)
         try
         {
-          var loadContext = new ModuleLoader(dir);
-
           var s = loadContext.LoadFromAssemblyName(new AssemblyName(Path.GetFileNameWithoutExtension(f)));
-          if (s.GetTypes().Any(p => typeof(IModule).IsAssignableFrom(p)))
+          if (GetLoadableTypes(s).Any(p => typeof(IModule).IsAssignableFrom(p)))
             assemblies.Add(s);
         }
         catch (Exception ex)
         {
-          Console.WriteLine(ex.Message);
-          Console.WriteLine(f);
+          _skippedFiles.Add(new SkippedFile(f, ex));
         }
     }
 
-    foreach (var m in assemblies.SelectMany(a => a.GetTypes().Where(p => typeof(IModule).IsAssignableFrom(p) && !p.IsInterface)))
-      try
-      {
-        modules.Add(Activator.CreateInstance(m) as IModule);
-      }
-      catch (Exception ex)
-      {
-        Console.WriteLine(ex.Message);
-        Console.WriteLine(m);
-      }
+    foreach (var m in assemblies.SelectMany(GetLoadableTypes)
+               .Where(p => typeof(IModule).IsAssignableFrom(p) && !p.IsInterface && !p.IsAbstract))
+      // Deliberately not caught: a type that declares itself an IModule but cannot be
+      // constructed is a build or packaging fault, not a probe miss. Swallowing it left the
+      // service running with none of that module's DI registrations or EF migrations applied.
+      modules.Add((IModule)Activator.CreateInstance(m));
 
     Assemblies = assemblies;
     Modules = modules;
@@ -85,7 +96,26 @@ public class Loader
     foreach (var m in Modules)
       m.OnStartup(app);
   }
+
+  /// <summary>
+  /// A partially loadable assembly still yields the types that did resolve. The caller used to
+  /// invoke GetTypes() unguarded when scanning for IModule implementations, so a single
+  /// unresolvable reference anywhere in the probe path aborted startup outright.
+  /// </summary>
+  private static IEnumerable<Type> GetLoadableTypes(Assembly assembly)
+  {
+    try
+    {
+      return assembly.GetTypes();
+    }
+    catch (ReflectionTypeLoadException ex)
+    {
+      return ex.Types.Where(t => t != null);
+    }
+  }
 }
+
+public record SkippedFile(string File, Exception Error);
 
 public class ModuleLoader(string pluginPath) : AssemblyLoadContext
 {

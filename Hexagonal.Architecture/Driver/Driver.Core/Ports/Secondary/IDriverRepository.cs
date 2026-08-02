@@ -12,7 +12,7 @@ public interface IDriverRepository
   Task<DriverEntity> GetByIdAsync(Guid id, CancellationToken cancellationToken);
 
   Task<List<NearbyDriver>> GetAvailableWithinDistanceAsync(
-    Point center, double radiusMeters, CancellationToken cancellationToken);
+    Point center, double radiusMeters, int maxCandidates, CancellationToken cancellationToken);
   void Add(DriverEntity driver);
   Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }
