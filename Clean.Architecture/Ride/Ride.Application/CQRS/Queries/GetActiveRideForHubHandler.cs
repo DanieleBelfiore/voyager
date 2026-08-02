@@ -18,6 +18,6 @@ public class GetActiveRideForHubHandler(IRideRepository repository) : IRequestHa
   {
     var ride = await repository.GetActiveRideAsync(request.DriverId, request.UserId, cancellationToken);
 
-    return ride == null ? null : new ActiveRideInfo { Id = ride.Id, PickupLocation = ride.PickupLocation };
+    return ride == null ? null : new ActiveRideInfo { Id = ride.Id, PickupLocation = ride.PickupLocation, HasStarted = ride.HasStarted() };
   }
 }

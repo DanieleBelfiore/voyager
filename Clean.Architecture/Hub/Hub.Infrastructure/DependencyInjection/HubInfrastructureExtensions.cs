@@ -11,6 +11,7 @@ public static class HubInfrastructureExtensions
   public static IServiceCollection AddHubInfrastructure(this IServiceCollection services, IConfiguration configuration)
   {
     services.AddScoped<IDriverLocationUpdater, ArbitrerDriverLocationUpdater>();
+    services.AddScoped<IRideLocationTracker, ArbitrerRideLocationTracker>();
     services.AddScoped<IActiveRideQuery, ArbitrerActiveRideQuery>();
     services.AddScoped<IRideEtaQuery, ArbitrerRideEtaQuery>();
 

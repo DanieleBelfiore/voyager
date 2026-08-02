@@ -13,15 +13,18 @@ public class RideEventHandlersTests
   private readonly IVoyagerShareClient _groupClient;
   private readonly Guid _rideId = Guid.NewGuid();
   private readonly Guid _driverId = Guid.NewGuid();
+  private readonly Guid _userId = Guid.NewGuid();
+  private readonly IHubClients<IVoyagerShareClient> _clients;
 
   public RideEventHandlersTests()
   {
     _hub = Substitute.For<IHubContext<VoyagerHub, IVoyagerShareClient>>();
-    var clients = Substitute.For<IHubClients<IVoyagerShareClient>>();
+    _clients = Substitute.For<IHubClients<IVoyagerShareClient>>();
     _groupClient = Substitute.For<IVoyagerShareClient>();
-    _hub.Clients.Returns(clients);
-    clients.Group(HubGroups.ForRide(_rideId)).Returns(_groupClient);
-    clients.Group(HubGroups.ForUser(_driverId)).Returns(_groupClient);
+    _hub.Clients.Returns(_clients);
+    _clients.Group(HubGroups.ForRide(_rideId)).Returns(_groupClient);
+    _clients.Group(HubGroups.ForUser(_driverId)).Returns(_groupClient);
+    _clients.Groups(Arg.Any<IReadOnlyList<string>>()).Returns(_groupClient);
   }
 
   [Fact]
@@ -44,14 +47,28 @@ public class RideEventHandlersTests
     await _groupClient.Received(1).SendToRiderRideAccepted(_rideId);
   }
 
+  // Routed to both participants' personal groups, never ride_{RideId} — a ride cancelled before
+  // the driver accepts has no joinable ride group, so that broadcast reached nobody.
   [Fact]
-  public async Task RideCancelledHandler_RelaysToDriver()
+  public async Task RideCancelledHandler_RelaysToBothParticipantsPersonalGroups()
   {
     var handler = new RideCancelledHandler(_hub);
 
-    await handler.Handle(new RideCancelled { RideId = _rideId }, CancellationToken.None);
+    await handler.Handle(new RideCancelled { RideId = _rideId, DriverId = _driverId, UserId = _userId }, CancellationToken.None);
 
+    _clients.Received(1).Groups(Arg.Is<IReadOnlyList<string>>(g =>
+      g.Contains(HubGroups.ForUser(_driverId)) && g.Contains(HubGroups.ForUser(_userId))));
     await _groupClient.Received(1).SendToDriverRideCancel(_rideId);
+  }
+
+  [Fact]
+  public async Task RideCancelledHandler_DoesNotUseTheRideGroup()
+  {
+    var handler = new RideCancelledHandler(_hub);
+
+    await handler.Handle(new RideCancelled { RideId = _rideId, DriverId = _driverId, UserId = _userId }, CancellationToken.None);
+
+    _clients.DidNotReceive().Group(HubGroups.ForRide(_rideId));
   }
 
   [Fact]

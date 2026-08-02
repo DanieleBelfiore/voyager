@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using OpenIddict.Abstractions;
 using OpenIddict.Validation.AspNetCore;
 
@@ -20,7 +21,7 @@ namespace Identity.Module.DependencyInjection;
 /// </summary>
 public static class IdentityModuleExtensions
 {
-  public static IServiceCollection AddIdentityModule(this IServiceCollection services, IConfiguration configuration)
+  public static IServiceCollection AddIdentityModule(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
   {
     services.AddDbContext<IdentityDbContext>((provider, options) =>
     {
@@ -64,8 +65,23 @@ public static class IdentityModuleExtensions
 
         options.DisableAccessTokenEncryption();
 
-        // Only for development
-        options.AddDevelopmentEncryptionCertificate().AddDevelopmentSigningCertificate();
+        // The docker-compose demo stack runs without ASPNETCORE_ENVIRONMENT, i.e. as Production,
+        // so an IsDevelopment()-only guard takes the whole stack down at startup. The opt-in flag
+        // is what keeps that stack working while still refusing to fall back to development
+        // certificates by accident: nothing sets it outside docker-compose and launchSettings.
+        if (environment.IsDevelopment() || configuration.GetValue<bool>("Identity:UseDevelopmentCertificates"))
+        {
+          options.AddDevelopmentEncryptionCertificate().AddDevelopmentSigningCertificate();
+        }
+        else
+        {
+          // No persisted-certificate loading path exists yet in this codebase (no config-bound
+          // thumbprint/path pattern to follow). Fail fast rather than silently falling back to
+          // ephemeral development certificates outside Development — they are regenerated per
+          // machine, so two instances behind a load balancer would sign with different keys and
+          // reject each other's tokens.
+          throw new InvalidOperationException("Signing certificate must be configured for non-development environments");
+        }
 
         options.SetIssuer(configuration["Identity:Issuer"]!);
       })

@@ -27,6 +27,13 @@ public class CancelRideHandler(IRideContext db, IMediator mediator) : IRequestHa
     if (!status.Contains(ride.Status))
       throw new ConflictException("operation_not_permitted");
 
+    // Only a DriverAssigned ride ever moved the driver to OnRide. A ride still at Requested never
+    // touched their status, and nothing constrains how many riders hold a Requested ride against
+    // the same available driver — the unique index is per-rider (IX_Rides_UserId_ActiveOnly), not
+    // per-driver. Releasing unconditionally let a stale request being cancelled flip a driver who
+    // is already mid-trip on someone else's ride back into the matching pool.
+    var heldTheDriver = ride.Status == RideStatus.DriverAssigned;
+
     ride.Status = RideStatus.Cancelled;
     ride.CancellationReason = request.CancellationReason;
     ride.LastUpdateDate = DateTime.UtcNow;
@@ -34,10 +41,9 @@ public class CancelRideHandler(IRideContext db, IMediator mediator) : IRequestHa
 
     await db.SaveChangesAsync(cancellationToken);
 
-    // Always Available, whether or not Accept had already moved them to OnRide — a no-op
-    // status write is cheaper than branching on ride.Status to decide if it's needed.
-    await mediator.Send(new UpdateAvailability { Id = ride.DriverId, Status = DriverStatus.Available }, cancellationToken);
+    if (heldTheDriver)
+      await mediator.Send(new UpdateAvailability { Id = ride.DriverId, Status = DriverStatus.Available }, cancellationToken);
 
-    await mediator.Publish(new RideCancelled { RideId = ride.Id }, cancellationToken);
+    await mediator.Publish(new RideCancelled { RideId = ride.Id, DriverId = ride.DriverId, UserId = ride.UserId }, cancellationToken);
   }
 }

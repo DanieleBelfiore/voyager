@@ -16,12 +16,10 @@ public class UpdateUserRatingHandler(IUserRepository repository) : IRequestHandl
 {
   public async Task<double> Handle(UpdateUserRating request, CancellationToken cancellationToken)
   {
-    var user = await repository.GetByIdAsync(request.UserId, cancellationToken) ?? throw new KeyNotFoundException("user_not_found");
-
-    user.UpdateRating(request.Rating);
-
-    await repository.SaveChangesAsync(cancellationToken);
-
-    return user.Ratings;
+    // Deliberately not load-mutate-save: the average is folded in by a single atomic statement
+    // (see IUserRepository.ApplyRatingAsync), because two ratings arriving together used to read
+    // the same RatingsCount and silently drop one of them.
+    return await repository.ApplyRatingAsync(request.UserId, request.Rating, cancellationToken)
+      ?? throw new KeyNotFoundException("user_not_found");
   }
 }

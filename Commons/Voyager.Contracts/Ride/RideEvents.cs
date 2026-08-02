@@ -28,6 +28,17 @@ public class RideAccepted : INotification
 public class RideCancelled : INotification
 {
   public Guid RideId { get; set; }
+
+  /// <summary>Same routing problem as NewRideRequested, and the same fix. A ride cancelled at
+  /// Requested status was never joinable — JoinRideGroup authorizes against an *active* ride
+  /// (DriverAssigned/InProgress) — so ride_{RideId} has zero members and the notification was
+  /// dropped exactly when it matters most: the driver is still on their way to a pickup that no
+  /// longer exists. Both participants are in their own user_{id} group from OnConnectedAsync, so
+  /// routing there reaches them at any status.</summary>
+  public Guid DriverId { get; set; }
+
+  /// <inheritdoc cref="DriverId"/>
+  public Guid UserId { get; set; }
 }
 
 public class RideCompleted : INotification

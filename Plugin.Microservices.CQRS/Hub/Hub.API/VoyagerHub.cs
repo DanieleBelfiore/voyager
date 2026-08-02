@@ -7,7 +7,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Configuration;
 using NetTopologySuite.Geometries;
+using Ride.Core.CQRS.Commands;
 using Ride.Core.CQRS.Queries;
+using Ride.Core.Enums;
 
 namespace Hub.API;
 
@@ -71,6 +73,11 @@ public class VoyagerHub(IMediator mediator, IConfiguration configuration) : Hub<
     if (ride == null)
       return;
 
+    // Ride owns its own row, so it has to be told: the position above was applied to the Driver
+    // aggregate only, leaving Ride.LastLocation — the field GET /rides/{id}/location reads —
+    // frozen at the pickup point for the whole trip.
+    await mediator.Send(new TrackRideLocation { RideId = ride.Id, Location = location });
+
     await Clients.Group($"ride_{ride.Id}").SendToRiderNewDriverLocation(location);
 
     // CallerId must be set: GetRideETAHandler rejects the request otherwise (defaults to
@@ -79,6 +86,13 @@ public class VoyagerHub(IMediator mediator, IConfiguration configuration) : Hub<
     var ETA = await mediator.Send(new GetRideETA { Id = ride.Id, CallerId = driverId });
 
     await Clients.Group($"ride_{ride.Id}").SendToRiderNewETA(ETA);
+
+    // Only while the driver is still on their way. Once the trip starts, PickupLocation holds
+    // wherever the driver was at Start, so this distance measures how far they have driven —
+    // under the threshold for the first several hundred metres, which re-fired "driver has
+    // arrived" over and over mid-trip.
+    if (ride.Status == RideStatus.InProgress)
+      return;
 
     var distance = DistanceInMeters(ride.PickupLocation, location);
     if (distance < configuration.GetValue<double>("Hub:ArrivalThresholdMeters"))

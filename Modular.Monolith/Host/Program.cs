@@ -39,7 +39,7 @@ builder.Services.AddCors(options =>
 // Add*Module extension. Host never references a module's internal types — Identity.Module
 // owns the entire OpenIddict setup (issuance + local validation) that every other module's
 // [Authorize] attribute relies on.
-builder.Services.AddIdentityModule(configuration);
+builder.Services.AddIdentityModule(configuration, builder.Environment);
 builder.Services.AddDriverModule(configuration);
 builder.Services.AddRideModule(configuration);
 builder.Services.AddHubModule(configuration);
@@ -118,7 +118,11 @@ builder.Services.AddMediatR(cfg =>
   cfg.RegisterServicesFromAssemblies(moduleAssemblies);
   cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
 });
-builder.Services.AddValidatorsFromAssemblies(moduleAssemblies);
+// includeInternalTypes: true is required, not optional. Every validator in this variant is
+// internal by design (see CLAUDE.md — validators are never part of a public signature), and the
+// default scan uses GetExportedTypes(), which skips them. Without this the ValidationBehavior
+// above resolves an empty IEnumerable<IValidator<T>> and silently validates nothing.
+builder.Services.AddValidatorsFromAssemblies(moduleAssemblies, includeInternalTypes: true);
 
 builder.Services.AddHttpContextAccessor();
 

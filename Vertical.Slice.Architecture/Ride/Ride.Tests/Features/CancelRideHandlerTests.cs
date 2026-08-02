@@ -45,7 +45,9 @@ public class CancelRideHandlerTests
     Assert.Equal(RideStatus.Cancelled, ride.Status);
     Assert.Equal("changed_mind", ride.CancellationReason);
     await mediator.Received(1).Publish(Arg.Is<RideCancelled>(e => e.RideId == ride.Id), Arg.Any<CancellationToken>());
-    await mediator.Received(1).Send(Arg.Is<MarkDriverAvailable>(c => c.DriverId == ride.DriverId), Arg.Any<CancellationToken>());
+    // Still at Requested: this ride never moved the driver to OnRide, so cancelling it must
+    // not release a driver who may be mid-trip on someone else's ride.
+    await mediator.DidNotReceive().Send(Arg.Any<MarkDriverAvailable>(), Arg.Any<CancellationToken>());
   }
 
   [Fact]
@@ -78,4 +80,26 @@ public class CancelRideHandlerTests
     // Act & Assert
     await Assert.ThrowsAsync<ConflictException>(act);
   }
+
+  [Fact]
+  public async Task Handle_ReleasesDriver_WhenRideWasDriverAssigned()
+  {
+    // Arrange
+    await using var db = NewContext();
+    var userId = Guid.NewGuid();
+    var ride = new RideEntity(userId, Guid.NewGuid(), SomePoint, SomePoint);
+    ride.Accept(ride.DriverId);
+    db.Rides.Add(ride);
+    await db.SaveChangesAsync();
+    var mediator = Substitute.For<IMediator>();
+    var handler = new CancelRideHandler(db, mediator);
+
+    // Act
+    await handler.Handle(new CancelRide { Id = ride.Id, CancellationReason = "changed_mind", CallerId = userId }, CancellationToken.None);
+
+    // Assert
+    Assert.Equal(RideStatus.Cancelled, ride.Status);
+    await mediator.Received(1).Send(Arg.Is<MarkDriverAvailable>(c => c.DriverId == ride.DriverId), Arg.Any<CancellationToken>());
+  }
+
 }

@@ -2,6 +2,7 @@ using System;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using NetTopologySuite.IO.Converters;
 using StackExchange.Redis;
 
 namespace Common.Core.Cache;
@@ -17,6 +18,22 @@ namespace Common.Core.Cache;
 public class RedisCacheService(IConnectionMultiplexer redis, ILogger<RedisCacheService> logger) : ICacheService
 {
   private readonly IDatabase _cache = redis.GetDatabase();
+
+  // GeoJsonConverterFactory is not optional here. The only thing this cache holds is
+  // DriverStatusResponse, which carries a NetTopologySuite Point, and plain System.Text.Json
+  // cannot write one: Point.Z/M are NaN, so Serialize throws "positive and negative infinity
+  // cannot be written as valid JSON" before it ever reaches Redis. That threw on every single
+  // write, was swallowed by the catch below, and left the cache permanently empty — every
+  // GetDriverStatus went to SQL while the logs filled with the same error.
+  private static readonly JsonSerializerOptions SerializerOptions = CreateSerializerOptions();
+
+  private static JsonSerializerOptions CreateSerializerOptions()
+  {
+    var options = new JsonSerializerOptions();
+    options.Converters.Add(new GeoJsonConverterFactory());
+
+    return options;
+  }
 
   public async Task<T> GetOrCreateAsync<T>(string key, Func<Task<T>> factory, TimeSpan expiration)
   {
@@ -49,10 +66,12 @@ public class RedisCacheService(IConnectionMultiplexer redis, ILogger<RedisCacheS
       var cached = await _cache.StringGetAsync(key);
 
       if (cached.HasValue)
-        return (true, JsonSerializer.Deserialize<T>((string)cached!));
+        return (true, JsonSerializer.Deserialize<T>((string)cached!, SerializerOptions));
     }
     catch (Exception ex)
     {
+      // Swallowing is right on the read path: an unreachable Redis or an unreadable payload
+      // (stale shape from an older deploy) should degrade to a cache miss, not fail the request.
       logger.LogError(ex, "Error getting value from Redis for key {Key}", key);
     }
 
@@ -61,9 +80,14 @@ public class RedisCacheService(IConnectionMultiplexer redis, ILogger<RedisCacheS
 
   private async Task SetAsync<T>(string key, T value, TimeSpan expiration)
   {
+    // Serialization deliberately sits outside the try. A type this cache cannot serialize is a
+    // bug in the caller, not a transient infrastructure fault, and catching it here is exactly
+    // what hid the Point failure above: the cache silently never populated and nothing surfaced
+    // beyond a log line. Redis being unreachable is still swallowed — that one is transient.
+    var serializedValue = JsonSerializer.Serialize(value, SerializerOptions);
+
     try
     {
-      var serializedValue = JsonSerializer.Serialize(value);
       await _cache.StringSetAsync(key, serializedValue, new Expiration(expiration));
     }
     catch (Exception ex)

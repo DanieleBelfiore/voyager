@@ -36,8 +36,10 @@ public class CancelRideUseCaseTests
     Assert.Equal(Ride.Core.Domain.RideStatus.Cancelled, ride.Status);
     Assert.Equal("changed_mind", ride.CancellationReason);
     await _repository.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
-    await _events.Received(1).RideCancelledAsync(ride.Id, Arg.Any<CancellationToken>());
-    await _availability.Received(1).MarkAvailableAsync(ride.DriverId, Arg.Any<CancellationToken>());
+    await _events.Received(1).RideCancelledAsync(ride.Id, ride.DriverId, ride.UserId, Arg.Any<CancellationToken>());
+    // Still at Requested: this ride never moved the driver to OnRide, so cancelling it must
+    // not release a driver who may be mid-trip on someone else's ride.
+    await _availability.DidNotReceive().MarkAvailableAsync(ride.DriverId, Arg.Any<CancellationToken>());
   }
 
   [Fact]
@@ -65,4 +67,21 @@ public class CancelRideUseCaseTests
     // Act & Assert
     await Assert.ThrowsAsync<ConflictException>(act);
   }
+
+  [Fact]
+  public async Task Handle_ReleasesDriver_WhenRideWasDriverAssigned()
+  {
+    // Arrange
+    var ride = new RideEntity(Guid.NewGuid(), Guid.NewGuid(), SomePoint, SomePoint);
+    ride.Accept(ride.DriverId);
+    _repository.GetByIdAsync(ride.Id, Arg.Any<CancellationToken>()).Returns(ride);
+
+    // Act
+    await _useCase.Handle(new CancelRide { Id = ride.Id, CancellationReason = "changed_mind", CallerId = ride.UserId }, CancellationToken.None);
+
+    // Assert
+    Assert.Equal(Ride.Core.Domain.RideStatus.Cancelled, ride.Status);
+    await _availability.Received(1).MarkAvailableAsync(ride.DriverId, Arg.Any<CancellationToken>());
+  }
+
 }

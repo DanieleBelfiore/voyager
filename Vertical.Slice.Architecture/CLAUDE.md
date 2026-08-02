@@ -41,3 +41,7 @@ Same `Voyager.Contracts` + Arbitrer mechanism as every other variant — see [Co
 ## Testing
 
 No repository to mock — tests construct `{Service}DbContext` against `UseInMemoryDatabase(Guid.NewGuid().ToString())`, seed it directly, and call `handler.Handle(...)`. Mock `IMediator`/`IHubContext<VoyagerHub, IVoyagerShareClient>` with NSubstitute only where a handler actually depends on them (cross-service calls, event publishing, SignalR push).
+
+**Exception — relational-only features need a relational provider.** `ExecuteUpdate`/`ExecuteDelete`, raw SQL, and anything else with no in-memory implementation throw `InvalidOperationException` ("not supported by the current database provider") under `UseInMemoryDatabase`. Those tests open a `SqliteConnection("DataSource=:memory:")`, keep it open for the fixture's lifetime, and call `Database.EnsureCreated()` — see `Identity.Tests/Features/UpdateUserRatingHandlerTests.cs`, where the handler folds a rating into a running average with one atomic `ExecuteUpdateAsync` so concurrent ratings can't lose each other.
+
+Reach for SQLite only when the handler under test genuinely needs it. InMemory stays the default everywhere else — it's faster and needs no schema. Note what SQLite does *not* buy you: it proves the logic and the atomicity, not that SQL Server translates the same expression, so a relational-behaviour fix still deserves a pass against the real docker-compose stack.

@@ -22,6 +22,6 @@ public class GetActiveRideForHubHandler(RideDbContext db) : IRequestHandler<Shar
       .Where(r => (r.DriverId == request.DriverId || r.UserId == request.UserId) && (r.Status == RideStatus.DriverAssigned || r.Status == RideStatus.InProgress))
       .FirstOrDefaultAsync(cancellationToken);
 
-    return ride == null ? null : new ActiveRideInfo { Id = ride.Id, PickupLocation = ride.PickupLocation };
+    return ride == null ? null : new ActiveRideInfo { Id = ride.Id, PickupLocation = ride.PickupLocation, HasStarted = ride.HasStarted() };
   }
 }

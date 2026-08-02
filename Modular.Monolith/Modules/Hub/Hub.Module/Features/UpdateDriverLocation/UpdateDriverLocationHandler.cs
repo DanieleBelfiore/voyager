@@ -21,6 +21,11 @@ internal class UpdateDriverLocationHandler(IMediator mediator, IHubContext<Voyag
     if (ride == null)
       return;
 
+    // Ride owns its own row, so it has to be told: the driver's position was previously applied
+    // to the Driver aggregate only, leaving Ride.LastLocation — the field GET /rides/{id}/location
+    // reads — frozen at the pickup point for the whole trip.
+    await mediator.Send(new TrackRideLocation { RideId = ride.Id, Location = request.Location }, cancellationToken);
+
     var group = HubGroups.ForRide(ride.Id);
 
     await hub.Clients.Group(group).SendToRiderNewDriverLocation(request.Location);
@@ -28,6 +33,13 @@ internal class UpdateDriverLocationHandler(IMediator mediator, IHubContext<Voyag
     var eta = await mediator.Send(new GetRideETA { Id = ride.Id }, cancellationToken);
 
     await hub.Clients.Group(group).SendToRiderNewETA(eta.EstimatedArrivalMinutes, eta.DistanceKm);
+
+    // Only while the driver is still on their way. Once the trip starts, PickupLocation holds
+    // wherever the driver was at Start, so this distance measures how far they have driven —
+    // under the threshold for the first several hundred metres, which re-fired "driver has
+    // arrived" over and over mid-trip.
+    if (ride.HasStarted)
+      return;
 
     var distance = DistanceInMeters(ride.PickupLocation, request.Location);
     if (distance < configuration.GetValue<double>("Hub:ArrivalThresholdMeters"))

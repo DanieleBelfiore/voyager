@@ -38,13 +38,4 @@ public class User
     LastLogin = DateTime.UtcNow;
   }
 
-  // RatingsCount is self-tracked here (incremented once per call) rather than passed in by the
-  // caller — the caller previously supplied "rides completed", which isn't the same number as
-  // "ratings actually received" (a completed ride isn't necessarily rated).
-  public void UpdateRating(int rating)
-  {
-    RatingsCount++;
-    Ratings = RatingsCount <= 1 ? rating : (Ratings * (RatingsCount - 1) + rating) / (double)RatingsCount;
-    Modified = DateTime.UtcNow;
-  }
 }

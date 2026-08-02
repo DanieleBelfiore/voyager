@@ -26,7 +26,7 @@ public class RideAcceptedHandler(IHubRelay relay) : INotificationHandler<RideAcc
 public class RideCancelledHandler(IHubRelay relay) : INotificationHandler<RideCancelled>
 {
   public Task Handle(RideCancelled notification, CancellationToken cancellationToken) =>
-    relay.SendToDriverRideCancel(notification.RideId, cancellationToken);
+    relay.SendToDriverRideCancel(notification.RideId, notification.DriverId, notification.UserId, cancellationToken);
 }
 
 public class RideCompletedHandler(IHubRelay relay) : INotificationHandler<RideCompleted>

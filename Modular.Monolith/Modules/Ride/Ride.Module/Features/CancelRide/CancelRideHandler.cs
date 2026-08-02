@@ -19,14 +19,15 @@ internal class CancelRideHandler(RideDbContext db, IMediator mediator) : IReques
     if (ride.UserId != request.CallerId && ride.DriverId != request.CallerId)
       throw new UnauthorizedAccessException("not_ride_participant");
 
-    ride.Cancel(request.CancellationReason);
+    var heldTheDriver = ride.Cancel(request.CancellationReason);
 
     await db.SaveChangesAsync(cancellationToken);
 
-    // Always Available, whether or not Accept had already moved them to OnRide — a no-op
-    // status write is cheaper than branching on ride.Status to decide if it's needed.
-    await mediator.Send(new MarkDriverAvailable { DriverId = ride.DriverId }, cancellationToken);
+    // Only when this ride was the one holding the driver. Cancelling a stale Requested ride used
+    // to release a driver who was already mid-trip on someone else's — see Ride.Cancel.
+    if (heldTheDriver)
+      await mediator.Send(new MarkDriverAvailable { DriverId = ride.DriverId }, cancellationToken);
 
-    await mediator.Publish(new RideCancelled { RideId = ride.Id }, cancellationToken);
+    await mediator.Publish(new RideCancelled { RideId = ride.Id, DriverId = ride.DriverId, UserId = ride.UserId }, cancellationToken);
   }
 }

@@ -17,13 +17,27 @@ public class UpdateUserRatingHandler(IIdentityContext db) : IRequestHandler<Upda
   // "ratings actually received" (a completed ride isn't necessarily rated).
   public async Task<double> Handle(UpdateUserRating request, CancellationToken cancellationToken)
   {
-    var user = await db.Users.Where(f => f.Id == request.UserId).FirstOrDefaultAsync(cancellationToken) ?? throw new NotFoundException("user_not_found");
+    // One atomic statement, computed from the row's own current values. The previous
+    // load-mutate-save let two ratings landing together both read the same RatingsCount, so the
+    // second SaveChanges silently overwrote the first and a rating vanished from the average
+    // SearchBestDriver ranks on.
+    // Captured rather than inlined so it is sent as a parameter, not a provider-specific
+    // server-clock function.
+    var now = DateTime.UtcNow;
 
-    user.RatingsCount++;
-    user.Ratings = user.RatingsCount <= 1 ? request.Rating : (user.Ratings * (user.RatingsCount - 1) + request.Rating) / (double)user.RatingsCount;
+    var affected = await db.Users
+      .Where(f => f.Id == request.UserId)
+      .ExecuteUpdateAsync(setters => setters
+        .SetProperty(f => f.Ratings, f => (f.Ratings * f.RatingsCount + request.Rating) / (f.RatingsCount + 1))
+        .SetProperty(f => f.RatingsCount, f => f.RatingsCount + 1)
+        .SetProperty(f => f.Modified, _ => now), cancellationToken);
 
-    await db.SaveChangesAsync(cancellationToken);
+    if (affected == 0)
+      throw new NotFoundException("user_not_found");
 
-    return user.Ratings;
+    // Read back only for the caller's return value — the average is already committed.
+    return await db.Users.AsNoTracking().Where(f => f.Id == request.UserId)
+      .Select(f => f.Ratings)
+      .FirstOrDefaultAsync(cancellationToken);
   }
 }

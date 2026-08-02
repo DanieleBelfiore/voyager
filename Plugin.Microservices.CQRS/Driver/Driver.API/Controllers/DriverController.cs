@@ -30,6 +30,10 @@ public class DriverController(IMediator mediator) : ControllerBase
   /// <summary>
   /// Registers a new driver.
   /// </summary>
+  // Gated on the is_driver claim, not just authentication: a Driver row is what puts someone into
+  // SearchBestDriver's candidate pool, so an unrestricted endpoint let any rider self-register,
+  // publish a location, and be matched to real ride requests they can never accept.
+  [Authorize(Policy = "RequireDriver")]
   [EnableRateLimiting("driver_registration")]
   [HttpPost]
   public async Task<ActionResult> AddDriver()

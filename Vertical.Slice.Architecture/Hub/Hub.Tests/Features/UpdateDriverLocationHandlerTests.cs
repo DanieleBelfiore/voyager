@@ -52,6 +52,8 @@ public class UpdateDriverLocationHandlerTests
     await mediator.Received(1).Send(Arg.Is<UpdateLocation>(c => c.Id == driverId), Arg.Any<CancellationToken>());
     await groupClient.Received(1).SendToRiderNewDriverLocation(newLocation);
     await groupClient.Received(1).SendToRiderNewETA(5, 1.2);
+    await mediator.Received(1).Send(
+      Arg.Is<TrackRideLocation>(c => c.RideId == rideId && c.Location == newLocation), Arg.Any<CancellationToken>());
     await groupClient.Received(1).SendToRiderDriverArrival(rideId);
   }
 
@@ -68,4 +70,32 @@ public class UpdateDriverLocationHandlerTests
 
     await groupClient.DidNotReceive().SendToRiderNewDriverLocation(Arg.Any<Point>());
   }
+
+  // Arrival is a "still on my way" signal. Start overwrites PickupLocation with the driver's own
+  // position, so once the trip is under way this distance is how far they have driven — which
+  // stayed under the threshold for the first few hundred metres and re-fired the push mid-trip.
+  [Fact]
+  public async Task UpdateDriverLocation_ShouldNotAnnounceArrival_OnceTheTripHasStarted()
+  {
+    var (mediator, hub, groupClient) = NewMocks();
+
+    var driverId = Guid.NewGuid();
+    var rideId = Guid.NewGuid();
+    var newLocation = new Point(10, 10);
+
+    mediator.Send(Arg.Any<GetActiveRide>(), Arg.Any<CancellationToken>())
+      .Returns(new ActiveRideInfo { Id = rideId, PickupLocation = new Point(10, 10), HasStarted = true });
+    mediator.Send(Arg.Any<GetRideETA>(), Arg.Any<CancellationToken>())
+      .Returns(new RideETAInfo { EstimatedArrivalMinutes = 5, DistanceKm = 1.2 });
+
+    var handler = new UpdateDriverLocationHandler(mediator, hub, TestConfiguration);
+
+    await handler.Handle(new UpdateDriverLocation { DriverId = driverId, Location = newLocation }, CancellationToken.None);
+
+    await groupClient.DidNotReceive().SendToRiderDriverArrival(Arg.Any<Guid>());
+    // the rest of the pipeline still runs
+    await mediator.Received(1).Send(Arg.Is<TrackRideLocation>(c => c.RideId == rideId), Arg.Any<CancellationToken>());
+    await groupClient.Received(1).SendToRiderNewETA(5, 1.2);
+  }
+
 }

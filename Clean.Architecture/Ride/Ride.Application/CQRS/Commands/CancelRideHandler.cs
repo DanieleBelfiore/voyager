@@ -16,14 +16,15 @@ public class CancelRideHandler(IRideRepository repository, IRideEventPublisher e
     if (ride.UserId != request.CallerId && ride.DriverId != request.CallerId)
       throw new UnauthorizedAccessException("not_ride_participant");
 
-    ride.Cancel(request.CancellationReason);
+    var heldTheDriver = ride.Cancel(request.CancellationReason);
 
     await repository.SaveChangesAsync(cancellationToken);
 
-    // Always Available, whether or not Accept had already moved them to OnRide — a no-op
-    // status write is cheaper than branching on ride.Status to decide if it's needed.
-    await availability.MarkAvailableAsync(ride.DriverId, cancellationToken);
+    // Only when this ride was the one holding the driver. Cancelling a stale Requested ride used
+    // to release a driver who was already mid-trip on someone else's — see Ride.Cancel.
+    if (heldTheDriver)
+      await availability.MarkAvailableAsync(ride.DriverId, cancellationToken);
 
-    await events.RideCancelledAsync(ride.Id, cancellationToken);
+    await events.RideCancelledAsync(ride.Id, ride.DriverId, ride.UserId, cancellationToken);
   }
 }

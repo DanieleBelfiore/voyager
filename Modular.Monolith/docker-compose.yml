@@ -54,6 +54,10 @@ services:
       - ConnectionStrings__RideContext=Server=tcp:sqlserver,1433;Initial Catalog=ride;Persist Security Info=False;User ID=sa;Password=${DB_SA_PASSWORD:-Strong!Passw0rd};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=True;Connection Timeout=30
       - Redis__ConnectionString=redis:6379
       - Identity__Issuer=http://app:8080
+      # Demo stack only: lets Identity fall back to OpenIddict's development signing/encryption
+      # certificates. Without it the service refuses to start outside Development rather than
+      # silently issuing tokens signed with a per-machine ephemeral key.
+      - Identity__UseDevelopmentCertificates=true
     depends_on:
       sqlserver:
         condition: service_healthy

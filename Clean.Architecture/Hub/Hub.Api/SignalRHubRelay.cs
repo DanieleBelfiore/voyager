@@ -24,8 +24,12 @@ public class SignalRHubRelay(IHubContext<VoyagerHub, IVoyagerShareClient> hub) :
   public Task SendToDriverNewRideRequest(Guid rideId, Guid driverId, CancellationToken cancellationToken) =>
     hub.Clients.Group(UserGroupFor(driverId)).SendToDriverNewRideRequest(rideId);
 
-  public Task SendToDriverRideCancel(Guid rideId, CancellationToken cancellationToken) =>
-    hub.Clients.Group(GroupFor(rideId)).SendToDriverRideCancel(rideId);
+  // Personal groups, not GroupFor(rideId): a ride cancelled at Requested status was never
+  // joinable (JoinRideGroup authorizes against an *active* ride), so the ride group is empty and
+  // the driver — still driving to a pickup that no longer exists — was never told. Same reasoning
+  // as SendToDriverNewRideRequest above. Two distinct user groups, so nobody is notified twice.
+  public Task SendToDriverRideCancel(Guid rideId, Guid driverId, Guid userId, CancellationToken cancellationToken) =>
+    hub.Clients.Groups(UserGroupFor(driverId), UserGroupFor(userId)).SendToDriverRideCancel(rideId);
 
   public Task SendToDriverNewRateReceived(Guid rideId, int rating, CancellationToken cancellationToken) =>
     hub.Clients.Group(GroupFor(rideId)).SendToDriverNewRateReceived(rating);

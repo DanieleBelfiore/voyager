@@ -70,6 +70,10 @@ services:
       - RabbitMQ__UserName=admin
       - RabbitMQ__Password=${RABBITMQ_PASSWORD:-Strong!Passw0rd}
       - Identity__Issuer=http://identity-api:8080
+      # Demo stack only: lets Identity fall back to OpenIddict's development signing/encryption
+      # certificates. Without it the service refuses to start outside Development rather than
+      # silently issuing tokens signed with a per-machine ephemeral key.
+      - Identity__UseDevelopmentCertificates=true
     depends_on:
       sqlserver:
         condition: service_healthy

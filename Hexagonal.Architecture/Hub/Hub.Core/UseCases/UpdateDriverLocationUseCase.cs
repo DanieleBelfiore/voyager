@@ -13,6 +13,7 @@ namespace Hub.Core.UseCases;
 /// </summary>
 public class UpdateDriverLocationUseCase(
   IDriverLocationUpdater locationUpdater,
+  IRideLocationTracker rideLocationTracker,
   IActiveRideQuery activeRideQuery,
   IRideEtaQuery etaQuery,
   IHubRelay relay,
@@ -26,11 +27,23 @@ public class UpdateDriverLocationUseCase(
     if (ride == null)
       return;
 
+    // Ride owns its own row, so it has to be told: the driver's position was previously applied
+    // to the Driver aggregate only, leaving Ride.LastLocation — the field GET /rides/{id}/location
+    // reads — frozen at the pickup point for the whole trip.
+    await rideLocationTracker.TrackAsync(ride.Id, request.Location, cancellationToken);
+
     await relay.SendToRiderNewDriverLocation(ride.Id, request.Location, cancellationToken);
 
     var eta = await etaQuery.GetEtaAsync(ride.Id, cancellationToken);
 
     await relay.SendToRiderNewETA(ride.Id, eta.EstimatedArrivalMinutes, eta.DistanceKm, cancellationToken);
+
+    // Only while the driver is still on their way. Once the trip starts, PickupLocation holds
+    // wherever the driver was at Start, so this distance measures how far they have driven —
+    // under the threshold for the first several hundred metres, which re-fired "driver has
+    // arrived" over and over mid-trip.
+    if (ride.HasStarted)
+      return;
 
     var distance = DistanceInMeters(ride.PickupLocation, request.Location);
     if (distance < config.ArrivalThresholdMeters)

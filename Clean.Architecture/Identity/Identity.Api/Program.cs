@@ -64,7 +64,11 @@ builder.Services.AddOpenIddict()
 
     options.DisableAccessTokenEncryption();
 
-    if (builder.Environment.IsDevelopment())
+    // The docker-compose demo stack runs without ASPNETCORE_ENVIRONMENT, i.e. as Production, so
+    // an IsDevelopment()-only guard takes the whole stack down at startup. The opt-in flag is
+    // what keeps that stack working while still refusing to fall back to development
+    // certificates by accident: nothing sets it outside docker-compose and launchSettings.
+    if (builder.Environment.IsDevelopment() || configuration.GetValue<bool>("Identity:UseDevelopmentCertificates"))
     {
       options.AddDevelopmentEncryptionCertificate().AddDevelopmentSigningCertificate();
     }

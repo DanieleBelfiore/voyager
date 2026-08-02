@@ -19,10 +19,15 @@ public class GetRideETAUseCase(IRideRepository repository, IDriverLocationQuery 
 
     var location = await driverLocation.GetLocationAsync(ride.DriverId, cancellationToken);
 
-    if (ride.PickupLocation == null || location == null)
+    // Once the trip is under way the driver is not heading to the pickup any more — and Start
+    // overwrote PickupLocation with the driver's own position at that moment, so measuring
+    // against it reports distance already travelled instead of distance still to go.
+    var target = ride.HasStarted() ? ride.DropoffLocation : ride.PickupLocation;
+
+    if (target == null || location == null)
       return new ETAResponse();
 
-    var distanceInMeters = RideEtaCalculator.DistanceInMeters(ride.PickupLocation, location);
+    var distanceInMeters = RideEtaCalculator.DistanceInMeters(target, location);
     var (minutes, distanceKm) = RideEtaCalculator.Calculate(distanceInMeters, config);
 
     return new ETAResponse { EstimatedArrivalMinutes = minutes, DistanceKm = distanceKm };

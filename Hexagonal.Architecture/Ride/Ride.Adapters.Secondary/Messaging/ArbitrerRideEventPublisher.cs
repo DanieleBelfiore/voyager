@@ -15,8 +15,8 @@ public class ArbitrerRideEventPublisher(IMediator mediator) : IRideEventPublishe
   public Task RideAcceptedAsync(Guid rideId, CancellationToken cancellationToken) =>
     mediator.Publish(new RideAccepted { RideId = rideId }, cancellationToken);
 
-  public Task RideCancelledAsync(Guid rideId, CancellationToken cancellationToken) =>
-    mediator.Publish(new RideCancelled { RideId = rideId }, cancellationToken);
+  public Task RideCancelledAsync(Guid rideId, Guid driverId, Guid userId, CancellationToken cancellationToken) =>
+    mediator.Publish(new RideCancelled { RideId = rideId, DriverId = driverId, UserId = userId }, cancellationToken);
 
   public Task RideCompletedAsync(Guid rideId, CancellationToken cancellationToken) =>
     mediator.Publish(new RideCompleted { RideId = rideId }, cancellationToken);

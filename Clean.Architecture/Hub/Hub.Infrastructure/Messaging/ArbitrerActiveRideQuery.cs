@@ -13,13 +13,13 @@ public class ArbitrerActiveRideQuery(IMediator mediator) : IActiveRideQuery
   {
     var result = await mediator.Send(new GetActiveRide { DriverId = driverId }, cancellationToken);
 
-    return result == null ? null : new ActiveRide { Id = result.Id, PickupLocation = result.PickupLocation };
+    return result == null ? null : new ActiveRide { Id = result.Id, PickupLocation = result.PickupLocation, HasStarted = result.HasStarted };
   }
 
   public async Task<ActiveRide> GetActiveRideForParticipantAsync(Guid participantId, CancellationToken cancellationToken)
   {
     var result = await mediator.Send(new GetActiveRide { DriverId = participantId, UserId = participantId }, cancellationToken);
 
-    return result == null ? null : new ActiveRide { Id = result.Id, PickupLocation = result.PickupLocation };
+    return result == null ? null : new ActiveRide { Id = result.Id, PickupLocation = result.PickupLocation, HasStarted = result.HasStarted };
   }
 }

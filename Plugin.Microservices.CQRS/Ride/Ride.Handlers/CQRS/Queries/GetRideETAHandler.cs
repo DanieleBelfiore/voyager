@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Ride.Core.CQRS.Queries;
 using Ride.Core.Dtos;
+using Ride.Core.Enums;
 using Ride.Handlers.Interfaces;
 
 namespace Ride.Handlers.CQRS.Queries;
@@ -34,10 +35,15 @@ public class GetRideETAHandler(IRideContext db, IMediator mediator, IConfigurati
 
     var driver = await mediator.Send(new GetDriverStatus { Id = ride.DriverId }, cancellationToken) ?? throw new NotFoundException("driver_not_found");
 
-    if (ride.PickupLocation == null || driver.LastLocation == null)
+    // Once the trip is under way the driver is not heading to the pickup any more — and StartRide
+    // overwrote PickupLocation with the driver's own position at that moment, so measuring
+    // against it reports distance already travelled instead of distance still to go.
+    var target = ride.Status == RideStatus.InProgress ? ride.DropoffLocation : ride.PickupLocation;
+
+    if (target == null || driver.LastLocation == null)
       return new ETAResponse();
 
-    var distanceInMeters = RideGeoCalculator.DistanceInMeters(ride.PickupLocation, driver.LastLocation);
+    var distanceInMeters = RideGeoCalculator.DistanceInMeters(target, driver.LastLocation);
 
     var baseMinutes = distanceInMeters / 1000 / configuration.GetValue<double>("AverageSpeedKmh") * 60;
     var adjustedMinutes = baseMinutes * GetTimeMultiplier(DateTime.UtcNow.Hour, configuration);

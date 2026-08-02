@@ -12,6 +12,7 @@ namespace Ride.Api.Entities;
 public class Ride
 {
   private static readonly List<RideStatus> CancellableStatuses = [RideStatus.Requested, RideStatus.DriverAssigned];
+  private static readonly List<RideStatus> ActiveStatuses = [RideStatus.DriverAssigned, RideStatus.InProgress];
 
   public const int MinRating = 1;
   public const int MaxRating = 5;
@@ -61,15 +62,29 @@ public class Ride
     LastUpdateDate = DateTime.UtcNow;
   }
 
-  public void Cancel(string cancellationReason)
+  /// <summary>
+  /// Cancels the ride and reports whether it was the one holding the driver, i.e. whether the
+  /// caller must release them back to Available.
+  ///
+  /// Only a DriverAssigned ride ever moved the driver to OnRide. A ride still at Requested never
+  /// touched their status, and nothing constrains how many riders hold a Requested ride against
+  /// the same available driver — the unique index is per-rider (IX_Rides_UserId_ActiveOnly), not
+  /// per-driver. So releasing unconditionally let a stale request being cancelled flip a driver
+  /// who is already mid-trip on someone else's ride back into the matching pool.
+  /// </summary>
+  public bool Cancel(string cancellationReason)
   {
     if (!CancellableStatuses.Contains(Status))
       throw new ConflictException("operation_not_permitted");
+
+    var heldTheDriver = Status == RideStatus.DriverAssigned;
 
     Status = RideStatus.Cancelled;
     CancellationReason = cancellationReason;
     LastUpdateDate = DateTime.UtcNow;
     EndAt = LastUpdateDate;
+
+    return heldTheDriver;
   }
 
   public void Start(Point location)
@@ -82,6 +97,32 @@ public class Ride
     LastLocation = location;
     LastUpdateDate = DateTime.UtcNow;
     StartAt = LastUpdateDate;
+  }
+
+  /// <summary>
+  /// Records where the driver currently is. Called for every position report between accept and
+  /// completion, which is what keeps GET /rides/{id}/location honest — writing LastLocation only
+  /// at Start and Complete left it pinned to the pickup point for the entire trip.
+  ///
+  /// A report for a ride that is no longer active is ignored rather than rejected: position
+  /// updates are fire-and-forget and can legitimately land just after a Complete or Cancel.
+  /// </summary>
+  /// <summary>
+  /// True once the trip itself is under way. Start overwrites PickupLocation with wherever the
+  /// driver actually was at that moment, so anything measuring "distance to pickup" has to stop
+  /// doing so from here on: it would be reporting distance already travelled, not distance left.
+  ///
+  /// A method rather than a property so EF Core never tries to map it.
+  /// </summary>
+  public bool HasStarted() => Status == RideStatus.InProgress;
+
+  public void TrackLocation(Point location)
+  {
+    if (!ActiveStatuses.Contains(Status))
+      return;
+
+    LastLocation = location;
+    LastUpdateDate = DateTime.UtcNow;
   }
 
   public void Complete(Point location, double price)

@@ -18,4 +18,11 @@ public class ActiveRideInfo
 {
   public Guid Id { get; set; }
   public Point PickupLocation { get; set; }
+
+  /// <summary>True once the trip itself is under way. Hub needs it to stop measuring "distance
+  /// to pickup": Start overwrites PickupLocation with the driver's own position at that moment,
+  /// so afterwards that distance is how far they have driven, which sat under the arrival
+  /// threshold for the first several hundred metres and re-fired the arrival push mid-trip.
+  /// </summary>
+  public bool HasStarted { get; set; }
 }

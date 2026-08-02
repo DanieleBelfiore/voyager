@@ -28,6 +28,32 @@ public class UserRepository(IdentityDbContext db) : IUserRepository
       .ToDictionaryAsync(k => k.Id, v => v.Ratings, cancellationToken);
   }
 
+  /// <summary>
+  /// One statement, computed from the row's own current values, so concurrent ratings can't read
+  /// the same RatingsCount and lose one of the updates. The follow-up read is only for the
+  /// caller's return value — the average itself is already committed.
+  /// </summary>
+  public async Task<double?> ApplyRatingAsync(Guid userId, int rating, CancellationToken cancellationToken)
+  {
+    // Captured rather than inlined so it is sent as a parameter, not a provider-specific
+    // server-clock function.
+    var now = DateTime.UtcNow;
+
+    var affected = await db.Users
+      .Where(f => f.Id == userId)
+      .ExecuteUpdateAsync(setters => setters
+        .SetProperty(f => f.Ratings, f => (f.Ratings * f.RatingsCount + rating) / (f.RatingsCount + 1))
+        .SetProperty(f => f.RatingsCount, f => f.RatingsCount + 1)
+        .SetProperty(f => f.Modified, _ => now), cancellationToken);
+
+    if (affected == 0)
+      return null;
+
+    return await db.Users.AsNoTracking().Where(f => f.Id == userId)
+      .Select(f => f.Ratings)
+      .FirstOrDefaultAsync(cancellationToken);
+  }
+
   public void Add(UserEntity user)
   {
     db.Users.Add(user);

@@ -1,4 +1,6 @@
 using Common.Core.Exceptions;
+using Driver.Core.CQRS.Commands;
+using Driver.Core.Enums;
 using MediatR;
 using NSubstitute;
 using Ride.Core.CQRS.Commands;
@@ -43,6 +45,30 @@ public class CancelRideHandlerTests
     Assert.Equal(RideStatus.Cancelled, ride!.Status);
     Assert.Equal("changed_mind", ride.CancellationReason);
     await _mediator.Received(1).Publish(Arg.Is<RideCancelled>(e => e.RideId == rideId), Arg.Any<CancellationToken>());
+    // Still at Requested: this ride never moved the driver to OnRide, so cancelling it must not
+    // release a driver who may be mid-trip on someone else's ride.
+    await _mediator.DidNotReceive().Send(Arg.Any<UpdateAvailability>(), Arg.Any<CancellationToken>());
+  }
+
+  [Fact]
+  public async Task Handle_ReleasesDriver_WhenRideWasDriverAssigned()
+  {
+    // Arrange
+    var rideId = Guid.NewGuid();
+    var userId = Guid.NewGuid();
+    var driverId = Guid.NewGuid();
+    _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, UserId = userId, DriverId = driverId, Status = RideStatus.DriverAssigned });
+    await _context.SaveChangesAsync();
+
+    // Act
+    await _mediator.Send(new CancelRide { Id = rideId, CallerId = userId, CancellationReason = "changed_mind" });
+
+    // Assert
+    var ride = await _context.Rides.FindAsync(rideId);
+    Assert.Equal(RideStatus.Cancelled, ride!.Status);
+    await _mediator.Received(1).Send(
+      Arg.Is<UpdateAvailability>(c => c.Id == driverId && c.Status == DriverStatus.Available),
+      Arg.Any<CancellationToken>());
   }
 
   [Fact]

@@ -50,3 +50,9 @@ Each module keeps its own `DbContext` and its own database (`identity`, `driver`
 ## Namespace collision gotcha
 
 Same issue as every other variant, same fix: `Driver.Module.Entities.Driver` and `Ride.Module.Entities.Ride` collide with their own root namespace segment — alias with `using DriverEntity = Driver.Module.Entities.Driver;` / `using RideEntity = Ride.Module.Entities.Ride;`.
+
+## Testing
+
+Same shape as [Vertical.Slice.Architecture](../Vertical.Slice.Architecture/CLAUDE.md#testing): construct the module's `DbContext` against `UseInMemoryDatabase(Guid.NewGuid().ToString())`, seed it, call `handler.Handle(...)`, and mock `IMediator`/`IHubContext<...>` only where the handler actually depends on them.
+
+**Exception — relational-only features need a relational provider.** `ExecuteUpdate`/`ExecuteDelete` and raw SQL have no in-memory implementation and throw `InvalidOperationException` under `UseInMemoryDatabase`. Those tests open a `SqliteConnection("DataSource=:memory:")`, hold it open for the fixture's lifetime, and call `Database.EnsureCreated()` — see `Identity.Tests/Features/UpdateUserRatingHandlerTests.cs`. InMemory stays the default everywhere else, and SQLite proves the logic, not SQL Server's own translation of it.

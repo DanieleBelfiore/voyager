@@ -44,18 +44,4 @@ public class User
     LastLogin = DateTime.UtcNow;
   }
 
-  /// <summary>
-  /// Weighted running average: (previousAverage * (count - 1) + newRating) / count.
-  /// The Plugin.Microservices.CQRS variant uses (currentRating + newRating) / totalRides, which
-  /// is not a valid running average for count > 1; fixed here rather than copied verbatim.
-  /// RatingsCount is self-tracked here (incremented once per call) rather than passed in by the
-  /// caller — the caller previously supplied "rides completed", which isn't the same number as
-  /// "ratings actually received" (a completed ride isn't necessarily rated).
-  /// </summary>
-  public void UpdateRating(int rating)
-  {
-    RatingsCount++;
-    Ratings = RatingsCount <= 1 ? rating : (Ratings * (RatingsCount - 1) + rating) / (double)RatingsCount;
-    Modified = DateTime.UtcNow;
-  }
 }

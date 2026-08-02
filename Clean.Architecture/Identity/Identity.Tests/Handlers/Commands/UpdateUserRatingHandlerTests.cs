@@ -1,27 +1,58 @@
 using Identity.Application.CQRS.Commands;
 using Identity.Application.Ports;
-using UserEntity = Identity.Domain.Entities.User;
 using NSubstitute;
 using Voyager.Contracts.Identity;
 using Xunit;
 
 namespace Identity.Tests.Handlers.Commands;
 
+/// <summary>
+/// The average is folded in by a single atomic statement behind IUserRepository.ApplyRatingAsync
+/// — two ratings landing together used to read the same RatingsCount and silently drop one.
+/// </summary>
 public class UpdateUserRatingHandlerTests
 {
+  private readonly IUserRepository _repository = Substitute.For<IUserRepository>();
+
   [Fact]
-  public async Task UpdateUserRating_ShouldRecomputeAndPersistRating()
+  public async Task UpdateUserRating_ShouldReturnTheRecomputedAverage()
   {
-    var repository = Substitute.For<IUserRepository>();
-    var user = new UserEntity(Guid.NewGuid(), "ada@example.com", "Ada", "Lovelace", null, "hash", true);
-    repository.GetByIdAsync(user.Id, Arg.Any<CancellationToken>()).Returns(user);
+    // Arrange
+    var userId = Guid.NewGuid();
+    _repository.ApplyRatingAsync(userId, 5, Arg.Any<CancellationToken>()).Returns(4.5);
 
-    var handler = new UpdateUserRatingHandler(repository);
+    // Act
+    var result = await new UpdateUserRatingHandler(_repository).Handle(new UpdateUserRating { UserId = userId, Rating = 5 }, CancellationToken.None);
 
-    var result = await handler.Handle(new UpdateUserRating { UserId = user.Id, Rating = 5 }, CancellationToken.None);
+    // Assert
+    Assert.Equal(4.5, result);
+  }
 
-    Assert.Equal(5, result);
-    Assert.Equal(5, user.Ratings);
-    await repository.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+  [Fact]
+  public async Task UpdateUserRating_ShouldNotLoadAndMutateTheEntity()
+  {
+    // Arrange — the load-mutate-save path is what lost concurrent ratings
+    var userId = Guid.NewGuid();
+    _repository.ApplyRatingAsync(userId, 5, Arg.Any<CancellationToken>()).Returns(5d);
+
+    // Act
+    await new UpdateUserRatingHandler(_repository).Handle(new UpdateUserRating { UserId = userId, Rating = 5 }, CancellationToken.None);
+
+    // Assert
+    await _repository.DidNotReceive().GetByIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+    await _repository.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+  }
+
+  [Fact]
+  public async Task UpdateUserRating_ShouldThrow_WhenUserNotFound()
+  {
+    // Arrange
+    _repository.ApplyRatingAsync(Arg.Any<Guid>(), Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns((double?)null);
+
+    // Act
+    var act = () => new UpdateUserRatingHandler(_repository).Handle(new UpdateUserRating { UserId = Guid.NewGuid(), Rating = 5 }, CancellationToken.None);
+
+    // Assert
+    await Assert.ThrowsAsync<KeyNotFoundException>(act);
   }
 }

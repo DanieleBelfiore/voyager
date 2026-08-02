@@ -11,6 +11,7 @@ public class RideEventHandlersTests
   private readonly IHubRelay _relay = Substitute.For<IHubRelay>();
   private readonly Guid _rideId = Guid.NewGuid();
   private readonly Guid _driverId = Guid.NewGuid();
+  private readonly Guid _userId = Guid.NewGuid();
 
   [Fact]
   public async Task NewRideRequestedHandler_RelaysToDriver()
@@ -32,14 +33,16 @@ public class RideEventHandlersTests
     await _relay.Received(1).SendToRiderRideAccepted(_rideId, Arg.Any<CancellationToken>());
   }
 
+  // Routed per-participant, not per-ride: a ride cancelled before the driver accepts has no
+  // joinable ride group, so a ride-group broadcast reached nobody.
   [Fact]
-  public async Task RideCancelledHandler_RelaysToDriver()
+  public async Task RideCancelledHandler_RelaysToBothParticipants()
   {
     var handler = new RideCancelledHandler(_relay);
 
-    await handler.Handle(new RideCancelled { RideId = _rideId }, CancellationToken.None);
+    await handler.Handle(new RideCancelled { RideId = _rideId, DriverId = _driverId, UserId = _userId }, CancellationToken.None);
 
-    await _relay.Received(1).SendToDriverRideCancel(_rideId, Arg.Any<CancellationToken>());
+    await _relay.Received(1).SendToDriverRideCancel(_rideId, _driverId, _userId, Arg.Any<CancellationToken>());
   }
 
   [Fact]

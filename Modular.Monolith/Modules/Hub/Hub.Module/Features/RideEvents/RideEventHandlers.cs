@@ -29,8 +29,13 @@ internal class RideAcceptedHandler(IHubContext<VoyagerHub, IVoyagerShareClient> 
 
 internal class RideCancelledHandler(IHubContext<VoyagerHub, IVoyagerShareClient> hub) : INotificationHandler<RideCancelled>
 {
+  // Personal groups, not ride_{RideId}: a ride cancelled at Requested status was never joinable
+  // (JoinRideGroup authorizes against an *active* ride), so the ride group is empty and the
+  // driver — still driving to a pickup that no longer exists — was never told. Same reasoning as
+  // NewRideRequestedHandler above. Two distinct user groups, so nobody is notified twice.
   public Task Handle(RideCancelled notification, CancellationToken cancellationToken) =>
-    hub.Clients.Group(HubGroups.ForRide(notification.RideId)).SendToDriverRideCancel(notification.RideId);
+    hub.Clients.Groups(HubGroups.ForUser(notification.DriverId), HubGroups.ForUser(notification.UserId))
+      .SendToDriverRideCancel(notification.RideId);
 }
 
 internal class RideCompletedHandler(IHubContext<VoyagerHub, IVoyagerShareClient> hub) : INotificationHandler<RideCompleted>

@@ -8,7 +8,9 @@ namespace Hub.Core.Ports.Secondary;
 public interface IHubRelay
 {
   Task SendToDriverNewRideRequest(Guid rideId, Guid driverId, CancellationToken cancellationToken);
-  Task SendToDriverRideCancel(Guid rideId, CancellationToken cancellationToken);
+  /// <summary>Takes both participant ids, not just the ride id: a cancellation can fire before
+  /// anyone has joined the ride group, so this one has to be routed per-user.</summary>
+  Task SendToDriverRideCancel(Guid rideId, Guid driverId, Guid userId, CancellationToken cancellationToken);
   Task SendToDriverNewRateReceived(Guid rideId, int rating, CancellationToken cancellationToken);
   Task SendToRiderNewDriverLocation(Guid rideId, Point location, CancellationToken cancellationToken);
   Task SendToRiderDriverArrival(Guid rideId, CancellationToken cancellationToken);

@@ -64,6 +64,16 @@ builder.Services.AddAuthentication(options =>
   options.DefaultScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
 });
 
+// "is_driver" is the custom claim Identity stamps onto the access token principal. Registering
+// a driver is gated on it because a Driver row is what puts someone into SearchBestDriver's
+// candidate pool: without this any authenticated rider could self-register, publish a location,
+// and start being matched to real ride requests they can never accept (AcceptRide checks the
+// same claim), leaving those rides stuck with no offer timeout to recover them.
+builder.Services.AddAuthorization(options =>
+{
+  options.AddPolicy("RequireDriver", policy => policy.RequireClaim("is_driver", "True"));
+});
+
 builder.Services.AddControllers().AddNewtonsoftJson(options =>
 {
   options.SerializerSettings.Converters.Add(new StringEnumConverter());
