@@ -10,6 +10,8 @@ Generic ASP.NET Core / EF Core utilities with zero business meaning:
 - `Cache/` — `ICacheService` + Redis/in-memory implementations (cache-aside helper)
 - `RateLimiting/` — fixed-window rate limit policy configuration and wiring
 - `Extensions/` — `ControllerExtensions.GetUserId()`, EF Core spatial-index migration helpers, a `TakeIfPositive` LINQ helper
+- `Diagnostics/` — the problem-details exception handler, forwarded-headers wiring, and the `IHostedLifecycleService.StartedAsync` startup-migration hook plus the `/ready` health check that reports on it (see [DESIGN.md](../DESIGN.md) for why migrations run *after* the socket opens)
+- `Validation/` — `ValidationBehavior<TRequest,TResponse>`, a MediatR pipeline behavior that runs registered FluentValidation validators before the handler. Generic plumbing with no domain knowledge: it resolves `IValidator<TRequest>` out of DI and throws — it defines no rule of its own. Used by the Vertical Slice and Modular Monolith variants only
 
 ## Voyager.Contracts
 

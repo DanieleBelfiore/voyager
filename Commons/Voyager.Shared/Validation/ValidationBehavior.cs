@@ -9,8 +9,9 @@ namespace Voyager.Shared.Validation;
 
 /// <summary>
 /// MediatR pipeline behavior that runs every registered FluentValidation validator for
-/// the request before the handler executes. Used by the Vertical Slice Architecture variant,
-/// where each feature slice owns its own validator instead of a shared validation layer.
+/// the request before the handler executes. Used by the Vertical Slice Architecture and
+/// Modular Monolith variants, where each feature slice owns its own validator instead of a
+/// shared validation layer. Plugin/Clean/Hexagonal validate with inline guard clauses instead.
 /// </summary>
 public class ValidationBehavior<TRequest, TResponse>(IEnumerable<IValidator<TRequest>> validators)
   : IPipelineBehavior<TRequest, TResponse>

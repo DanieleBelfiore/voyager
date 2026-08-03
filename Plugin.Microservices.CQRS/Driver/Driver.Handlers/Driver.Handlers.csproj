@@ -8,12 +8,15 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Common\Common.Core\Common.Core.csproj" />
-    <ProjectReference Include="..\..\Hub\Hub.API\Hub.API.csproj" />
     <ProjectReference Include="..\..\Identity\Identity.Core\Identity.Core.csproj" />
-    <ProjectReference Include="..\..\Ride\Ride.Core\Ride.Core.csproj" />
     <ProjectReference Include="..\Driver.Core\Driver.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <!-- Direct, not transitive. This project used to reach JetBrains.Annotations through a
+         ProjectReference to Hub.API — another service's *implementation* assembly, of which
+         nothing else here was ever used. Referencing it for an annotations package was the only
+         thing keeping a cross-service compile-time edge alive. -->
+    <PackageReference Include="JetBrains.Annotations" Version="2026.2.0" />
     <PackageReference Include="Riok.Mapperly" Version="4.3.1" />
     <PackageReference Include="MediatR" Version="12.5.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.10" />

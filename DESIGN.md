@@ -12,9 +12,13 @@ rather than argue for one style in the abstract.
 
 This document describes the design decisions common to all five variants — the domain model,
 the matching algorithm, the real-time approach, and the technical trade-offs — and calls out
-where a specific variant diverges. **Plugin.Microservices.CQRS** is the primary reference
-implementation (original, most complete, and the one exercised end-to-end against a live
-Docker stack); see each variant's own `README.md` for its specific rationale.
+where a specific variant diverges. **Plugin.Microservices.CQRS** is the *original* implementation
+— the one the other four were derived from, and the only one exercised end-to-end against a live
+Docker stack via Testcontainers integration tests. It is not the cleanest: it keeps an anemic
+domain model (see "Ride requests & driver availability") and its services reach each other's
+contract-only `.Core` projects directly rather than through a shared `Commons/Voyager.Contracts`.
+Read it as the baseline the later variants improve on, not as the exemplar. See each variant's
+own `README.md` for its specific rationale.
 
 ## Architecture
 
@@ -50,7 +54,14 @@ A driver's live state (`Available` / `OnRide` / `Offline`) and last known locati
 the SignalR connection itself (`VoyagerHub.UpdateDriverLocation`) so the same real-time channel
 carries traffic in both directions, not just server→client pushes. A ride's lifecycle is a small
 state machine (`Requested → DriverAssigned → InProgress → Completed`, or `Cancelled` from either
-of the first two states) enforced by the entity itself, not by callers. Accepting a ride checks
+of the first two states). **Where it is enforced is the one place the variants genuinely split.**
+Clean, Hexagonal, Vertical Slice and Modular Monolith put it in the `Ride` entity itself — the
+transition methods (`ride.Accept(driverId)`, `ride.Start()`, `ride.Complete(...)`) own the guard
+clauses, so no caller can reach an illegal state. Plugin.Microservices.CQRS predates that: its
+`Ride` is an anemic EF model (properties only) and each handler checks the current status and
+assigns the next one itself. Same rules, same transitions, enforced one layer further out —
+which is exactly the kind of difference the portfolio exists to make visible, but it does mean
+the original variant is the weaker one on this axis, not the reference. Accepting a ride checks
 that the caller is the driver the rider actually selected at request time — the endpoint is
 open to any authenticated driver, but only the assigned one can transition it. Accept moves the
 driver to `OnRide`; Complete/Cancel move them back to `Available`, so a driver mid-ride stops

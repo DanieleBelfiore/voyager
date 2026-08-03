@@ -9,8 +9,6 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using Ride.Core.CQRS.Queries;
-using Ride.Core.Dtos;
 
 namespace Driver.API.Controllers;
 
@@ -91,25 +89,10 @@ public class DriverController(IMediator mediator) : ControllerBase
     return Ok(await mediator.Send(new SearchBestDriver { UserId = this.GetUserId(), Location = request.Location, DistanceThresholdInMeters = Math.Clamp(request.DistanceThresholdInKm, 1, MaxSearchRadiusKm) * 1000 }));
   }
 
-  /// <summary>
-  /// Gets the active ride of the current driver.
-  /// </summary>
-  [HttpGet("rides/active")]
-  public async Task<ActionResult<ActiveRideResponse>> GetActiveRide()
-  {
-    return Ok(await mediator.Send(new GetActiveRide { DriverId = this.GetUserId() }));
-  }
-
-  /// <summary>
-  /// Gets the ride history of the current driver.
-  /// </summary>
-  /// <param name="take">The number of records to take.</param>
-  /// <param name="page">The page number.</param>
-  [HttpGet("rides/history")]
-  public async Task<ActionResult<List<RideDetailsResponse>>> GetRideDriverHistory(int take = 25, int page = 0)
-  {
-    take = take < 0 ? 25 : Math.Min(take, 100);
-
-    return Ok(await mediator.Send(new GetRideDriverHistory { DriverId = this.GetUserId(), Take = take, Page = page }));
-  }
+  // GET rides/active and GET rides/history used to live here, serving Ride data (GetActiveRide,
+  // GetRideDriverHistory) out of the Driver service. That is the bounded-context leak
+  // Commons/README.md rules out: an endpoint whose data another service owns. Removed — the
+  // Ride service is where ride reads belong, and every other variant in the portfolio already
+  // does not expose them from Driver. GetRideDriverHistory keeps its handler in Ride.Handlers,
+  // reachable over Arbitrer, same as in Clean/Hexagonal/Vertical.Slice/Modular.Monolith.
 }
