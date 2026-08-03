@@ -5,6 +5,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Voyager.Errors;
 
@@ -39,15 +40,7 @@ public static class ExceptionHandlerExtensions
     {
       var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;
 
-      var (statusCode, error) = exception switch
-      {
-        ValidationException => (StatusCodes.Status400BadRequest, "validation_failed"),
-        InvalidInputException => (StatusCodes.Status400BadRequest, "invalid_input"),
-        UnauthorizedAccessException => (StatusCodes.Status403Forbidden, "forbidden"),
-        KeyNotFoundException => (StatusCodes.Status404NotFound, "not_found"),
-        ConflictException => (StatusCodes.Status409Conflict, "conflict"),
-        _ => (StatusCodes.Status500InternalServerError, "internal_server_error")
-      };
+      var (statusCode, error) = Map(exception);
 
       context.Response.StatusCode = statusCode;
       context.Response.ContentType = "application/json";
@@ -73,5 +66,30 @@ public static class ExceptionHandlerExtensions
     }));
 
     return app;
+  }
+
+  /// <summary>
+  /// The exception-to-status table, kept as a pure function so it is assertable without hosting
+  /// a request pipeline. Anything not listed is deliberately a 500: an unmapped exception is an
+  /// unhandled fault, and reporting it as a client error would hide a real outage.
+  /// </summary>
+  public static (int StatusCode, string Error) Map(Exception exception)
+  {
+    return exception switch
+    {
+      ValidationException => (StatusCodes.Status400BadRequest, "validation_failed"),
+      InvalidInputException => (StatusCodes.Status400BadRequest, "invalid_input"),
+      UnauthorizedAccessException => (StatusCodes.Status403Forbidden, "forbidden"),
+      KeyNotFoundException => (StatusCodes.Status404NotFound, "not_found"),
+      ConflictException => (StatusCodes.Status409Conflict, "conflict"),
+      // Ride carries a RowVersion concurrency token, so two writers racing the same ride make EF
+      // Core raise this instead of silently overwriting. Nothing caught it, so losing that race
+      // surfaced as a blanket 500. It is a conflict like any other, but under its own code
+      // because the client action differs: a lost race is safe to retry, an invalid status
+      // transition is not. Listed after ConflictException only for readability — the two types
+      // are unrelated, so the arm order carries no meaning here.
+      DbUpdateConcurrencyException => (StatusCodes.Status409Conflict, "concurrent_modification"),
+      _ => (StatusCodes.Status500InternalServerError, "internal_server_error")
+    };
   }
 }

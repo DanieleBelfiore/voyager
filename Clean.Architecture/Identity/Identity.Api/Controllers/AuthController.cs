@@ -8,8 +8,10 @@ using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Logging;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
+using Voyager.Errors;
 
 namespace Identity.Api.Controllers;
 
@@ -19,7 +21,7 @@ namespace Identity.Api.Controllers;
 /// HTTP/OAuth2 protocol concerns and Application requests, unlike the Plugin.Microservices.CQRS
 /// variant where validation and persistence happen inline in the controller.
 /// </summary>
-public class AuthController(IMediator mediator) : Controller
+public class AuthController(IMediator mediator, ILogger<AuthController> logger) : Controller
 {
   [EnableRateLimiting("identity_register")]
   [HttpPost("~/connect/register")]
@@ -30,9 +32,19 @@ public class AuthController(IMediator mediator) : Controller
     {
       await mediator.Send(command);
     }
+    catch (Exception ex) when (ex is InvalidInputException or ConflictException)
+    {
+      // Only these two carry a message safe to return: both are raised deliberately by
+      // RegisterUserHandler and their text is a fixed code about the caller's own input.
+      return BadRequest(new { ErrorDescription = ex.Message });
+    }
     catch (Exception ex)
     {
-      return BadRequest(new { ErrorDescription = ex.Message });
+      // Everything else is an unexpected fault. Echoing ex.Message here leaked internal failure
+      // text — SQL Server and EF Core messages included — to an unauthenticated caller.
+      logger.LogError(ex, "User registration failed unexpectedly");
+
+      return BadRequest(new { ErrorDescription = "registration_failed" });
     }
 
     return Ok();

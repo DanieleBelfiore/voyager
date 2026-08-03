@@ -8,6 +8,7 @@ using Ride.Application.Ports;
 using MediatR;
 using RideEntity = Ride.Domain.Entities.Ride;
 using Voyager.Errors;
+using Ride.Application.Validation;
 
 namespace Ride.Application.CQRS.Commands;
 
@@ -15,6 +16,12 @@ public class RequestRideHandler(IRideRepository repository, RideMapper mapper, I
 {
   public async Task<RideDetailsResponse> Handle(RequestRide request, CancellationToken cancellationToken)
   {
+    // Before anything else: both points come straight off the request body and nothing
+    // upstream validates them. A missing one reached the persistence adapter as a 500, and an
+    // out-of-range latitude reached SQL Server's geography column as another one.
+    GeoGuard.Required(request.PickupLocation, "pickup_location");
+    GeoGuard.Required(request.DropoffLocation, "dropoff_location");
+
     // DriverId comes straight off the request body, so it is checked before a ride is created
     // against it — otherwise a rider can pin a ride onto any GUID at all, including one that
     // belongs to a non-driver or to a driver already committed to someone else's trip.

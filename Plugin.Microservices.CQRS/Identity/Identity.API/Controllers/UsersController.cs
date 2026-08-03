@@ -9,10 +9,12 @@ using Identity.Core.Dtos;
 using Identity.Handlers.Models;
 using MediatR;
 using Microsoft.AspNetCore;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
 
@@ -27,7 +29,7 @@ namespace Identity.API.Controllers;
 /// - Session management
 /// - Integration with driver registration workflow
 /// </summary>
-public partial class UsersController(IdentityContext db, SignInManager<VoyagerUser> signInManager, UserManager<VoyagerUser> userManager, IMediator mediator) : Controller
+public partial class UsersController(IdentityContext db, SignInManager<VoyagerUser> signInManager, UserManager<VoyagerUser> userManager, IMediator mediator, ILogger<UsersController> logger) : Controller
 {
   /// <summary>
   /// Registers a new user.
@@ -39,53 +41,107 @@ public partial class UsersController(IdentityContext db, SignInManager<VoyagerUs
   [Produces("application/json")]
   public async Task<IActionResult> Register([FromBody] Register model)
   {
+    if (model == null)
+      return BadRequest(new { ErrorDescription = "invalid_request" });
+
+    var validationError = Validate(model);
+    if (validationError != null)
+      return BadRequest(new { ErrorDescription = validationError });
+
+    var email = model.Email.Trim();
+
+    var exuser = await db.Users.Where(f => f.Email == email).FirstOrDefaultAsync();
+    if (exuser != null)
+      return BadRequest(new { ErrorDescription = "already_exist" });
+
+    var user = new VoyagerUser
+    {
+      UserName = email,
+      Email = email,
+      FirstName = model.FirstName.Trim(),
+      LastName = model.LastName.Trim(),
+      PhoneNumber = model.PhoneNumber?.Trim(),
+      IsDriver = model.IsDriver
+    };
+
+    // CreateAsync persists on its own. The SaveChangesAsync that used to sit here ran *before*
+    // result.Succeeded was inspected, so a rejected registration still committed whatever else
+    // the context happened to be tracking, and the failure was then reported as an opaque
+    // "something_goes_wrong" with Identity's own reasons (password too short, duplicate
+    // username) thrown away. Those codes describe the caller's own input, so they are safe and
+    // useful to return.
+    IdentityResult result;
     try
     {
-      if (model.FirstName == null)
-        throw new Exception("first_name_required");
+      result = await userManager.CreateAsync(user, model.Password);
+    }
+    catch (DbUpdateException ex)
+    {
+      // Two concurrent registrations for the same email can both pass the check above and race
+      // into the unique index. Reported as the same conflict the in-memory check already gives,
+      // rather than as the 500 an uncaught store failure would produce.
+      logger.LogWarning(ex, "Registration failed on a database constraint violation");
 
-      if (model.LastName == null)
-        throw new Exception("last_name_required");
+      return BadRequest(new { ErrorDescription = "already_exist" });
+    }
 
-      if (model.Email == null || !CheckEmail().IsMatch(model.Email))
-        throw new Exception("email_required");
+    if (!result.Succeeded)
+      return BadRequest(new { ErrorDescription = "registration_rejected", Errors = result.Errors.Select(f => f.Code).ToArray() });
 
-      if (model.Password == null || model.Password.Length < 8)
-        throw new Exception("password_string_length");
+    if (user.IsDriver && !await TryRegisterAsDriverAsync(user))
+      return BadRequest(new { ErrorDescription = "driver_registration_failed" });
 
-      if (model.Password != model.ConfirmPassword)
-        throw new Exception("confirm_password_not_matching");
+    return Ok();
+  }
 
-      var exuser = await db.Users.Where(f => f.Email == model.Email).FirstOrDefaultAsync();
-      if (exuser != null)
-        throw new Exception("already_exist");
+  /// <summary>
+  /// Creates the Driver row that puts this user into SearchBestDriver's candidate pool, and
+  /// undoes the user itself if that fails.
+  ///
+  /// Without the compensation the two writes could disagree permanently: the user existed but
+  /// the driver did not, the caller was told registration failed, and retrying hit
+  /// "already_exist" forever — leaving a driver who can never be matched to a ride. The two
+  /// stores are in different services so there is no transaction to lean on; deleting the user
+  /// is what makes the failure retryable.
+  /// </summary>
+  private async Task<bool> TryRegisterAsDriverAsync(VoyagerUser user)
+  {
+    try
+    {
+      await mediator.Send(new AddDriver { DriverId = user.Id });
 
-      var user = new VoyagerUser
-      {
-        UserName = model.Email.Trim(),
-        Email = model.Email.Trim(),
-        FirstName = model.FirstName.Trim(),
-        LastName = model.LastName.Trim(),
-        PhoneNumber = model.PhoneNumber?.Trim(),
-        IsDriver = model.IsDriver
-      };
-
-      var result = await userManager.CreateAsync(user, model.Password);
-
-      await db.SaveChangesAsync();
-
-      if (!result.Succeeded)
-        throw new Exception("something_goes_wrong");
-
-      if (user.IsDriver)
-        await mediator.Send(new AddDriver { DriverId = user.Id });
+      return true;
     }
     catch (Exception ex)
     {
-      return BadRequest(new { ErrorDescription = ex.Message });
-    }
+      logger.LogError(ex, "Driver registration failed for user {UserId}; rolling the user back", user.Id);
 
-    return Ok();
+      var deleted = await userManager.DeleteAsync(user);
+      if (!deleted.Succeeded)
+        logger.LogError("Could not roll back user {UserId} after a failed driver registration", user.Id);
+
+      return false;
+    }
+  }
+
+  private static string Validate(Register model)
+  {
+    if (string.IsNullOrWhiteSpace(model.FirstName))
+      return "first_name_required";
+
+    if (string.IsNullOrWhiteSpace(model.LastName))
+      return "last_name_required";
+
+    if (model.Email == null || !CheckEmail().IsMatch(model.Email))
+      return "email_required";
+
+    if (model.Password == null || model.Password.Length < 8)
+      return "password_string_length";
+
+    if (model.Password != model.ConfirmPassword)
+      return "confirm_password_not_matching";
+
+    return null;
   }
 
   /// <summary>
@@ -98,34 +154,34 @@ public partial class UsersController(IdentityContext db, SignInManager<VoyagerUs
   [Produces("application/json")]
   public async Task<IActionResult> Exchange()
   {
-    try
-    {
-      var req = HttpContext.GetOpenIddictServerRequest() ?? throw new InvalidOperationException("The OpenID Connect request cannot be retrieved.");
-      if (!req.IsPasswordGrantType())
-        return BadRequest(new { ErrorDescription = new Exception("only_password_grant_flow_is_supported") });
+    // A 500, not a thrown exception echoed back: a missing OpenIddict request means the server
+    // pipeline is misconfigured, which is an internal fault and not something the caller did.
+    if (HttpContext.GetOpenIddictServerRequest() is not { } req)
+      return StatusCode(StatusCodes.Status500InternalServerError);
 
-      var user = await userManager.FindByNameAsync(req.Username ?? throw new InvalidOperationException());
-      if (user == null)
-        return BadRequest(new OpenIddictResponse { Error = OpenIddictConstants.Errors.InvalidGrant, ErrorDescription = "The username/password couple is invalid." });
+    if (!req.IsPasswordGrantType())
+      return BadRequest(new OpenIddictResponse { Error = OpenIddictConstants.Errors.UnsupportedGrantType, ErrorDescription = "Only the password grant flow is supported." });
 
-      if (!await signInManager.CanSignInAsync(user))
-        return BadRequest(new OpenIddictResponse { Error = OpenIddictConstants.Errors.InvalidGrant, ErrorDescription = "The specified user is not allowed to sign in." });
+    // One shared message for "no such user", "wrong password" and "not allowed to sign in": the
+    // three are indistinguishable to the caller on purpose, so a failed grant reveals nothing
+    // about whether the account exists.
+    if (string.IsNullOrEmpty(req.Username) || string.IsNullOrEmpty(req.Password))
+      return BadRequest(new OpenIddictResponse { Error = OpenIddictConstants.Errors.InvalidGrant, ErrorDescription = "The username/password couple is invalid." });
 
-      if (!await userManager.CheckPasswordAsync(user, req.Password ?? throw new InvalidOperationException()))
-        return BadRequest(new OpenIddictResponse { Error = OpenIddictConstants.Errors.InvalidGrant, ErrorDescription = "The username/password couple is invalid." });
+    var user = await userManager.FindByNameAsync(req.Username);
+    if (user == null || !await signInManager.CanSignInAsync(user) || !await userManager.CheckPasswordAsync(user, req.Password))
+      return BadRequest(new OpenIddictResponse { Error = OpenIddictConstants.Errors.InvalidGrant, ErrorDescription = "The username/password couple is invalid." });
 
-      var principal = await CreatePrincipalAsync(req, user);
+    var principal = await CreatePrincipalAsync(req, user);
 
-      user.LastLogin = DateTime.UtcNow;
+    user.LastLogin = DateTime.UtcNow;
 
-      await db.SaveChangesAsync();
+    await db.SaveChangesAsync();
 
-      return SignIn(principal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
-    }
-    catch (Exception ex)
-    {
-      return BadRequest(new { ErrorDescription = ex.Message });
-    }
+    // Anything unexpected past this point propagates to the global exception handler, which
+    // returns a generic error. Echoing ex.Message here surfaced internal failure text — SQL and
+    // EF messages included — straight to an unauthenticated caller.
+    return SignIn(principal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
   }
 
   /// <summary>

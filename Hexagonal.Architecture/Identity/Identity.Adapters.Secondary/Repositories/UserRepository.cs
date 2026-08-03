@@ -22,9 +22,13 @@ public class UserRepository(IdentityDbContext db) : IUserRepository
     return await db.Users.FirstOrDefaultAsync(f => f.Id == id, cancellationToken);
   }
 
+  // Only users who have actually been rated are returned. Ratings defaults to 0.0, so including
+  // an unrated user put them in the dictionary with the worst possible score — which meant
+  // SearchBestDriver's "no ratings yet defaults to the midpoint" fallback (GetValueOrDefault)
+  // never fired for anyone registered, and every new driver ranked last forever.
   public async Task<Dictionary<Guid, double>> GetRatingsAsync(List<Guid> userIds, CancellationToken cancellationToken)
   {
-    return await db.Users.AsNoTracking().Where(f => userIds.Contains(f.Id))
+    return await db.Users.AsNoTracking().Where(f => userIds.Contains(f.Id) && f.RatingsCount > 0)
       .ToDictionaryAsync(k => k.Id, v => v.Ratings, cancellationToken);
   }
 
@@ -57,6 +61,11 @@ public class UserRepository(IdentityDbContext db) : IUserRepository
   public void Add(UserEntity user)
   {
     db.Users.Add(user);
+  }
+
+  public void Remove(UserEntity user)
+  {
+    db.Users.Remove(user);
   }
 
   public async Task<int> SaveChangesAsync(CancellationToken cancellationToken)

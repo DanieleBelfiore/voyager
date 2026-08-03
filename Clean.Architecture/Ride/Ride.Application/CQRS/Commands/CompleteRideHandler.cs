@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Ride.Application.CQRS.Queries;
 using Ride.Application.Ports;
 using MediatR;
+using Ride.Application.Validation;
 
 namespace Ride.Application.CQRS.Commands;
 
@@ -12,6 +13,10 @@ public class CompleteRideHandler(IRideRepository repository, IRideEventPublisher
 {
   public async Task Handle(CompleteRide request, CancellationToken cancellationToken)
   {
+    // Guarded before the fare is computed from it: a null threw inside the distance
+    // calculation, and a bogus coordinate silently inflated the price the rider is charged.
+    GeoGuard.Required(request.Location, "location");
+
     var ride = await repository.GetByIdAsync(request.Id, cancellationToken) ?? throw new KeyNotFoundException("no_ride_found");
 
     if (ride.DriverId != request.CallerId)

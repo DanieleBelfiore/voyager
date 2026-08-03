@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 using Driver.Application.Dtos;
 using Driver.Application.Ports;
 using MediatR;
+using Driver.Application.Validation;
+using Voyager.Errors;
 
 namespace Driver.Application.CQRS.Queries;
 
@@ -19,6 +21,14 @@ public class SearchBestDriverHandler(
 {
   public async Task<List<SearchBestDriverResponse>> Handle(SearchBestDriver request, CancellationToken cancellationToken)
   {
+    // A null centre made the spatial predicate throw inside EF's translation; the threshold is
+    // already clamped by the controller, but this handler is also reachable through the
+    // mediator, so the divisor is guarded here rather than trusted from the caller.
+    GeoGuard.Required(request.Location, "location");
+
+    if (request.DistanceThresholdInMeters <= 0)
+      throw new InvalidInputException("distance_threshold_out_of_range");
+
     // No cache here on purpose: driver location/availability changes every few seconds, so a
     // TTL-cached "all available drivers" list is either stale or constantly invalidated. A
     // fresh, spatially-indexed query is both more correct and cheaper than pulling the full

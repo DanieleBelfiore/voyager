@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Common.Core.Exceptions;
+using Common.Core.Validation;
 using Driver.Core.CQRS.Queries;
 using Driver.Core.Dtos;
 using Driver.Core.Enums;
@@ -30,6 +32,14 @@ public class SearchBestDriverHandler(IDriverContext db, IMediator mediator, ICon
 {
   public async Task<List<SearchBestDriverResponse>> Handle(SearchBestDriver request, CancellationToken cancellationToken)
   {
+    // A null centre made the spatial predicate below throw inside EF's translation; the
+    // threshold is already clamped by the controller, but this handler is also reachable through
+    // the mediator, so the divisor is guarded here rather than trusted from the caller.
+    GeoGuard.Required(request.Location, "location");
+
+    if (request.DistanceThresholdInMeters <= 0)
+      throw new InvalidInputException("distance_threshold_out_of_range");
+
     var drivers = await db.Drivers.AsNoTracking()
       .Where(f => f.Status == DriverStatus.Available && f.LastLocation != null
         && f.LastLocation.Distance(request.Location) <= request.DistanceThresholdInMeters)

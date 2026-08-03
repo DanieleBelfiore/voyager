@@ -9,6 +9,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Driver.Domain\Driver.Domain.csproj" />
+    <ProjectReference Include="..\..\..\Commons\Voyager.Errors\Voyager.Errors.csproj" />
     <ProjectReference Include="..\..\..\Commons\Voyager.Contracts\Voyager.Contracts.csproj" />
   </ItemGroup>
   <ItemGroup>

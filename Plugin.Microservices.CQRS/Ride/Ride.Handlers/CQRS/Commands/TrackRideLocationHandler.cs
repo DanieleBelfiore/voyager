@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Common.Core.Validation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using NetTopologySuite.IO;
@@ -22,6 +23,8 @@ public class TrackRideLocationHandler(IRideContext db) : IRequestHandler<TrackRi
 
   public async Task Handle(TrackRideLocation request, CancellationToken cancellationToken)
   {
+    GeoGuard.Required(request.Location, "location");
+
     // A position for a ride that vanished (or finished) is not an error worth failing the
     // driver's SignalR call over — the next report supersedes it.
     var ride = await db.Rides.FirstOrDefaultAsync(f => f.Id == request.RideId, cancellationToken);

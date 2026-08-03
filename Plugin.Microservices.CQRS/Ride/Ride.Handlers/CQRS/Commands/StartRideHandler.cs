@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Core.Exceptions;
+using Common.Core.Validation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using NetTopologySuite.IO;
@@ -15,6 +16,8 @@ public class StartRideHandler(IRideContext db) : IRequestHandler<StartRide>
 {
   public async Task Handle(StartRide request, CancellationToken cancellationToken)
   {
+    GeoGuard.Required(request.Location, "location");
+
     var ride = await db.Rides.FirstOrDefaultAsync(f => f.Id == request.Id, cancellationToken) ?? throw new NotFoundException("no_ride_found");
 
     if (ride.DriverId != request.CallerId)

@@ -8,6 +8,7 @@
     <Description>Identity use cases: registration, authentication, rating updates, and the ports Infrastructure must implement. References Commons/Voyager.Contracts for cross-service message shapes only — see Clean.Architecture/CLAUDE.md.</Description>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\Commons\Voyager.Errors\Voyager.Errors.csproj" />
     <ProjectReference Include="..\Identity.Domain\Identity.Domain.csproj" />
     <ProjectReference Include="..\..\..\Commons\Voyager.Contracts\Voyager.Contracts.csproj" />
   </ItemGroup>

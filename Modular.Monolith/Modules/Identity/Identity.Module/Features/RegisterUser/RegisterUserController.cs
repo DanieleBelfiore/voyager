@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Voyager.Errors;
 
 namespace Identity.Module.Features.RegisterUser;
 
@@ -20,9 +21,12 @@ public class RegisterUserController(IMediator mediator, ILogger<RegisterUserCont
     {
       await mediator.Send(command, cancellationToken);
     }
-    catch (Exception ex) when (ex.Message == "already_exist")
+    catch (Exception ex) when (ex is InvalidInputException or ConflictException)
     {
-      // Expected business-rule violation: handler already checked for a duplicate email.
+      // Expected business-rule violation, matched by type rather than by message text: only
+      // these two are raised deliberately by the handler, so only their message is a fixed code
+      // safe to return. String-matching on the message would echo any exception that happened
+      // to carry the same text.
       return BadRequest(new { ErrorDescription = ex.Message });
     }
     catch (DbUpdateException ex)

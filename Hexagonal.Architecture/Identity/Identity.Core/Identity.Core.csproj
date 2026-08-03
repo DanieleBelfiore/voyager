@@ -8,6 +8,7 @@
     <Description>The hexagon: Identity entities, primary/secondary ports, and use cases.</Description>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\Commons\Voyager.Errors\Voyager.Errors.csproj" />
     <ProjectReference Include="..\..\..\Commons\Voyager.Contracts\Voyager.Contracts.csproj" />
   </ItemGroup>
   <ItemGroup>

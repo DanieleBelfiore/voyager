@@ -8,6 +8,7 @@
     <Description>The hexagon: Driver entities, primary/secondary ports, and use cases. No EF Core, no ASP.NET Core, no Arbitrer/RabbitMQ — only MediatR's IRequestHandler&lt;T&gt; marker interfaces, which double as the primary port shape (see Ports/Primary). References Commons/Voyager.Contracts for cross-service message shapes only.</Description>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\Commons\Voyager.Errors\Voyager.Errors.csproj" />
     <ProjectReference Include="..\..\..\Commons\Voyager.Contracts\Voyager.Contracts.csproj" />
   </ItemGroup>
   <ItemGroup>

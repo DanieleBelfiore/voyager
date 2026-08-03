@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Core.Exceptions;
+using Common.Core.Validation;
 using Driver.Core.CQRS.Commands;
 using Driver.Core.Enums;
 using MediatR;
@@ -18,6 +19,10 @@ public class CompleteRideHandler(IRideContext db, IMediator mediator, IConfigura
 {
   public async Task Handle(CompleteRide request, CancellationToken cancellationToken)
   {
+    // Guarded before the fare is computed from it: a null here threw inside the distance
+    // calculation, and a bogus coordinate silently inflated the price the rider is charged.
+    GeoGuard.Required(request.Location, "location");
+
     var ride = await db.Rides.FirstOrDefaultAsync(f => f.Id == request.Id, cancellationToken) ?? throw new NotFoundException("no_ride_found");
 
     if (ride.DriverId != request.CallerId)

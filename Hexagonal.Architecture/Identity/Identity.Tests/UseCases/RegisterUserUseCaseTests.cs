@@ -3,6 +3,7 @@ using Identity.Core.Ports.Primary;
 using Identity.Core.UseCases;
 using UserEntity = Identity.Core.Domain.User;
 using NSubstitute;
+using Voyager.Errors;
 using Xunit;
 
 namespace Identity.Tests.UseCases;
@@ -55,14 +56,56 @@ public class RegisterUserUseCaseTests
     await _driverRegistration.Received(1).RegisterAsDriverAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>());
   }
 
+  // The exception types are asserted, not just the messages: the controller decides whether a
+  // message is safe to return to the caller by type, so a rule violation degrading back to a
+  // bare Exception would silently be reported as an opaque "registration_failed".
   [Fact]
-  public async Task Register_ShouldThrow_WhenEmailAlreadyExists()
+  public async Task Register_ShouldThrowConflict_WhenEmailAlreadyExists()
   {
     _repository.GetByEmailAsync("ada@example.com", Arg.Any<CancellationToken>()).Returns(new UserEntity(Guid.NewGuid(), "ada@example.com", "Ada", "Lovelace", null, "x", false));
 
     var act = () => _useCase.Handle(ValidCommand(), CancellationToken.None);
 
-    var ex = await Assert.ThrowsAsync<Exception>(act);
+    var ex = await Assert.ThrowsAsync<ConflictException>(act);
     Assert.Equal("already_exist", ex.Message);
+  }
+
+  [Fact]
+  public async Task Register_ShouldThrowInvalidInput_WhenPasswordsDoNotMatch()
+  {
+    var command = ValidCommand();
+    command.ConfirmPassword = "different";
+
+    var act = () => _useCase.Handle(command, CancellationToken.None);
+
+    var ex = await Assert.ThrowsAsync<InvalidInputException>(act);
+    Assert.Equal("confirm_password_not_matching", ex.Message);
+  }
+
+  [Fact]
+  public async Task Register_ShouldRemoveUser_WhenDriverRegistrationFails()
+  {
+    // The user and the Driver row live in different services, so there is no transaction across
+    // them. Leaving the user behind made the failure permanent: the caller was told registration
+    // failed, but retrying hit "already_exist" and the driver was never matchable.
+    _repository.GetByEmailAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns((UserEntity?)null);
+    _driverRegistration.RegisterAsDriverAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+      .Returns<Task>(_ => throw new TimeoutException("driver service unreachable"));
+
+    var act = () => _useCase.Handle(ValidCommand(isDriver: true), CancellationToken.None);
+
+    await Assert.ThrowsAsync<TimeoutException>(act);
+    _repository.Received(1).Remove(Arg.Is<UserEntity>(u => u.Email == "ada@example.com"));
+    await _repository.Received(2).SaveChangesAsync(Arg.Any<CancellationToken>());
+  }
+
+  [Fact]
+  public async Task Register_ShouldNotRemoveUser_WhenDriverRegistrationSucceeds()
+  {
+    _repository.GetByEmailAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns((UserEntity?)null);
+
+    await _useCase.Handle(ValidCommand(isDriver: true), CancellationToken.None);
+
+    _repository.DidNotReceive().Remove(Arg.Any<UserEntity>());
   }
 }

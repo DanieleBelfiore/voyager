@@ -108,6 +108,30 @@ public class SearchBestDriverHandlerTests
   }
 
   [Fact]
+  public async Task Handle_RanksUnratedDriverAtMidpoint_NotAtTheFloor()
+  {
+    // Arrange: same distance, so rating alone decides. The unrated driver is absent from the
+    // ratings dictionary and must fall back to (UserMinRating + UserMaxRating) / 2 = 2.5, which
+    // beats a genuine 1.0. Identity used to return every registered user with Ratings = 0.0,
+    // so the fallback never fired and a brand-new driver ranked below the worst-rated one.
+    var unratedDriver = DriverAt(new Point(0, 0.01));
+    var poorlyRatedDriver = DriverAt(new Point(0, 0.01));
+    _context.Drivers.AddRange(unratedDriver, poorlyRatedDriver);
+    await _context.SaveChangesAsync();
+
+    _mediator.Send(Arg.Any<GetUsersRatings>(), Arg.Any<CancellationToken>())
+      .Returns(new Dictionary<Guid, double> { [poorlyRatedDriver.Id] = 1.0 });
+
+    // Act
+    var result = await _mediator.Send(new SearchBestDriver { UserId = Guid.NewGuid(), Location = new Point(0, 0), DistanceThresholdInMeters = 5000 });
+
+    // Assert
+    Assert.Equal(2, result.Count);
+    Assert.Equal(unratedDriver.Id, result[0].DriverId);
+    Assert.True(result[0].Score < result[1].Score);
+  }
+
+  [Fact]
   public async Task Handle_CapsCandidates_WhenManyDriversAreWithinThreshold()
   {
     // Arrange: five drivers all inside the threshold, but MaxCandidates allows two. Without the

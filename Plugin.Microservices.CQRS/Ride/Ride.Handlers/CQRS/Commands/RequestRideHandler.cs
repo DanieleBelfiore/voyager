@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Common.Core.Exceptions;
+using Common.Core.Validation;
 using Driver.Core.CQRS.Queries;
 using Driver.Core.Enums;
 using MediatR;
@@ -21,6 +22,12 @@ public class RequestRideHandler(IRideContext db, RideMapper mapper, IMediator me
 {
   public async Task<RideDetailsResponse> Handle(RequestRide request, CancellationToken cancellationToken)
   {
+    // Before anything else: both points come straight off the request body and nothing upstream
+    // validates them. A missing one used to reach WKTWriter.Write(null) below as a 500, and an
+    // out-of-range latitude reached SQL Server's geography column as another one.
+    GeoGuard.Required(request.PickupLocation, "pickup_location");
+    GeoGuard.Required(request.DropoffLocation, "dropoff_location");
+
     // DriverId comes straight off the request body, so it is checked before a ride is created
     // against it — otherwise a rider can pin a ride onto any GUID at all, including one that
     // belongs to a non-driver or to a driver already committed to someone else's trip.

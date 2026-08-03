@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using MediatR;
 using Ride.Application.Ports;
 using SharedTrackRideLocation = Voyager.Contracts.Ride.TrackRideLocation;
+using Ride.Application.Validation;
 
 namespace Ride.Application.CQRS.Commands;
 
@@ -15,6 +16,8 @@ public class TrackRideLocationHandler(IRideRepository repository) : IRequestHand
 {
   public async Task Handle(SharedTrackRideLocation request, CancellationToken cancellationToken)
   {
+    GeoGuard.Required(request.Location, "location");
+
     // A position for a ride that vanished (or finished) is not an error worth failing the
     // driver's SignalR call over — the next report supersedes it.
     var ride = await repository.GetByIdAsync(request.RideId, cancellationToken);

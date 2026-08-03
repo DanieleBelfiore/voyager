@@ -7,8 +7,10 @@ using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Logging;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
+using Voyager.Errors;
 
 namespace Identity.Api.Controllers;
 
@@ -16,7 +18,7 @@ namespace Identity.Api.Controllers;
 /// Primary adapter over HTTP/OAuth2. Register/Exchange inject the primary ports
 /// directly (IRegisterUserUseCase, IAuthenticateUserUseCase) — no IMediator.Send.
 /// </summary>
-public class AuthController(IRegisterUserUseCase registerUser, IAuthenticateUserUseCase authenticateUser) : Controller
+public class AuthController(IRegisterUserUseCase registerUser, IAuthenticateUserUseCase authenticateUser, ILogger<AuthController> logger) : Controller
 {
   [EnableRateLimiting("identity_register")]
   [HttpPost("~/connect/register")]
@@ -27,9 +29,19 @@ public class AuthController(IRegisterUserUseCase registerUser, IAuthenticateUser
     {
       await registerUser.Handle(command, cancellationToken);
     }
+    catch (Exception ex) when (ex is InvalidInputException or ConflictException)
+    {
+      // Only these two carry a message safe to return: both are raised deliberately by
+      // RegisterUserUseCase and their text is a fixed code about the caller's own input.
+      return BadRequest(new { ErrorDescription = ex.Message });
+    }
     catch (Exception ex)
     {
-      return BadRequest(new { ErrorDescription = ex.Message });
+      // Everything else is an unexpected fault. Echoing ex.Message here leaked internal failure
+      // text — SQL Server and EF Core messages included — to an unauthenticated caller.
+      logger.LogError(ex, "User registration failed unexpectedly");
+
+      return BadRequest(new { ErrorDescription = "registration_failed" });
     }
 
     return Ok();

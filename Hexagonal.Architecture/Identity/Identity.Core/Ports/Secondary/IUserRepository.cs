@@ -21,5 +21,11 @@ public interface IUserRepository
   /// </summary>
   Task<double?> ApplyRatingAsync(Guid userId, int rating, CancellationToken cancellationToken);
   void Add(User user);
+  /// <summary>
+  /// Undoes an Add that has already been committed. Registering a driver spans two services with
+  /// no transaction between them, so this is what lets the caller roll the user back when the
+  /// second half fails — see RegisterUserUseCase.
+  /// </summary>
+  void Remove(User user);
   Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

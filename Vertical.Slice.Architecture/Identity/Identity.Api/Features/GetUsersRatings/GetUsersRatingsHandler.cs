@@ -14,7 +14,11 @@ public class GetUsersRatingsHandler(IdentityDbContext db) : IRequestHandler<Voya
 {
   public async Task<Dictionary<Guid, double>> Handle(Voyager.Contracts.Identity.GetUsersRatings request, CancellationToken cancellationToken)
   {
-    return await db.Users.AsNoTracking().Where(u => request.UserIds.Contains(u.Id))
+    // Only users who have actually been rated are returned. Ratings defaults to 0.0, so including
+    // an unrated user put them in the dictionary with the worst possible score — which meant
+    // SearchBestDriver's "no ratings yet defaults to the midpoint" fallback (GetValueOrDefault)
+    // never fired for anyone registered, and every new driver ranked last forever.
+    return await db.Users.AsNoTracking().Where(u => request.UserIds.Contains(u.Id) && u.RatingsCount > 0)
       .ToDictionaryAsync(k => k.Id, v => v.Ratings, cancellationToken);
   }
 }

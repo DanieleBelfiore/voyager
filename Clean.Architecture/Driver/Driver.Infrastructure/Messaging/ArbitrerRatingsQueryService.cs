@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Driver.Application.Ports;
@@ -18,8 +17,10 @@ public class ArbitrerRatingsQueryService(IMediator mediator) : IRatingsQueryServ
 {
   public async Task<Dictionary<Guid, double>> GetRatingsAsync(List<Guid> userIds, CancellationToken cancellationToken)
   {
-    var ratings = await mediator.Send(new GetUsersRatings { UserIds = userIds }, cancellationToken);
-
-    return userIds.ToDictionary(id => id, id => ratings?.GetValueOrDefault(id, 0.0) ?? 0.0);
+    // Returned as-is, without back-filling absent ids. Padding them with 0.0 made every unrated
+    // driver look like the worst-rated one and left SearchBestDriverHandler's "no ratings yet
+    // defaults to the midpoint" fallback unreachable — an absent id is the signal that fallback
+    // exists to read.
+    return await mediator.Send(new GetUsersRatings { UserIds = userIds }, cancellationToken) ?? [];
   }
 }
