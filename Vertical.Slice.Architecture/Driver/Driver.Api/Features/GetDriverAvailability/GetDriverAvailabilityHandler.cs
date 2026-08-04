@@ -2,7 +2,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Driver.Api.Entities;
 using Driver.Api.Persistence;
-using MediatR;
+using Hikyaku;
 using Microsoft.EntityFrameworkCore;
 using Voyager.Contracts.Driver;
 
@@ -13,7 +13,7 @@ namespace Driver.Api.Features.GetDriverAvailability;
 /// before creating a ride. Deliberately reports "does not exist" rather than throwing: an
 /// unknown DriverId here is a bad client request for Ride to reject, not a fault in this service.
 /// </summary>
-/// <remarks>No controller: this use case is driven exclusively by Ride over Arbitrer.</remarks>
+/// <remarks>No controller: this use case is driven exclusively by Ride over Kaido.</remarks>
 public class GetDriverAvailabilityHandler(DriverDbContext db) : IRequestHandler<Voyager.Contracts.Driver.GetDriverAvailability, DriverAvailabilityInfo>
 {
   public async Task<DriverAvailabilityInfo> Handle(Voyager.Contracts.Driver.GetDriverAvailability request, CancellationToken cancellationToken)

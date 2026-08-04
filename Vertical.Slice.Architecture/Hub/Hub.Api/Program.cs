@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text.Json.Nodes;
-using Arbitrer;
+using Hikyaku.Kaido;
 using FluentValidation;
 using Hub.Api.Middlewares;
 using Hub.Api.Shared;
@@ -34,7 +34,7 @@ builder.Services.AddCors(options =>
     opt.AllowAnyMethod().AllowAnyHeader().WithOrigins(allowedOrigins).AllowCredentials());
 });
 
-// No port for cross-service queries or the SignalR relay: handlers take IMediator and
+// No port for cross-service queries or the SignalR relay: handlers take IHikyaku and
 // IHubContext<VoyagerHub, IVoyagerShareClient> directly.
 builder.Services.AddOpenIddict()
     .AddValidation(options =>
@@ -139,21 +139,21 @@ builder.Services.AddSwaggerGenNewtonsoftSupport();
 
 var apiAssembly = Assembly.GetExecutingAssembly();
 
-builder.Services.AddMediatR(cfg =>
+builder.Services.AddHikyaku(cfg =>
 {
   cfg.RegisterServicesFromAssembly(apiAssembly);
   cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
 });
 builder.Services.AddValidatorsFromAssembly(apiAssembly);
 
-builder.Services.AddArbitrer(options =>
+builder.Services.AddKaido(options =>
 {
-  options.Behaviour = ArbitrerBehaviourEnum.ImplicitRemote;
+  options.Behaviour = HikyakuBehaviourEnum.ImplicitRemote;
   options.InferLocalRequests([apiAssembly]);
   options.InferLocalNotifications([apiAssembly]);
 });
 
-builder.Services.AddArbitrerRabbitMQMessageDispatcher(o =>
+builder.Services.AddHikyakuRabbitMQMessageDispatcher(o =>
 {
   configuration.GetSection("RabbitMQ").Bind(o);
   o.AutoDelete = false;

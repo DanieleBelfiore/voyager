@@ -1,6 +1,6 @@
 using System;
 using Driver.Api.Entities;
-using MediatR;
+using Hikyaku;
 
 namespace Driver.Api.Features.UpdateAvailability;
 

@@ -1,4 +1,4 @@
-using MediatR;
+using Hikyaku;
 using NSubstitute;
 using Ride.Core.CQRS.Queries;
 using Ride.Core.Enums;
@@ -20,7 +20,7 @@ public class GetRideDriverHistoryHandlerTests
     context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, DriverId = driverId, Status = RideStatus.Completed });
     await context.SaveChangesAsync();
 
-    var mediatorMock = Substitute.For<IMediator>();
+    var mediatorMock = Substitute.For<IHikyaku>();
     mediatorMock.Send(Arg.Any<GetRideDriverHistory>(), Arg.Any<CancellationToken>())
       .Returns(c => new GetRideDriverHistoryHandler(context, new RideMapper())
         .Handle(c.Arg<GetRideDriverHistory>(), c.Arg<CancellationToken>()));

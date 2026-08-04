@@ -4,7 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Ride.Application.Dtos;
 using Ride.Application.Ports;
-using MediatR;
+using Hikyaku;
 
 namespace Ride.Application.CQRS.Queries;
 

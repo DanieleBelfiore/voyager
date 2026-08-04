@@ -1,7 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Hub.Core.Interfaces;
-using MediatR;
+using Hikyaku;
 using Microsoft.AspNetCore.SignalR;
 using Ride.Core.CQRS.Events;
 
@@ -9,8 +9,8 @@ namespace Hub.API;
 
 /// <summary>
 /// Consumes ride lifecycle events Ride.Handlers publishes (Ride.Core.CQRS.Events) via
-/// IMediator.Publish and relays them to connected SignalR clients. Ride and Hub are separate
-/// processes, so Arbitrer's remote notification fan-out over RabbitMQ is what actually delivers
+/// IHikyaku.Publish and relays them to connected SignalR clients. Ride and Hub are separate
+/// processes, so Kaido's remote notification fan-out over RabbitMQ is what actually delivers
 /// these — the direct IHubContext&lt;VoyagerHub, IVoyagerShareClient&gt; injection this replaced
 /// only ever reached clients connected to Ride's own (client-less) SignalR endpoint.
 /// </summary>

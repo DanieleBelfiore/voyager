@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using MediatR;
+using Hikyaku;
 using Microsoft.EntityFrameworkCore;
 using Ride.Module.Entities;
 using Ride.Module.Persistence;
@@ -14,7 +14,7 @@ using Voyager.Errors;
 
 namespace Ride.Module.Features.RequestRide;
 
-internal class RequestRideHandler(RideDbContext db, IMediator mediator) : IRequestHandler<RequestRide, RideDetailsResponse>
+internal class RequestRideHandler(RideDbContext db, IHikyaku mediator) : IRequestHandler<RequestRide, RideDetailsResponse>
 {
   public async Task<RideDetailsResponse> Handle(RequestRide request, CancellationToken cancellationToken)
   {

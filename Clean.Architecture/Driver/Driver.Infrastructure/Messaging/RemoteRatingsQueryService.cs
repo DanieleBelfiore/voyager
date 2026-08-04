@@ -3,17 +3,17 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Driver.Application.Ports;
-using MediatR;
+using Hikyaku;
 using Voyager.Contracts.Identity;
 
 namespace Driver.Infrastructure.Messaging;
 
 /// <summary>
-/// Sends the shared GetUsersRatings wire contract through the local MediatR pipeline. No
-/// handler for it is registered in the Driver service itself, so Arbitrer's implicit-remote
+/// Sends the shared GetUsersRatings wire contract through the local Hikyaku pipeline. No
+/// handler for it is registered in the Driver service itself, so Kaido's implicit-remote
 /// behaviour routes it over RabbitMQ to whichever service does register one (Identity).
 /// </summary>
-public class ArbitrerRatingsQueryService(IMediator mediator) : IRatingsQueryService
+public class RemoteRatingsQueryService(IHikyaku mediator) : IRatingsQueryService
 {
   public async Task<Dictionary<Guid, double>> GetRatingsAsync(List<Guid> userIds, CancellationToken cancellationToken)
   {

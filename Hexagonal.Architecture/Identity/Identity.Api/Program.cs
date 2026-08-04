@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Reflection;
 using System.Text.Json.Nodes;
-using Arbitrer;
+using Hikyaku.Kaido;
 using Identity.Adapters.Secondary.DependencyInjection;
 using Identity.Adapters.Secondary.Persistence;
 using Identity.Core.Ports.Primary;
@@ -147,16 +147,16 @@ builder.Services.AddSwaggerGenNewtonsoftSupport();
 
 var coreAssembly = typeof(RegisterUserUseCase).Assembly;
 
-builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(coreAssembly));
+builder.Services.AddHikyaku(cfg => cfg.RegisterServicesFromAssembly(coreAssembly));
 
-builder.Services.AddArbitrer(options =>
+builder.Services.AddKaido(options =>
 {
-  options.Behaviour = ArbitrerBehaviourEnum.ImplicitRemote;
+  options.Behaviour = HikyakuBehaviourEnum.ImplicitRemote;
   options.InferLocalRequests([coreAssembly]);
   options.InferLocalNotifications([coreAssembly]);
 });
 
-builder.Services.AddArbitrerRabbitMQMessageDispatcher(o =>
+builder.Services.AddHikyakuRabbitMQMessageDispatcher(o =>
 {
   configuration.GetSection("RabbitMQ").Bind(o);
   o.AutoDelete = false;

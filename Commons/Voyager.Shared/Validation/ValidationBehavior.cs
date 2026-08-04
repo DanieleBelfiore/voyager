@@ -3,12 +3,12 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentValidation;
-using MediatR;
+using Hikyaku;
 
 namespace Voyager.Shared.Validation;
 
 /// <summary>
-/// MediatR pipeline behavior that runs every registered FluentValidation validator for
+/// Hikyaku pipeline behavior that runs every registered FluentValidation validator for
 /// the request before the handler executes. Used by the Vertical Slice Architecture and
 /// Modular Monolith variants, where each feature slice owns its own validator instead of a
 /// shared validation layer. Plugin/Clean/Hexagonal validate with inline guard clauses instead.

@@ -2,7 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Hub.Module.Shared;
-using MediatR;
+using Hikyaku;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Configuration;
 using NetTopologySuite.Geometries;
@@ -11,7 +11,7 @@ using Voyager.Contracts.Ride;
 
 namespace Hub.Module.Features.UpdateDriverLocation;
 
-internal class UpdateDriverLocationHandler(IMediator mediator, IHubContext<VoyagerHub, IVoyagerShareClient> hub, IConfiguration configuration) : IRequestHandler<UpdateDriverLocation>
+internal class UpdateDriverLocationHandler(IHikyaku mediator, IHubContext<VoyagerHub, IVoyagerShareClient> hub, IConfiguration configuration) : IRequestHandler<UpdateDriverLocation>
 {
   public async Task Handle(UpdateDriverLocation request, CancellationToken cancellationToken)
   {

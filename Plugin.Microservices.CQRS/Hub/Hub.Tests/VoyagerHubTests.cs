@@ -2,7 +2,7 @@ using System.Security.Claims;
 using Driver.Core.CQRS.Commands;
 using Hub.API;
 using Hub.Core.Interfaces;
-using MediatR;
+using Hikyaku;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Configuration;
 using NetTopologySuite.Geometries;
@@ -19,7 +19,7 @@ public class VoyagerHubTests
     .AddInMemoryCollection(new Dictionary<string, string?> { ["Hub:ArrivalThresholdMeters"] = "500" })
     .Build();
 
-  private readonly IMediator _mediator = Substitute.For<IMediator>();
+  private readonly IHikyaku _mediator = Substitute.For<IHikyaku>();
   private readonly IGroupManager _groups = Substitute.For<IGroupManager>();
   private readonly IHubCallerClients<IVoyagerShareClient> _clients = Substitute.For<IHubCallerClients<IVoyagerShareClient>>();
   private readonly IVoyagerShareClient _groupClient = Substitute.For<IVoyagerShareClient>();

@@ -1,4 +1,4 @@
-using MediatR;
+using Hikyaku;
 using Microsoft.EntityFrameworkCore;
 using NetTopologySuite.Geometries;
 using NSubstitute;
@@ -30,7 +30,7 @@ public class AcceptRideHandlerTests
     db.Rides.Add(ride);
     await db.SaveChangesAsync();
 
-    var mediator = Substitute.For<IMediator>();
+    var mediator = Substitute.For<IHikyaku>();
     var handler = new AcceptRideHandler(db, mediator);
 
     await handler.Handle(new AcceptRide { RideId = ride.Id, DriverId = driverId }, CancellationToken.None);
@@ -54,7 +54,7 @@ public class AcceptRideHandlerTests
     db.Rides.Add(ride);
     await db.SaveChangesAsync();
 
-    var mediator = Substitute.For<IMediator>();
+    var mediator = Substitute.For<IHikyaku>();
     var handler = new AcceptRideHandler(db, mediator);
 
     var act = () => handler.Handle(new AcceptRide { RideId = ride.Id, DriverId = Guid.NewGuid() }, CancellationToken.None);

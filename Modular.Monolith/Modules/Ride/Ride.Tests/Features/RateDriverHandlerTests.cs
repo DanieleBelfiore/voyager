@@ -1,5 +1,5 @@
 using Voyager.Errors;
-using MediatR;
+using Hikyaku;
 using Microsoft.EntityFrameworkCore;
 using NetTopologySuite.Geometries;
 using NSubstitute;
@@ -39,7 +39,7 @@ public class RateDriverHandlerTests
     ride.Complete(SomePoint, 10);
     db.Rides.Add(ride);
     await db.SaveChangesAsync();
-    var mediator = Substitute.For<IMediator>();
+    var mediator = Substitute.For<IHikyaku>();
     var handler = new RateDriverHandler(db, mediator);
 
     // Act
@@ -55,7 +55,7 @@ public class RateDriverHandlerTests
   {
     // Arrange
     await using var db = NewContext();
-    var handler = new RateDriverHandler(db, Substitute.For<IMediator>());
+    var handler = new RateDriverHandler(db, Substitute.For<IHikyaku>());
     var act = () => handler.Handle(new RateDriver { RideId = Guid.NewGuid(), Rating = 3 }, CancellationToken.None);
 
     // Act & Assert
@@ -74,7 +74,7 @@ public class RateDriverHandlerTests
     var ride = new RideEntity(userId, driverId, SomePoint, SomePoint);
     db.Rides.Add(ride);
     await db.SaveChangesAsync();
-    var mediator = Substitute.For<IMediator>();
+    var mediator = Substitute.For<IHikyaku>();
     var handler = new RateDriverHandler(db, mediator);
     var act = () => handler.Handle(new RateDriver { RideId = ride.Id, Rating = 5, CallerId = userId }, CancellationToken.None);
 
@@ -97,7 +97,7 @@ public class RateDriverHandlerTests
     db.Rides.Add(CompletedRide(userId, driverId));
     await db.SaveChangesAsync();
     var ride = db.Rides.Single();
-    var mediator = Substitute.For<IMediator>();
+    var mediator = Substitute.For<IHikyaku>();
     var handler = new RateDriverHandler(db, mediator);
     var act = () => handler.Handle(new RateDriver { RideId = ride.Id, Rating = rating, CallerId = userId }, CancellationToken.None);
 
@@ -117,7 +117,7 @@ public class RateDriverHandlerTests
     db.Rides.Add(CompletedRide(userId, driverId));
     await db.SaveChangesAsync();
     var ride = db.Rides.Single();
-    var mediator = Substitute.For<IMediator>();
+    var mediator = Substitute.For<IHikyaku>();
     var handler = new RateDriverHandler(db, mediator);
     await handler.Handle(new RateDriver { RideId = ride.Id, Rating = 5, CallerId = userId }, CancellationToken.None);
 

@@ -1,13 +1,13 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Hub.Core.Ports.Secondary;
-using MediatR;
+using Hub.Application.Ports;
+using Hikyaku;
 using Voyager.Contracts.Ride;
 
-namespace Hub.Adapters.Secondary.Messaging;
+namespace Hub.Infrastructure.Messaging;
 
-public class ArbitrerActiveRideQuery(IMediator mediator) : IActiveRideQuery
+public class RemoteActiveRideQuery(IHikyaku mediator) : IActiveRideQuery
 {
   public async Task<ActiveRide> GetActiveRideForDriverAsync(Guid driverId, CancellationToken cancellationToken)
   {

@@ -2,7 +2,7 @@ using Common.Core.Exceptions;
 using Driver.Core.CQRS.Commands;
 using Driver.Core.Enums;
 using Driver.Handlers.CQRS.Commands;
-using MediatR;
+using Hikyaku;
 using NSubstitute;
 using Xunit;
 
@@ -10,7 +10,7 @@ namespace Driver.Tests.Handlers.Commands;
 
 public class UpdateAvailabilityHandlerTests
 {
-  private readonly IMediator _mediator;
+  private readonly IHikyaku _mediator;
   private readonly TestApplicationDbContext _context;
   private readonly Common.Core.Cache.ICacheService _cache;
 
@@ -20,7 +20,7 @@ public class UpdateAvailabilityHandlerTests
     _context = context;
     _cache = cache;
 
-    var mediatorMock = Substitute.For<IMediator>();
+    var mediatorMock = Substitute.For<IHikyaku>();
     _mediator = mediatorMock;
 
     mediatorMock.Send(Arg.Any<UpdateAvailability>(), Arg.Any<CancellationToken>())

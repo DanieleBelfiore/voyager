@@ -1,4 +1,4 @@
-using MediatR;
+using Hikyaku;
 using Microsoft.EntityFrameworkCore;
 using NetTopologySuite.Geometries;
 using NSubstitute;
@@ -35,7 +35,7 @@ public class CancelRideHandlerTests
     var ride = new RideEntity(userId, Guid.NewGuid(), SomePoint, SomePoint);
     db.Rides.Add(ride);
     await db.SaveChangesAsync();
-    var mediator = Substitute.For<IMediator>();
+    var mediator = Substitute.For<IHikyaku>();
     var handler = new CancelRideHandler(db, mediator);
 
     // Act
@@ -55,7 +55,7 @@ public class CancelRideHandlerTests
   {
     // Arrange
     await using var db = NewContext();
-    var handler = new CancelRideHandler(db, Substitute.For<IMediator>());
+    var handler = new CancelRideHandler(db, Substitute.For<IHikyaku>());
     var act = () => handler.Handle(new CancelRide { Id = Guid.NewGuid(), CancellationReason = "x" }, CancellationToken.None);
 
     // Act & Assert
@@ -74,7 +74,7 @@ public class CancelRideHandlerTests
     ride.Start(SomePoint);
     db.Rides.Add(ride);
     await db.SaveChangesAsync();
-    var handler = new CancelRideHandler(db, Substitute.For<IMediator>());
+    var handler = new CancelRideHandler(db, Substitute.For<IHikyaku>());
     var act = () => handler.Handle(new CancelRide { Id = ride.Id, CancellationReason = "x", CallerId = driverId }, CancellationToken.None);
 
     // Act & Assert
@@ -91,7 +91,7 @@ public class CancelRideHandlerTests
     ride.Accept(ride.DriverId);
     db.Rides.Add(ride);
     await db.SaveChangesAsync();
-    var mediator = Substitute.For<IMediator>();
+    var mediator = Substitute.For<IHikyaku>();
     var handler = new CancelRideHandler(db, mediator);
 
     // Act

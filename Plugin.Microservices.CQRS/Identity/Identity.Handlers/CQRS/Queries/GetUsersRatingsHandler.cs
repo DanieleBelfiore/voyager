@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Identity.Core.CQRS.Queries;
 using Identity.Handlers.Interfaces;
-using MediatR;
+using Hikyaku;
 using Microsoft.EntityFrameworkCore;
 
 namespace Identity.Handlers.CQRS.Queries;

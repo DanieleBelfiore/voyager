@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Identity.Api.Persistence;
-using MediatR;
+using Hikyaku;
 using Microsoft.EntityFrameworkCore;
 
 namespace Identity.Api.Features.GetUsersRatings;

@@ -5,7 +5,7 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
-    <Description>Ride module. Entities, persistence and feature handlers are internal; response/request DTOs that cross a public controller action are public (CS0050 forces this, not folder choice). Cross-module calls go through IMediator.Send/Publish with Voyager.Contracts types — no Arbitrer, since there's nothing remote to route to.</Description>
+    <Description>Ride module. Entities, persistence and feature handlers are internal; response/request DTOs that cross a public controller action are public (CS0050 forces this, not folder choice). Cross-module calls go through IHikyaku.Send/Publish with Voyager.Contracts types — no Kaido, since there's nothing remote to route to.</Description>
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
@@ -16,7 +16,7 @@
     <ProjectReference Include="..\..\..\..\Commons\Voyager.Contracts\Voyager.Contracts.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="MediatR" Version="12.5.0" />
+    <PackageReference Include="Hikyaku" Version="10.0.1" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.10" />
     <PackageReference Include="FluentValidation" Version="12.1.1" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />

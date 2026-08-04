@@ -5,6 +5,6 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
-    <Description>Identity bounded context — entities. No EF Core, no ASP.NET Core Identity, no MediatR: not even the framework that Register/Login inevitably touch further out leaks in here.</Description>
+    <Description>Identity bounded context — entities. No EF Core, no ASP.NET Core Identity, no Hikyaku: not even the framework that Register/Login inevitably touch further out leaks in here.</Description>
   </PropertyGroup>
 </Project>

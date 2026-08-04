@@ -1,4 +1,4 @@
-using MediatR;
+using Hikyaku;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using NetTopologySuite.Geometries;
@@ -14,7 +14,7 @@ namespace Ride.Tests.Features;
 
 public class GetRideETAHandlerTests
 {
-  private readonly IMediator _mediator = Substitute.For<IMediator>();
+  private readonly IHikyaku _mediator = Substitute.For<IHikyaku>();
   // All four time-of-day multipliers must be set: EtaConfig's unset double properties default
   // to 0, which used to make the range assertion below depend on the UTC hour the test happened
   // to run in (whichever multiplier bucket the wall clock fell into that day).

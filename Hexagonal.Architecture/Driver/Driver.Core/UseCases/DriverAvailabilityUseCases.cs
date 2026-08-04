@@ -4,14 +4,14 @@ using System.Threading;
 using System.Threading.Tasks;
 using Driver.Core.Domain;
 using Driver.Core.Ports.Secondary;
-using MediatR;
+using Hikyaku;
 using Voyager.Contracts.Driver;
 
 namespace Driver.Core.UseCases;
 
 /// <summary>
 /// Handle the shared Voyager.Contracts.Driver availability commands directly — reachable only
-/// via Arbitrer's remote dispatch (Ride, on Accept/Cancel/Complete), not injected by any local
+/// via Kaido's remote dispatch (Ride, on Accept/Cancel/Complete), not injected by any local
 /// primary adapter, so no dedicated primary port interface — same rationale as
 /// GetActiveRideForHubUseCase.
 /// </summary>

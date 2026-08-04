@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Driver.Module.Entities;
 using Driver.Module.Persistence;
-using MediatR;
+using Hikyaku;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Voyager.Contracts.Identity;
@@ -14,13 +14,13 @@ namespace Driver.Module.Features.SearchBestDriver;
 
 /// <summary>
 /// Driver matching algorithm — same weighted scoring as every other variant. Ratings still come
-/// from Identity's module via IMediator.Send(GetUsersRatings) — same call as in every other
+/// from Identity's module via IHikyaku.Send(GetUsersRatings) — same call as in every other
 /// variant, just resolved in-process instead of over RabbitMQ.
 /// </summary>
 internal class SearchBestDriverHandler(
   DriverDbContext db,
   IOptions<MatchingWeights> weights,
-  IMediator mediator) : IRequestHandler<SearchBestDriver, List<SearchBestDriverResponse>>
+  IHikyaku mediator) : IRequestHandler<SearchBestDriver, List<SearchBestDriverResponse>>
 {
   public async Task<List<SearchBestDriverResponse>> Handle(SearchBestDriver request, CancellationToken cancellationToken)
   {

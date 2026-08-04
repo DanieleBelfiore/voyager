@@ -4,7 +4,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using Arbitrer;
+using Hikyaku.Kaido;
 using Common.Core;
 using Common.Core.Exceptions;
 using Identity.Handlers.Models;
@@ -190,18 +190,18 @@ builder.Services.AddSwaggerGen(options =>
 
 builder.Services.AddSwaggerGenNewtonsoftSupport();
 
-builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
+builder.Services.AddHikyaku(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
 var assemblies = Loader.Current.Modules.Select(f => f.GetType().Assembly).ToList();
 assemblies.Add(Assembly.GetExecutingAssembly());
 
-builder.Services.AddArbitrer(options =>
+builder.Services.AddKaido(options =>
 {
-  options.Behaviour = ArbitrerBehaviourEnum.ImplicitRemote;
+  options.Behaviour = HikyakuBehaviourEnum.ImplicitRemote;
   options.InferLocalRequests(assemblies);
   options.InferLocalNotifications(assemblies);
 });
 
-builder.Services.AddArbitrerRabbitMQMessageDispatcher(o =>
+builder.Services.AddHikyakuRabbitMQMessageDispatcher(o =>
 {
   configuration.GetSection("RabbitMQ").Bind(o);
   o.AutoDelete = false;

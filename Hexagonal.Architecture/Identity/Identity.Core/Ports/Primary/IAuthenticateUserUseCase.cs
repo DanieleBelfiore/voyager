@@ -1,5 +1,5 @@
 using Identity.Core.Dtos;
-using MediatR;
+using Hikyaku;
 
 namespace Identity.Core.Ports.Primary;
 

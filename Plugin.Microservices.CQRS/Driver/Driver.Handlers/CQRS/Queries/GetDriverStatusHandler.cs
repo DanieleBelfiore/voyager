@@ -7,7 +7,7 @@ using Common.Core.Exceptions;
 using Driver.Core.CQRS.Queries;
 using Driver.Core.Dtos;
 using Driver.Handlers.Interfaces;
-using MediatR;
+using Hikyaku;
 using Microsoft.EntityFrameworkCore;
 
 namespace Driver.Handlers.CQRS.Queries;

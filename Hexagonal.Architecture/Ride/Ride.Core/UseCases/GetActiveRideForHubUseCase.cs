@@ -1,6 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
-using MediatR;
+using Hikyaku;
 using Ride.Core.Ports.Secondary;
 using ActiveRideInfo = Voyager.Contracts.Ride.ActiveRideInfo;
 using SharedGetActiveRide = Voyager.Contracts.Ride.GetActiveRide;
@@ -9,9 +9,9 @@ namespace Ride.Core.UseCases;
 
 /// <summary>
 /// Handles the shared Voyager.Contracts.Ride.GetActiveRide contract directly — reachable only
-/// via Arbitrer's remote dispatch (Hub), not injected by any local primary adapter, so it has
+/// via Kaido's remote dispatch (Hub), not injected by any local primary adapter, so it has
 /// no dedicated primary port interface — it implements IRequestHandler&lt;T&gt; itself, which
-/// is all MediatR's assembly scan needs to find it.
+/// is all Hikyaku's assembly scan needs to find it.
 /// </summary>
 public class GetActiveRideForHubUseCase(IRideRepository repository) : IRequestHandler<SharedGetActiveRide, ActiveRideInfo>
 {

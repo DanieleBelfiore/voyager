@@ -27,7 +27,7 @@ public static class IdentityAdaptersExtensions
 
     services.AddScoped<IUserRepository, UserRepository>();
     services.AddSingleton<IPasswordHasher, PasswordHasherAdapter>();
-    services.AddScoped<IDriverRegistration, ArbitrerDriverRegistration>();
+    services.AddScoped<IDriverRegistration, RemoteDriverRegistration>();
 
     return services;
   }

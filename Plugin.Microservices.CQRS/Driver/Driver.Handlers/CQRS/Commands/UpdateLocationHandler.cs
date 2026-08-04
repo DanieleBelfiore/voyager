@@ -6,7 +6,7 @@ using Common.Core.Exceptions;
 using Common.Core.Validation;
 using Driver.Core.CQRS.Commands;
 using Driver.Handlers.Interfaces;
-using MediatR;
+using Hikyaku;
 using Microsoft.EntityFrameworkCore;
 using NetTopologySuite.IO;
 

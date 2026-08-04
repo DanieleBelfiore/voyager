@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Driver.Core.Dtos;
-using MediatR;
+using Hikyaku;
 using NetTopologySuite.Geometries;
 
 namespace Driver.Core.Ports.Primary;

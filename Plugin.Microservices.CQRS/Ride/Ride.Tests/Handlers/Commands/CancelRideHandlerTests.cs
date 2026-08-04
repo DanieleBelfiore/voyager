@@ -1,7 +1,7 @@
 using Common.Core.Exceptions;
 using Driver.Core.CQRS.Commands;
 using Driver.Core.Enums;
-using MediatR;
+using Hikyaku;
 using NSubstitute;
 using Ride.Core.CQRS.Commands;
 using Ride.Core.CQRS.Events;
@@ -13,14 +13,14 @@ namespace Ride.Tests.Handlers.Commands;
 
 public class CancelRideHandlerTests
 {
-  private readonly IMediator _mediator;
+  private readonly IHikyaku _mediator;
   private readonly TestApplicationDbContext _context;
 
   public CancelRideHandlerTests()
   {
     _context = TestBase.CreateTestDbContext();
 
-    var mediatorMock = Substitute.For<IMediator>();
+    var mediatorMock = Substitute.For<IHikyaku>();
     _mediator = mediatorMock;
 
     mediatorMock.Send(Arg.Any<CancelRide>(), Arg.Any<CancellationToken>())

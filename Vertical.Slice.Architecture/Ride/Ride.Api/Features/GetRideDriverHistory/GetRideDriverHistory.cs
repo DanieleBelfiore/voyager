@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using MediatR;
+using Hikyaku;
 using Ride.Api.Shared;
 
 namespace Ride.Api.Features.GetRideDriverHistory;

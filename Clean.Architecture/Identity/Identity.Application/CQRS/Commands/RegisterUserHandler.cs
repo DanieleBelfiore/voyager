@@ -4,7 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Identity.Application.Ports;
 using Identity.Domain.Entities;
-using MediatR;
+using Hikyaku;
 using Voyager.Errors;
 
 namespace Identity.Application.CQRS.Commands;

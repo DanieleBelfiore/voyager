@@ -4,16 +4,16 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
-    <Description>Single project, no horizontal layers: no entities (Hub owns no persistent state), Shared/ (the concrete VoyagerHub SignalR hub + client contract, used by both feature folders), and one Features/ folder per use case. Handlers depend on IMediator and IHubContext directly — no port for cross-service queries or the SignalR relay.</Description>
+    <Description>Single project, no horizontal layers: no entities (Hub owns no persistent state), Shared/ (the concrete VoyagerHub SignalR hub + client contract, used by both feature folders), and one Features/ folder per use case. Handlers depend on IHikyaku and IHubContext directly — no port for cross-service queries or the SignalR relay.</Description>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\Commons\Voyager.Shared\Voyager.Shared.csproj" />
     <ProjectReference Include="..\..\..\Commons\Voyager.Contracts\Voyager.Contracts.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Arbitrer" Version="12.5.0" />
-    <PackageReference Include="Arbitrer.RabbitMQ" Version="12.5.0" />
-    <PackageReference Include="MediatR" Version="12.5.0" />
+    <PackageReference Include="Hikyaku.Kaido" Version="10.0.1" />
+    <PackageReference Include="Hikyaku.Kaido.RabbitMQ" Version="10.0.1" />
+    <PackageReference Include="Hikyaku" Version="10.0.1" />
     <PackageReference Include="FluentValidation" Version="12.1.1" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="10.0.10" />

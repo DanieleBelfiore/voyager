@@ -1,6 +1,6 @@
 using Hub.Api.Features.UpdateDriverLocation;
 using Hub.Api.Shared;
-using MediatR;
+using Hikyaku;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Configuration;
 using NetTopologySuite.Geometries;
@@ -17,9 +17,9 @@ public class UpdateDriverLocationHandlerTests
     .AddInMemoryCollection(new Dictionary<string, string?> { ["Hub:ArrivalThresholdMeters"] = "500" })
     .Build();
 
-  private static (IMediator Mediator, IHubContext<VoyagerHub, IVoyagerShareClient> Hub, IVoyagerShareClient GroupClient) NewMocks()
+  private static (IHikyaku Mediator, IHubContext<VoyagerHub, IVoyagerShareClient> Hub, IVoyagerShareClient GroupClient) NewMocks()
   {
-    var mediator = Substitute.For<IMediator>();
+    var mediator = Substitute.For<IHikyaku>();
     var hub = Substitute.For<IHubContext<VoyagerHub, IVoyagerShareClient>>();
     var clients = Substitute.For<IHubClients<IVoyagerShareClient>>();
     var groupClient = Substitute.For<IVoyagerShareClient>();

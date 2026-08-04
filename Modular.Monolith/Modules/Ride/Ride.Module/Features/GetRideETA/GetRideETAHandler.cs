@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using MediatR;
+using Hikyaku;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Ride.Module.Persistence;
@@ -11,7 +11,7 @@ using Voyager.Contracts.Driver;
 
 namespace Ride.Module.Features.GetRideETA;
 
-internal class GetRideETAHandler(RideDbContext db, IMediator mediator, IOptions<EtaConfig> config) : IRequestHandler<GetRideETA, ETAResponse>
+internal class GetRideETAHandler(RideDbContext db, IHikyaku mediator, IOptions<EtaConfig> config) : IRequestHandler<GetRideETA, ETAResponse>
 {
   public async Task<ETAResponse> Handle(GetRideETA request, CancellationToken cancellationToken)
   {

@@ -1,5 +1,5 @@
 using System;
-using MediatR;
+using Hikyaku;
 
 namespace Voyager.Contracts.Ride;
 
@@ -8,7 +8,7 @@ namespace Voyager.Contracts.Ride;
 /// own connected clients. Every variant — including Plugin.Microservices.CQRS, whose original
 /// handlers used to call IHubContext&lt;VoyagerHub, IVoyagerShareClient&gt; directly in-process
 /// and never reached a real client, since Ride and Hub are separate services — publishes these
-/// as MediatR notifications; Arbitrer fans them out over RabbitMQ to whichever service owns the
+/// as Hikyaku notifications; Kaido fans them out over RabbitMQ to whichever service owns the
 /// connected SignalR clients (Hub), where they're relayed for real.
 /// </summary>
 public class NewRideRequested : INotification

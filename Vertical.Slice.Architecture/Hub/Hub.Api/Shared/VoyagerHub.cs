@@ -1,7 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using MediatR;
+using Hikyaku;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using NetTopologySuite.Geometries;
@@ -11,14 +11,14 @@ using UpdateDriverLocationCommand = Hub.Api.Features.UpdateDriverLocation.Update
 namespace Hub.Api.Shared;
 
 /// <summary>
-/// Primary adapter over SignalR. Sends through IMediator, same as every controller in this
+/// Primary adapter over SignalR. Sends through IHikyaku, same as every controller in this
 /// variant — no direct handler injection. Also the target of IHubContext&lt;VoyagerHub,
 /// IVoyagerShareClient&gt; used by RideEvents' notification handlers, which is why it lives in
 /// Shared rather than inside Features/UpdateDriverLocation: it's shared infrastructure, not
 /// exclusive to one feature.
 /// </summary>
 [Authorize]
-public class VoyagerHub(IMediator mediator) : Hub<IVoyagerShareClient>
+public class VoyagerHub(IHikyaku mediator) : Hub<IVoyagerShareClient>
 {
   /// <summary>Joins the caller's personal group so cross-service events targeting them by user
   /// id (e.g. NewRideRequested, before anyone can join ride_{RideId}) reach this connection.</summary>

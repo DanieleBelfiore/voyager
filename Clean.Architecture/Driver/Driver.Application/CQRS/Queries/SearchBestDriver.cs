@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Driver.Application.Dtos;
-using MediatR;
+using Hikyaku;
 using NetTopologySuite.Geometries;
 
 namespace Driver.Application.CQRS.Queries;

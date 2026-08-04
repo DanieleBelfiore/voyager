@@ -21,13 +21,13 @@ Ports: Hub 5300, Identity 5301, Driver 5302, Ride 5303 (offset from all three ot
 
 ## The shape — don't collapse it back into Clean or Hexagonal
 
-`{Service}.Api/Features/{UseCase}/` holds everything for that use case: the MediatR request, its handler, its validator (if any), and its controller. When adding a new use case:
+`{Service}.Api/Features/{UseCase}/` holds everything for that use case: the Hikyaku request, its handler, its validator (if any), and its controller. When adding a new use case:
 
 1. Create `{Service}.Api/Features/{UseCase}/`.
 2. Define the request type — `{UseCase} : IRequest` or `IRequest<TResponse>` — in that folder. If it's a cross-service contract that's also called remotely, implement `Voyager.Contracts.{Namespace}.{Type}` directly instead of defining a new local type (the unification pattern — see Clean.Architecture's CLAUDE.md for the full rationale).
-3. Implement `{UseCase}Handler : IRequestHandler<...>` in the same folder. It takes `{Service}DbContext`, `Voyager.Shared.Cache.ICacheService`, and/or `IMediator` directly as constructor dependencies — **never introduce a repository, port, or adapter interface**. If you catch yourself writing `I{Something}Repository` or `I{Something}Service` as an abstraction over EF Core/cache/cross-service calls, stop — that's Clean or Hexagonal's pattern, not this one.
-4. If the request needs format validation, add `{UseCase}Validator : AbstractValidator<{UseCase}>` in the same folder. It's picked up automatically — `Program.cs` registers `ValidationBehavior<,>` (from `Voyager.Shared.Validation`) as a MediatR pipeline behavior and calls `AddValidatorsFromAssembly` once per service.
-5. If it needs an HTTP endpoint, add `{UseCase}Controller` in the same folder — inject `IMediator`, call `.Send(...)`. One controller per feature, not one controller per resource. Remote-only use cases (driven exclusively by another service via Arbitrer) get no controller at all — see `Ride.Api/Features/GetActiveRideForHub` for the pattern.
+3. Implement `{UseCase}Handler : IRequestHandler<...>` in the same folder. It takes `{Service}DbContext`, `Voyager.Shared.Cache.ICacheService`, and/or `IHikyaku` directly as constructor dependencies — **never introduce a repository, port, or adapter interface**. If you catch yourself writing `I{Something}Repository` or `I{Something}Service` as an abstraction over EF Core/cache/cross-service calls, stop — that's Clean or Hexagonal's pattern, not this one.
+4. If the request needs format validation, add `{UseCase}Validator : AbstractValidator<{UseCase}>` in the same folder. It's picked up automatically — `Program.cs` registers `ValidationBehavior<,>` (from `Voyager.Shared.Validation`) as a Hikyaku pipeline behavior and calls `AddValidatorsFromAssembly` once per service.
+5. If it needs an HTTP endpoint, add `{UseCase}Controller` in the same folder — inject `IHikyaku`, call `.Send(...)`. One controller per feature, not one controller per resource. Remote-only use cases (driven exclusively by another service via Kaido) get no controller at all — see `Ride.Api/Features/GetActiveRideForHub` for the pattern.
 6. Only add something to `Shared/` if a second feature genuinely needs it (a response DTO, a pure calculation, or — for Hub — the concrete SignalR hub type). Default to duplicating a small DTO across two feature folders rather than creating a cross-feature dependency.
 
 ## Namespace collision gotcha
@@ -36,11 +36,11 @@ Every service's root namespace segment matches its aggregate's name (`Driver.Api
 
 ## Cross-service calls
 
-Same `Voyager.Contracts` + Arbitrer mechanism as every other variant — see [Commons/README.md](../Commons/README.md) and [Clean.Architecture/CLAUDE.md](../Clean.Architecture/CLAUDE.md)'s "unification rule". The difference here is purely about what sits between the handler and `IMediator.Send`/`.Publish`: nothing. No `ArbitrerXxxService` adapter class — the handler calls `mediator.Send(...)` itself.
+Same `Voyager.Contracts` + Kaido mechanism as every other variant — see [Commons/README.md](../Commons/README.md) and [Clean.Architecture/CLAUDE.md](../Clean.Architecture/CLAUDE.md)'s "unification rule". The difference here is purely about what sits between the handler and `IHikyaku.Send`/`.Publish`: nothing. No `RemoteXxxService` adapter class — the handler calls `mediator.Send(...)` itself.
 
 ## Testing
 
-No repository to mock — tests construct `{Service}DbContext` against `UseInMemoryDatabase(Guid.NewGuid().ToString())`, seed it directly, and call `handler.Handle(...)`. Mock `IMediator`/`IHubContext<VoyagerHub, IVoyagerShareClient>` with NSubstitute only where a handler actually depends on them (cross-service calls, event publishing, SignalR push).
+No repository to mock — tests construct `{Service}DbContext` against `UseInMemoryDatabase(Guid.NewGuid().ToString())`, seed it directly, and call `handler.Handle(...)`. Mock `IHikyaku`/`IHubContext<VoyagerHub, IVoyagerShareClient>` with NSubstitute only where a handler actually depends on them (cross-service calls, event publishing, SignalR push).
 
 **Exception — relational-only features need a relational provider.** `ExecuteUpdate`/`ExecuteDelete`, raw SQL, and anything else with no in-memory implementation throw `InvalidOperationException` ("not supported by the current database provider") under `UseInMemoryDatabase`. Those tests open a `SqliteConnection("DataSource=:memory:")`, keep it open for the fixture's lifetime, and call `Database.EnsureCreated()` — see `Identity.Tests/Features/UpdateUserRatingHandlerTests.cs`, where the handler folds a rating into a running average with one atomic `ExecuteUpdateAsync` so concurrent ratings can't lose each other.
 

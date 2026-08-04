@@ -2,7 +2,7 @@ using System;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
-using MediatR;
+using Hikyaku;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -12,7 +12,7 @@ using OpenIddict.Server.AspNetCore;
 
 namespace Identity.Api.Features.AuthenticateUser;
 
-public class AuthenticateUserController(IMediator mediator) : Controller
+public class AuthenticateUserController(IHikyaku mediator) : Controller
 {
   [EnableRateLimiting("identity_token")]
   [HttpPost("~/connect/token")]

@@ -1,5 +1,5 @@
 using System;
-using MediatR;
+using Hikyaku;
 
 namespace Ride.Module.Features.AcceptRide;
 

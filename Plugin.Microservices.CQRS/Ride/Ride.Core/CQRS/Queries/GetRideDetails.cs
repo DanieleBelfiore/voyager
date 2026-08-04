@@ -1,5 +1,5 @@
 using System;
-using MediatR;
+using Hikyaku;
 using Ride.Core.Dtos;
 
 namespace Ride.Core.CQRS.Queries

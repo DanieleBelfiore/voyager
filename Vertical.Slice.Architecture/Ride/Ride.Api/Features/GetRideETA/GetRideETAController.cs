@@ -1,7 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using MediatR;
+using Hikyaku;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -12,7 +12,7 @@ namespace Ride.Api.Features.GetRideETA;
 [Authorize]
 [EnableRateLimiting("ride_api")]
 [Route("api/v1/rides")]
-public class GetRideETAController(IMediator mediator) : ControllerBase
+public class GetRideETAController(IHikyaku mediator) : ControllerBase
 {
   [HttpGet("{rideId:guid}/eta")]
   public async Task<ActionResult<ETAResponse>> Get(Guid rideId, CancellationToken cancellationToken)

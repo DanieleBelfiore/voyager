@@ -19,7 +19,7 @@
     <Deterministic>true</Deterministic>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="MediatR" Version="12.5.0" />
+    <PackageReference Include="Hikyaku" Version="10.0.1" />
     <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="10.0.10" />
     <PackageReference Include="System.Composition" Version="10.0.10" />
   </ItemGroup>

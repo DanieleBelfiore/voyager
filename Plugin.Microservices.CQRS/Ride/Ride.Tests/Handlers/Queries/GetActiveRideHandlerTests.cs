@@ -1,4 +1,4 @@
-using MediatR;
+using Hikyaku;
 using Microsoft.EntityFrameworkCore;
 using NSubstitute;
 using Ride.Core.CQRS.Queries;
@@ -11,14 +11,14 @@ namespace Ride.Tests.Handlers.Queries;
 
 public class GetActiveRideHandlerTests
 {
-  private readonly IMediator _mediator;
+  private readonly IHikyaku _mediator;
   private readonly TestApplicationDbContext _context;
 
   public GetActiveRideHandlerTests()
   {
     _context = TestBase.CreateTestDbContext();
 
-    var mediatorMock = Substitute.For<IMediator>();
+    var mediatorMock = Substitute.For<IHikyaku>();
 
     _mediator = mediatorMock;
 

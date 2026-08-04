@@ -2,7 +2,7 @@ using System.Security.Claims;
 using Driver.Api.Controllers;
 using Driver.Application.CQRS.Queries;
 using Driver.Application.Dtos;
-using MediatR;
+using Hikyaku;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using NetTopologySuite.Geometries;
@@ -18,7 +18,7 @@ namespace Driver.Tests.Controllers;
 /// </summary>
 public class DriversControllerTests
 {
-  private readonly IMediator _mediator = Substitute.For<IMediator>();
+  private readonly IHikyaku _mediator = Substitute.For<IHikyaku>();
 
   private DriversController NewController() => new(_mediator)
   {

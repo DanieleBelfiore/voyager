@@ -1,4 +1,4 @@
-using MediatR;
+using Hikyaku;
 
 namespace Identity.Module.Features.AuthenticateUser;
 

@@ -11,7 +11,7 @@
     <ProjectReference Include="..\..\..\Commons\Voyager.Contracts\Voyager.Contracts.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="MediatR" Version="12.5.0" />
+    <PackageReference Include="Hikyaku" Version="10.0.1" />
     <PackageReference Include="NetTopologySuite" Version="2.6.0" />
   </ItemGroup>
 </Project>

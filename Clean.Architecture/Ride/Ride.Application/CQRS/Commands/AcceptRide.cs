@@ -1,5 +1,5 @@
 using System;
-using MediatR;
+using Hikyaku;
 
 namespace Ride.Application.CQRS.Commands;
 

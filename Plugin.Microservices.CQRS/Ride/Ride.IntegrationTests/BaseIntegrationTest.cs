@@ -1,7 +1,7 @@
 using System.Net.Http.Headers;
 using Identity.Handlers.Interfaces;
 using Identity.Handlers.Models;
-using MediatR;
+using Hikyaku;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Ride.Handlers.Models;
@@ -34,7 +34,7 @@ public abstract class BaseIntegrationTest : IClassFixture<IntegrationTestWebAppF
 
   private void InitializeServices(IServiceProvider services)
   {
-    services.GetRequiredService<IMediator>();
+    services.GetRequiredService<IHikyaku>();
     Context = services.GetRequiredService<RideContext>();
     UserManager = services.GetRequiredService<IUserManager>();
     Client = _factory.CreateClient();

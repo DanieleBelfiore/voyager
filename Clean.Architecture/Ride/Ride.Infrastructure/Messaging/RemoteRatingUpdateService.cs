@@ -2,12 +2,12 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Ride.Application.Ports;
-using MediatR;
+using Hikyaku;
 using Voyager.Contracts.Identity;
 
 namespace Ride.Infrastructure.Messaging;
 
-public class ArbitrerRatingUpdateService(IMediator mediator) : IRatingUpdateService
+public class RemoteRatingUpdateService(IHikyaku mediator) : IRatingUpdateService
 {
   public async Task<double> UpdateRatingAsync(Guid userId, int rating, CancellationToken cancellationToken)
   {

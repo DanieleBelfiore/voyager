@@ -1,7 +1,7 @@
 using Identity.Core.CQRS.Queries;
 using Identity.Handlers.CQRS.Queries;
 using Identity.Handlers.Models;
-using MediatR;
+using Hikyaku;
 using NSubstitute;
 using Xunit;
 
@@ -18,7 +18,7 @@ public class GetUsersRatingsHandlerTests
     context.Users.Add(new VoyagerUser { Id = userId, Ratings = 4.5, RatingsCount = 2 });
     await context.SaveChangesAsync();
 
-    var mediatorMock = Substitute.For<IMediator>();
+    var mediatorMock = Substitute.For<IHikyaku>();
     mediatorMock.Send(Arg.Any<GetUsersRatings>(), Arg.Any<CancellationToken>())
       .Returns(c => new GetUsersRatingsHandler(context)
         .Handle(c.Arg<GetUsersRatings>(), c.Arg<CancellationToken>()));

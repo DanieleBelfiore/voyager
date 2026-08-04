@@ -2,7 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Driver.Core.CQRS.Commands;
 using Hub.Core.Interfaces;
-using MediatR;
+using Hikyaku;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Configuration;
@@ -23,7 +23,7 @@ namespace Hub.API;
 /// - Direct communication between riders and drivers
 /// </summary>
 [Authorize]
-public class VoyagerHub(IMediator mediator, IConfiguration configuration) : Hub<IVoyagerShareClient>
+public class VoyagerHub(IHikyaku mediator, IConfiguration configuration) : Hub<IVoyagerShareClient>
 {
   /// <summary>
   /// Joins the caller's personal group so cross-service events targeting them by user id

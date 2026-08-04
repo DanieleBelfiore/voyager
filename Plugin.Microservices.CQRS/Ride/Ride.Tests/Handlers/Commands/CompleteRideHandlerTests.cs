@@ -1,5 +1,5 @@
 using Common.Core.Exceptions;
-using MediatR;
+using Hikyaku;
 using Microsoft.Extensions.Configuration;
 using NetTopologySuite.Geometries;
 using NSubstitute;
@@ -14,7 +14,7 @@ namespace Ride.Tests.Handlers.Commands;
 
 public class CompleteRideHandlerTests
 {
-  private readonly IMediator _mediator;
+  private readonly IHikyaku _mediator;
   private readonly TestApplicationDbContext _context;
   private readonly IConfiguration _configuration;
 
@@ -28,7 +28,7 @@ public class CompleteRideHandlerTests
       ["PerMinuteRate"] = "0.25"
     }).Build();
 
-    var mediatorMock = Substitute.For<IMediator>();
+    var mediatorMock = Substitute.For<IHikyaku>();
     _mediator = mediatorMock;
 
     mediatorMock.Send(Arg.Any<CompleteRide>(), Arg.Any<CancellationToken>())

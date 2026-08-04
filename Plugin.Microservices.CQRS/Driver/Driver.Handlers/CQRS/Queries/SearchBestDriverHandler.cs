@@ -10,7 +10,7 @@ using Driver.Core.Dtos;
 using Driver.Core.Enums;
 using Driver.Handlers.Interfaces;
 using Identity.Core.CQRS.Queries;
-using MediatR;
+using Hikyaku;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using NetTopologySuite.Geometries;
@@ -28,7 +28,7 @@ namespace Driver.Handlers.CQRS.Queries;
 /// - Distance weight: Higher priority for closer drivers
 /// - Rating weight: Factors in driver quality
 /// </summary>
-public class SearchBestDriverHandler(IDriverContext db, IMediator mediator, IConfiguration configuration) : IRequestHandler<SearchBestDriver, List<SearchBestDriverResponse>>
+public class SearchBestDriverHandler(IDriverContext db, IHikyaku mediator, IConfiguration configuration) : IRequestHandler<SearchBestDriver, List<SearchBestDriverResponse>>
 {
   public async Task<List<SearchBestDriverResponse>> Handle(SearchBestDriver request, CancellationToken cancellationToken)
   {

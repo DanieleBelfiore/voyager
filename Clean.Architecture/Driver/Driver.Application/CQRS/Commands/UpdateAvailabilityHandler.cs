@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Driver.Application.Ports;
-using MediatR;
+using Hikyaku;
 
 namespace Driver.Application.CQRS.Commands;
 

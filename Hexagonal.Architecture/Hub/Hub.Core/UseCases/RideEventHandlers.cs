@@ -1,14 +1,14 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Hub.Core.Ports.Secondary;
-using MediatR;
+using Hikyaku;
 using Voyager.Contracts.Ride;
 
 namespace Hub.Core.UseCases;
 
 /// <summary>
 /// Consumes ride lifecycle events Ride publishes (Voyager.Contracts/Ride/RideEvents.cs) and
-/// relays them to connected SignalR clients. No primary port — reachable only via Arbitrer's
+/// relays them to connected SignalR clients. No primary port — reachable only via Kaido's
 /// remote notification fan-out, same rationale as Ride's *ForHub use cases.
 /// </summary>
 public class NewRideRequestedHandler(IHubRelay relay) : INotificationHandler<NewRideRequested>

@@ -2,13 +2,13 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Ride.Core.Ports.Secondary;
-using MediatR;
+using Hikyaku;
 using NetTopologySuite.Geometries;
 using Voyager.Contracts.Driver;
 
 namespace Ride.Adapters.Secondary.Messaging;
 
-public class ArbitrerDriverLocationQuery(IMediator mediator) : IDriverLocationQuery
+public class RemoteDriverLocationQuery(IHikyaku mediator) : IDriverLocationQuery
 {
   public async Task<Point> GetLocationAsync(Guid driverId, CancellationToken cancellationToken)
   {

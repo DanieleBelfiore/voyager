@@ -1,6 +1,6 @@
 using System;
 using Driver.Core.Dtos;
-using MediatR;
+using Hikyaku;
 
 namespace Driver.Core.CQRS.Queries
 {

@@ -5,7 +5,7 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
-    <Description>Driver bounded context — entities and enums. No EF Core, no MediatR, no ASP.NET Core: the dependency rule starts here.</Description>
+    <Description>Driver bounded context — entities and enums. No EF Core, no Hikyaku, no ASP.NET Core: the dependency rule starts here.</Description>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="NetTopologySuite" Version="2.6.0" />

@@ -102,8 +102,8 @@ builder.Services.AddSwaggerGen(g =>
 
 builder.Services.AddSwaggerGenNewtonsoftSupport();
 
-// One shared mediator across all four modules — this is what replaces Arbitrer. A handler in
-// one module's assembly calling IMediator.Send/Publish is resolved directly against a handler
+// One shared mediator across all four modules — this is what replaces Kaido. A handler in
+// one module's assembly calling IHikyaku.Send/Publish is resolved directly against a handler
 // registered from a different module's assembly, in the same DI container, no message bus.
 var moduleAssemblies = new[]
 {
@@ -113,7 +113,7 @@ var moduleAssemblies = new[]
   typeof(HubModuleExtensions).Assembly
 };
 
-builder.Services.AddMediatR(cfg =>
+builder.Services.AddHikyaku(cfg =>
 {
   cfg.RegisterServicesFromAssemblies(moduleAssemblies);
   cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));

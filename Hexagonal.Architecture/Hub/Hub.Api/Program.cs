@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text.Json.Nodes;
-using Arbitrer;
+using Hikyaku.Kaido;
 using Hub.Adapters.Secondary.DependencyInjection;
 using Hub.Api;
 using Hub.Api.Middlewares;
@@ -149,16 +149,16 @@ builder.Services.AddSwaggerGenNewtonsoftSupport();
 
 var coreAssembly = typeof(UpdateDriverLocationUseCase).Assembly;
 
-builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(coreAssembly));
+builder.Services.AddHikyaku(cfg => cfg.RegisterServicesFromAssembly(coreAssembly));
 
-builder.Services.AddArbitrer(options =>
+builder.Services.AddKaido(options =>
 {
-  options.Behaviour = ArbitrerBehaviourEnum.ImplicitRemote;
+  options.Behaviour = HikyakuBehaviourEnum.ImplicitRemote;
   options.InferLocalRequests([coreAssembly]);
   options.InferLocalNotifications([coreAssembly]);
 });
 
-builder.Services.AddArbitrerRabbitMQMessageDispatcher(o =>
+builder.Services.AddHikyakuRabbitMQMessageDispatcher(o =>
 {
   configuration.GetSection("RabbitMQ").Bind(o);
   o.AutoDelete = false;

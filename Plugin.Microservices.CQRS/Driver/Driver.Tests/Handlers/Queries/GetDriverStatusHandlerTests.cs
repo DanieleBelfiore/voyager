@@ -4,7 +4,7 @@ using Driver.Core.Dtos;
 using Driver.Core.Enums;
 using Driver.Handlers;
 using Driver.Handlers.CQRS.Queries;
-using MediatR;
+using Hikyaku;
 using NSubstitute;
 using Xunit;
 
@@ -12,7 +12,7 @@ namespace Driver.Tests.Handlers.Queries;
 
 public class GetDriverStatusHandlerTests
 {
-  private readonly IMediator _mediator;
+  private readonly IHikyaku _mediator;
   private readonly TestApplicationDbContext _context;
   private readonly ICacheService _cache;
 
@@ -22,7 +22,7 @@ public class GetDriverStatusHandlerTests
     _context = context;
     _cache = cache;
 
-    var mediatorMock = Substitute.For<IMediator>();
+    var mediatorMock = Substitute.For<IHikyaku>();
 
     _mediator = mediatorMock;
 

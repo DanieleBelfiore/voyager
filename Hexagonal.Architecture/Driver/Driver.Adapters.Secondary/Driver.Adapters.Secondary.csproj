@@ -5,7 +5,7 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
-    <Description>Secondary adapters: implements every port under Driver.Core/Ports/Secondary — EF Core repository, Redis cache, Arbitrer-based ratings query, config-bound matching weights.</Description>
+    <Description>Secondary adapters: implements every port under Driver.Core/Ports/Secondary — EF Core repository, Redis cache, Kaido-based ratings query, config-bound matching weights.</Description>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Driver.Core\Driver.Core.csproj" />
@@ -13,7 +13,7 @@
     <ProjectReference Include="..\..\..\Commons\Voyager.Contracts\Voyager.Contracts.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="MediatR" Version="12.5.0" />
+    <PackageReference Include="Hikyaku" Version="10.0.1" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.10" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.10">
       <PrivateAssets>all</PrivateAssets>

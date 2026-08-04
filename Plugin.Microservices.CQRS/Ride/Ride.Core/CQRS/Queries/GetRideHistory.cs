@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using MediatR;
+using Hikyaku;
 using Ride.Core.Dtos;
 
 namespace Ride.Core.CQRS.Queries

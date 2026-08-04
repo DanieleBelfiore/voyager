@@ -3,7 +3,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using Identity.Application.CQRS.Commands;
 using Identity.Application.CQRS.Queries;
-using MediatR;
+using Hikyaku;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -21,7 +21,7 @@ namespace Identity.Api.Controllers;
 /// HTTP/OAuth2 protocol concerns and Application requests, unlike the Plugin.Microservices.CQRS
 /// variant where validation and persistence happen inline in the controller.
 /// </summary>
-public class AuthController(IMediator mediator, ILogger<AuthController> logger) : Controller
+public class AuthController(IHikyaku mediator, ILogger<AuthController> logger) : Controller
 {
   [EnableRateLimiting("identity_register")]
   [HttpPost("~/connect/register")]

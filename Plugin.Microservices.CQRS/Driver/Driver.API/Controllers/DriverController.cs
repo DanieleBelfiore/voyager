@@ -5,7 +5,7 @@ using Common.Core.Extensions;
 using Driver.Core.CQRS.Commands;
 using Driver.Core.CQRS.Queries;
 using Driver.Core.Dtos;
-using MediatR;
+using Hikyaku;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -18,7 +18,7 @@ namespace Driver.API.Controllers;
 [Authorize]
 [EnableRateLimiting("driver_api")]
 [Route("api/v1/drivers")]
-public class DriverController(IMediator mediator) : ControllerBase
+public class DriverController(IHikyaku mediator) : ControllerBase
 {
   // Clamped the same way RideController clamps `take`: DistanceThresholdInKm is caller-supplied
   // and drives a spatial scan, so an absurd radius is capped rather than trusted. MaxCandidates
@@ -94,5 +94,5 @@ public class DriverController(IMediator mediator) : ControllerBase
   // Commons/README.md rules out: an endpoint whose data another service owns. Removed — the
   // Ride service is where ride reads belong, and every other variant in the portfolio already
   // does not expose them from Driver. GetRideDriverHistory keeps its handler in Ride.Handlers,
-  // reachable over Arbitrer, same as in Clean/Hexagonal/Vertical.Slice/Modular.Monolith.
+  // reachable over Kaido, same as in Clean/Hexagonal/Vertical.Slice/Modular.Monolith.
 }

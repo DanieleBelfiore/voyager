@@ -1,5 +1,5 @@
 using Common.Core.Exceptions;
-using MediatR;
+using Hikyaku;
 using NetTopologySuite.Geometries;
 using NSubstitute;
 using Ride.Core.CQRS.Commands;
@@ -11,14 +11,14 @@ namespace Ride.Tests.Handlers.Commands;
 
 public class StartRideHandlerTests
 {
-  private readonly IMediator _mediator;
+  private readonly IHikyaku _mediator;
   private readonly TestApplicationDbContext _context;
 
   public StartRideHandlerTests()
   {
     _context = TestBase.CreateTestDbContext();
 
-    var mediatorMock = Substitute.For<IMediator>();
+    var mediatorMock = Substitute.For<IHikyaku>();
 
     _mediator = mediatorMock;
 

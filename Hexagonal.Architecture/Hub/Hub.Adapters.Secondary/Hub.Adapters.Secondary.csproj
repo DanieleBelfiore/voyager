@@ -5,14 +5,14 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
-    <Description>Implements Hub.Core's cross-service ports via Arbitrer. The SignalR relay implementation lives in Hub.Api instead — see Hub.Api's Program.cs and README.md.</Description>
+    <Description>Implements Hub.Core's cross-service ports via Kaido. The SignalR relay implementation lives in Hub.Api instead — see Hub.Api's Program.cs and README.md.</Description>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Hub.Core\Hub.Core.csproj" />
     <ProjectReference Include="..\..\..\Commons\Voyager.Contracts\Voyager.Contracts.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="MediatR" Version="12.5.0" />
+    <PackageReference Include="Hikyaku" Version="10.0.1" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.10" />
   </ItemGroup>
 </Project>

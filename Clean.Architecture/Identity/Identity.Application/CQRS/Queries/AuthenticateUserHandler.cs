@@ -2,7 +2,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Identity.Application.Dtos;
 using Identity.Application.Ports;
-using MediatR;
+using Hikyaku;
 
 namespace Identity.Application.CQRS.Queries;
 

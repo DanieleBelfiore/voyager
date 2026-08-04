@@ -2,7 +2,7 @@ using Common.Core.Exceptions;
 using Driver.Core.CQRS.Queries;
 using Driver.Core.Dtos;
 using Driver.Core.Enums;
-using MediatR;
+using Hikyaku;
 using NetTopologySuite.Geometries;
 using NSubstitute;
 using Ride.Core.CQRS.Commands;
@@ -18,14 +18,14 @@ public class RequestRideHandlerTests
 {
   private static readonly Point Pickup = new(0, 0);
   private static readonly Point Dropoff = new(1, 1);
-  private readonly IMediator _mediator;
+  private readonly IHikyaku _mediator;
   private readonly TestApplicationDbContext _context;
 
   public RequestRideHandlerTests()
   {
     _context = TestBase.CreateTestDbContext();
 
-    var mediatorMock = Substitute.For<IMediator>();
+    var mediatorMock = Substitute.For<IHikyaku>();
     _mediator = mediatorMock;
 
     // The handler now checks the driver exists and is free before creating the ride; default to
@@ -74,7 +74,7 @@ public class RequestRideHandlerTests
   {
     // Arrange: DriverId is caller-supplied. A driver already committed to someone else's trip
     // must not have another ride pinned onto them.
-    var mediatorMock = Substitute.For<IMediator>();
+    var mediatorMock = Substitute.For<IHikyaku>();
     mediatorMock.Send(Arg.Any<GetDriverStatus>(), Arg.Any<CancellationToken>())
       .Returns(new DriverStatusResponse { Id = Guid.NewGuid(), Status = DriverStatus.OnRide });
 

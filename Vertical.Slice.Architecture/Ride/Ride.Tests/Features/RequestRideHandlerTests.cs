@@ -1,4 +1,4 @@
-using MediatR;
+using Hikyaku;
 using Microsoft.EntityFrameworkCore;
 using NetTopologySuite.Geometries;
 using NSubstitute;
@@ -31,7 +31,7 @@ public class RequestRideHandlerTests
   {
     // Arrange
     await using var db = NewContext();
-    var mediator = Substitute.For<IMediator>();
+    var mediator = Substitute.For<IHikyaku>();
     // The handler now checks the driver exists and is free before creating the ride; default
     // to an available driver so the pre-existing cases keep asserting what they were for.
     mediator.Send(Arg.Any<GetDriverAvailability>(), Arg.Any<CancellationToken>())
@@ -59,7 +59,7 @@ public class RequestRideHandlerTests
     var userId = Guid.NewGuid();
     db.Rides.Add(new Ride.Api.Entities.Ride(userId, Guid.NewGuid(), Pickup, Dropoff));
     await db.SaveChangesAsync();
-    var mediator = Substitute.For<IMediator>();
+    var mediator = Substitute.For<IHikyaku>();
     mediator.Send(Arg.Any<GetDriverAvailability>(), Arg.Any<CancellationToken>())
       .Returns(new DriverAvailabilityInfo { Exists = true, IsAvailable = true });
     var handler = new RequestRideHandler(db, mediator);
@@ -74,7 +74,7 @@ public class RequestRideHandlerTests
   {
     // Arrange: DriverId is caller-supplied, so an arbitrary GUID must not become a ride.
     await using var db = NewContext();
-    var mediator = Substitute.For<IMediator>();
+    var mediator = Substitute.For<IHikyaku>();
     mediator.Send(Arg.Any<GetDriverAvailability>(), Arg.Any<CancellationToken>())
       .Returns(new DriverAvailabilityInfo { Exists = false, IsAvailable = false });
     var handler = new RequestRideHandler(db, mediator);
@@ -90,7 +90,7 @@ public class RequestRideHandlerTests
   {
     // Arrange: the driver exists but is already committed to someone else's trip.
     await using var db = NewContext();
-    var mediator = Substitute.For<IMediator>();
+    var mediator = Substitute.For<IHikyaku>();
     mediator.Send(Arg.Any<GetDriverAvailability>(), Arg.Any<CancellationToken>())
       .Returns(new DriverAvailabilityInfo { Exists = true, IsAvailable = false });
     var handler = new RequestRideHandler(db, mediator);

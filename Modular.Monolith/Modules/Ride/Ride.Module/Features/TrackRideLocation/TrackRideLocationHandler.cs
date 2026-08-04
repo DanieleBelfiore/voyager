@@ -1,6 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
-using MediatR;
+using Hikyaku;
 using Microsoft.EntityFrameworkCore;
 using Ride.Module.Persistence;
 using SharedTrackRideLocation = Voyager.Contracts.Ride.TrackRideLocation;

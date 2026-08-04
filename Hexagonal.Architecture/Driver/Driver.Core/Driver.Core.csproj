@@ -5,14 +5,14 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
-    <Description>The hexagon: Driver entities, primary/secondary ports, and use cases. No EF Core, no ASP.NET Core, no Arbitrer/RabbitMQ — only MediatR's IRequestHandler&lt;T&gt; marker interfaces, which double as the primary port shape (see Ports/Primary). References Commons/Voyager.Contracts for cross-service message shapes only.</Description>
+    <Description>The hexagon: Driver entities, primary/secondary ports, and use cases. No EF Core, no ASP.NET Core, no Kaido/RabbitMQ — only Hikyaku's IRequestHandler&lt;T&gt; marker interfaces, which double as the primary port shape (see Ports/Primary). References Commons/Voyager.Contracts for cross-service message shapes only.</Description>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\Commons\Voyager.Errors\Voyager.Errors.csproj" />
     <ProjectReference Include="..\..\..\Commons\Voyager.Contracts\Voyager.Contracts.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="MediatR" Version="12.5.0" />
+    <PackageReference Include="Hikyaku" Version="10.0.1" />
     <PackageReference Include="NetTopologySuite" Version="2.6.0" />
     <PackageReference Include="Riok.Mapperly" Version="4.3.1" />
   </ItemGroup>

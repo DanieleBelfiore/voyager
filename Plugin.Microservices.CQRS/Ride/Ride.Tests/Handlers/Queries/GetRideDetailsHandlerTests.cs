@@ -1,5 +1,5 @@
 using Common.Core.Exceptions;
-using MediatR;
+using Hikyaku;
 using NSubstitute;
 using Ride.Core.CQRS.Queries;
 using Ride.Handlers;
@@ -10,14 +10,14 @@ namespace Ride.Tests.Handlers.Queries;
 
 public class GetRideDetailsHandlerTests
 {
-  private readonly IMediator _mediator;
+  private readonly IHikyaku _mediator;
   private readonly TestApplicationDbContext _context;
 
   public GetRideDetailsHandlerTests()
   {
     _context = TestBase.CreateTestDbContext();
 
-    var mediatorMock = Substitute.For<IMediator>();
+    var mediatorMock = Substitute.For<IHikyaku>();
     _mediator = mediatorMock;
 
     mediatorMock.Send(Arg.Any<GetRideDetails>(), Arg.Any<CancellationToken>())

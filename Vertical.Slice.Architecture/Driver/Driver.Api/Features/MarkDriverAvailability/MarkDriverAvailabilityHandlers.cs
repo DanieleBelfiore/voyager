@@ -4,7 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Driver.Api.Entities;
 using Driver.Api.Persistence;
-using MediatR;
+using Hikyaku;
 using Microsoft.EntityFrameworkCore;
 using Voyager.Contracts.Driver;
 
@@ -12,7 +12,7 @@ namespace Driver.Api.Features.MarkDriverAvailability;
 
 /// <summary>
 /// Handle the shared Voyager.Contracts.Driver availability commands directly — reachable only
-/// via Arbitrer's remote dispatch (Ride, on Accept/Cancel/Complete), no local controller.
+/// via Kaido's remote dispatch (Ride, on Accept/Cancel/Complete), no local controller.
 /// </summary>
 public class MarkDriverOnRideHandler(DriverDbContext db) : IRequestHandler<MarkDriverOnRide>
 {

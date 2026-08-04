@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using Common.Core.Exceptions;
 using Identity.Core.CQRS.Commands;
 using Identity.Handlers.Interfaces;
-using MediatR;
+using Hikyaku;
 using Microsoft.EntityFrameworkCore;
 
 namespace Identity.Handlers.CQRS.Commands;

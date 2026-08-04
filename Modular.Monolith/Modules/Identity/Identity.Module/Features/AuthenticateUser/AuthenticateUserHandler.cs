@@ -1,7 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Identity.Module.Persistence;
-using MediatR;
+using Hikyaku;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 

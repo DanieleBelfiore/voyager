@@ -7,10 +7,10 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <Authors>Daniele Belfiore</Authors>
-    <Description>Wire contracts (request/response shapes only, no logic) for cross-service RPC between Voyager bounded contexts over the message bus. Shared across architecture variants so Arbitrer's type-name-based routing stays compatible regardless of each service's internal layering.</Description>
+    <Description>Wire contracts (request/response shapes only, no logic) for cross-service RPC between Voyager bounded contexts over the message bus. Shared across architecture variants so Kaido's type-name-based routing stays compatible regardless of each service's internal layering.</Description>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="MediatR.Contracts" Version="2.0.1" />
+    <PackageReference Include="Hikyaku.Contracts" Version="9.1.2" />
     <PackageReference Include="NetTopologySuite" Version="2.6.0" />
   </ItemGroup>
 </Project>

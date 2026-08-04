@@ -1,6 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
-using MediatR;
+using Hikyaku;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -11,7 +11,7 @@ namespace Driver.Api.Features.UpdateAvailability;
 [Authorize]
 [EnableRateLimiting("driver_api")]
 [Route("api/v1/drivers")]
-public class UpdateAvailabilityController(IMediator mediator) : ControllerBase
+public class UpdateAvailabilityController(IHikyaku mediator) : ControllerBase
 {
   [EnableRateLimiting("driver_status_update")]
   [HttpPut("availability")]

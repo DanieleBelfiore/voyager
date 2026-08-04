@@ -1,6 +1,6 @@
 using System;
 using Driver.Core.Domain;
-using MediatR;
+using Hikyaku;
 
 namespace Driver.Core.Ports.Primary;
 

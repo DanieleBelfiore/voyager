@@ -2,7 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Identity.Api.Persistence;
-using MediatR;
+using Hikyaku;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Voyager.Errors;
@@ -12,14 +12,14 @@ namespace Identity.Api.Features.RegisterUser;
 
 /// <summary>
 /// Format validation (name/email/password shape) runs in RegisterUserValidator through the
-/// shared MediatR pipeline behavior — this handler only owns the invariant that can't be
+/// shared Hikyaku pipeline behavior — this handler only owns the invariant that can't be
 /// checked without a database round-trip (email uniqueness), plus the actual write.
 /// No IPasswordHasher port — PasswordHasher&lt;object&gt; is ASP.NET Core Identity's own
 /// standalone hasher, taken as a direct dependency. No IDriverRegistration port either —
-/// this handler just sends the shared AddDriver contract via IMediator, same as any other
-/// cross-service call in this variant; Arbitrer routes it to Driver.
+/// this handler just sends the shared AddDriver contract via IHikyaku, same as any other
+/// cross-service call in this variant; Kaido routes it to Driver.
 /// </summary>
-public class RegisterUserHandler(IdentityDbContext db, PasswordHasher<object> passwordHasher, IMediator mediator) : IRequestHandler<RegisterUser>
+public class RegisterUserHandler(IdentityDbContext db, PasswordHasher<object> passwordHasher, IHikyaku mediator) : IRequestHandler<RegisterUser>
 {
   public async Task Handle(RegisterUser request, CancellationToken cancellationToken)
   {

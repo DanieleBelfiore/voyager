@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Driver.Api.Entities;
 using Driver.Api.Persistence;
-using MediatR;
+using Hikyaku;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Voyager.Contracts.Identity;
@@ -15,13 +15,13 @@ namespace Driver.Api.Features.SearchBestDriver;
 /// <summary>
 /// Driver matching algorithm — same weighted scoring as the other variants:
 /// score = (distanceWeight * normalizedDistance) + (ratingWeight * (1 - normalizedRating)).
-/// Ratings are fetched from Identity via IMediator.Send — Arbitrer resolves it remotely since
+/// Ratings are fetched from Identity via IHikyaku.Send — Kaido resolves it remotely since
 /// no local handler for GetUsersRatings exists in this process. No dedicated ratings port here.
 /// </summary>
 public class SearchBestDriverHandler(
   DriverDbContext db,
   IOptions<MatchingWeights> weights,
-  IMediator mediator) : IRequestHandler<SearchBestDriver, List<SearchBestDriverResponse>>
+  IHikyaku mediator) : IRequestHandler<SearchBestDriver, List<SearchBestDriverResponse>>
 {
   public async Task<List<SearchBestDriverResponse>> Handle(SearchBestDriver request, CancellationToken cancellationToken)
   {

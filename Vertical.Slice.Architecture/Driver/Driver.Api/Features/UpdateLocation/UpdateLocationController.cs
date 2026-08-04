@@ -1,6 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
-using MediatR;
+using Hikyaku;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -11,7 +11,7 @@ namespace Driver.Api.Features.UpdateLocation;
 [Authorize]
 [EnableRateLimiting("driver_api")]
 [Route("api/v1/drivers")]
-public class UpdateLocationController(IMediator mediator) : ControllerBase
+public class UpdateLocationController(IHikyaku mediator) : ControllerBase
 {
   [EnableRateLimiting("driver_location_update")]
   [HttpPut("location")]

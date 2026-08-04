@@ -32,7 +32,7 @@ public static class DriverInfrastructureExtensions
     services.AddRedisCache(configuration);
     services.AddScoped<ApplicationCache, CacheServiceAdapter>();
 
-    services.AddScoped<IRatingsQueryService, ArbitrerRatingsQueryService>();
+    services.AddScoped<IRatingsQueryService, RemoteRatingsQueryService>();
 
     services.AddSingleton<IMatchingWeights>(_ => new MatchingWeights
     {

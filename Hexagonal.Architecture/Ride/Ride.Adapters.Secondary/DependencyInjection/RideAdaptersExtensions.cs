@@ -31,11 +31,11 @@ public static class RideAdaptersExtensions
 
     services.AddScoped<IRideRepository, RideRepository>();
 
-    services.AddScoped<IRatingUpdateService, ArbitrerRatingUpdateService>();
-    services.AddScoped<IDriverLocationQuery, ArbitrerDriverLocationQuery>();
-    services.AddScoped<IDriverAvailabilityQuery, ArbitrerDriverAvailabilityQuery>();
-    services.AddScoped<IRideEventPublisher, ArbitrerRideEventPublisher>();
-    services.AddScoped<IDriverAvailabilityNotifier, ArbitrerDriverAvailabilityNotifier>();
+    services.AddScoped<IRatingUpdateService, RemoteRatingUpdateService>();
+    services.AddScoped<IDriverLocationQuery, RemoteDriverLocationQuery>();
+    services.AddScoped<IDriverAvailabilityQuery, RemoteDriverAvailabilityQuery>();
+    services.AddScoped<IRideEventPublisher, RemoteRideEventPublisher>();
+    services.AddScoped<IDriverAvailabilityNotifier, RemoteDriverAvailabilityNotifier>();
 
     services.AddSingleton<IEtaConfig>(_ => new EtaConfig
     {

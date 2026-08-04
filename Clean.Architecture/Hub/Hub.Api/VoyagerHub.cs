@@ -3,7 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Hub.Application.CQRS.Commands;
 using Hub.Application.Ports;
-using MediatR;
+using Hikyaku;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using NetTopologySuite.Geometries;
@@ -17,7 +17,7 @@ namespace Hub.Api;
 /// mediator dispatch, the same role a controller action plays for HTTP.
 /// </summary>
 [Authorize]
-public class VoyagerHub(IMediator mediator, IActiveRideQuery activeRideQuery) : Hub<IVoyagerShareClient>
+public class VoyagerHub(IHikyaku mediator, IActiveRideQuery activeRideQuery) : Hub<IVoyagerShareClient>
 {
   /// <summary>Joins the caller's personal group so cross-service events targeting them by user
   /// id (e.g. NewRideRequested, before anyone can join ride_{RideId}) reach this connection.</summary>

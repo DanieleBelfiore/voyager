@@ -1,6 +1,6 @@
 using System.Security.Claims;
 using Driver.Api.Features.SearchBestDriver;
-using MediatR;
+using Hikyaku;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using NetTopologySuite.Geometries;
@@ -16,7 +16,7 @@ namespace Driver.Tests.Features;
 /// </summary>
 public class SearchBestDriverControllerTests
 {
-  private readonly IMediator _mediator = Substitute.For<IMediator>();
+  private readonly IHikyaku _mediator = Substitute.For<IHikyaku>();
 
   private SearchBestDriverController NewController() => new(_mediator)
   {

@@ -1,5 +1,5 @@
 using System;
-using MediatR;
+using Hikyaku;
 using Ride.Module.Shared;
 
 namespace Ride.Module.Features.GetRideDetails;

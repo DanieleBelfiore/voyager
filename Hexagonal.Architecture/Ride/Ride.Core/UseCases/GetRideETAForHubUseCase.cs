@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using MediatR;
+using Hikyaku;
 using Ride.Core.Ports.Secondary;
 using RideETAInfo = Voyager.Contracts.Ride.RideETAInfo;
 using SharedGetRideETA = Voyager.Contracts.Ride.GetRideETA;

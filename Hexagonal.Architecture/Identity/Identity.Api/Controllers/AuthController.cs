@@ -16,7 +16,7 @@ namespace Identity.Api.Controllers;
 
 /// <summary>
 /// Primary adapter over HTTP/OAuth2. Register/Exchange inject the primary ports
-/// directly (IRegisterUserUseCase, IAuthenticateUserUseCase) — no IMediator.Send.
+/// directly (IRegisterUserUseCase, IAuthenticateUserUseCase) — no IHikyaku.Send.
 /// </summary>
 public class AuthController(IRegisterUserUseCase registerUser, IAuthenticateUserUseCase authenticateUser, ILogger<AuthController> logger) : Controller
 {

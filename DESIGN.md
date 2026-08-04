@@ -31,21 +31,28 @@ Four services, one per bounded context:
 | **Ride** | Ride lifecycle: request → accept → start → complete → rate |
 | **Hub** | SignalR endpoint; relays ride/location/rating events to connected clients |
 
+The mediator is **Hikyaku**, a fork of MediatR 12.5.0. The portfolio originally ran on MediatR +
+**Arbitrer**; Arbitrer was archived by its author in July 2025 and its successor is Hikyaku (plus
+**Kaido**, the out-of-process half) from the same author. The fork keeps MediatR's type names
+verbatim — `IRequest<T>`, `IRequestHandler<,>`, `INotification`, `IPipelineBehavior<,>` — and
+renames exactly one, `IMediator` → `IHikyaku`, so the migration touched wiring and `using`
+directives, not a single handler body.
+
 Services communicate over two channels: synchronous request/response and fire-and-forget
-notifications, both carried by **Arbitrer**, a library that gives MediatR implicit remote
-dispatch over RabbitMQ. `IMediator.Send(request)` runs locally if a handler is registered in the
-current process; otherwise Arbitrer routes it to whichever service does, keyed by the request
-type's name. The same mechanism carries `IMediator.Publish(notification)` fan-out for events —
+notifications, both carried by **Kaido**, which gives Hikyaku implicit remote
+dispatch over RabbitMQ. `IHikyaku.Send(request)` runs locally if a handler is registered in the
+current process; otherwise Kaido routes it to whichever service does, keyed by the request
+type's name. The same mechanism carries `IHikyaku.Publish(notification)` fan-out for events —
 e.g. Ride publishes `RideAccepted`, `RideCompleted`, etc., and Hub is the subscriber that relays
 them over SignalR. This keeps services decoupled at compile time: nobody holds a project
 reference to another service's internals, only to `Commons/Voyager.Contracts` (wire-shape-only
-message contracts). The Modular Monolith variant reuses the identical contracts and `IMediator`
+message contracts). The Modular Monolith variant reuses the identical contracts and `IHikyaku`
 calls, but resolves them directly out of one shared DI container — no bus, single process —
 which is the whole point of that variant: same domain code, different deployment topology.
 
 See `Schema.png` (repo root) for the component diagram: client → REST for
 search/request/accept/rate, client ⇄ WebSocket (SignalR) for live location/ETA/status, and the
-four services wired through Arbitrer/RabbitMQ for cross-service calls and event fan-out.
+four services wired through Kaido/RabbitMQ for cross-service calls and event fan-out.
 
 ## Ride requests & driver availability
 
@@ -118,7 +125,7 @@ critical notification actually deliverable.
 SignalR (WebSockets, with SSE/long-polling fallback) is the transport for everything client-facing
 in real time. The main design challenge in a system with a message bus in the middle is that a
 payload can cross two different serialization boundaries — the SignalR wire protocol and
-Arbitrer's RabbitMQ payload — and both need to agree on how to represent domain types like
+Kaido's RabbitMQ payload — and both need to agree on how to represent domain types like
 geospatial `Point`s consistently, or a message that looks fine in isolation fails silently (or
 loudly) when it actually needs to travel between processes. This is why cross-service messages
 are defined as flat, explicit contract types in `Commons/Voyager.Contracts` rather than reusing

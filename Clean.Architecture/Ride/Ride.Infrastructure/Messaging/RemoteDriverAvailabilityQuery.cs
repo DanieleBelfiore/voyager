@@ -1,13 +1,13 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using MediatR;
-using Ride.Core.Ports.Secondary;
+using Hikyaku;
+using Ride.Application.Ports;
 using Voyager.Contracts.Driver;
 
-namespace Ride.Adapters.Secondary.Messaging;
+namespace Ride.Infrastructure.Messaging;
 
-public class ArbitrerDriverAvailabilityQuery(IMediator mediator) : IDriverAvailabilityQuery
+public class RemoteDriverAvailabilityQuery(IHikyaku mediator) : IDriverAvailabilityQuery
 {
   public async Task<DriverAvailability> GetAvailabilityAsync(Guid driverId, CancellationToken cancellationToken)
   {

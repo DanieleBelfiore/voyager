@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text.Json.Nodes;
-using Arbitrer;
+using Hikyaku.Kaido;
 using Driver.Api.Features.SearchBestDriver;
 using Driver.Api.Persistence;
 using FluentValidation;
@@ -125,23 +125,23 @@ builder.Services.AddSwaggerGenNewtonsoftSupport();
 
 var apiAssembly = Assembly.GetExecutingAssembly();
 
-// Every feature's handler implements IRequestHandler<T> — that's what MediatR scans for, and
-// it's also what makes each one an Arbitrer remote-dispatch target with zero extra plumbing.
-builder.Services.AddMediatR(cfg =>
+// Every feature's handler implements IRequestHandler<T> — that's what Hikyaku scans for, and
+// it's also what makes each one an Kaido remote-dispatch target with zero extra plumbing.
+builder.Services.AddHikyaku(cfg =>
 {
   cfg.RegisterServicesFromAssembly(apiAssembly);
   cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
 });
 builder.Services.AddValidatorsFromAssembly(apiAssembly);
 
-builder.Services.AddArbitrer(options =>
+builder.Services.AddKaido(options =>
 {
-  options.Behaviour = ArbitrerBehaviourEnum.ImplicitRemote;
+  options.Behaviour = HikyakuBehaviourEnum.ImplicitRemote;
   options.InferLocalRequests([apiAssembly]);
   options.InferLocalNotifications([apiAssembly]);
 });
 
-builder.Services.AddArbitrerRabbitMQMessageDispatcher(o =>
+builder.Services.AddHikyakuRabbitMQMessageDispatcher(o =>
 {
   configuration.GetSection("RabbitMQ").Bind(o);
   o.AutoDelete = false;

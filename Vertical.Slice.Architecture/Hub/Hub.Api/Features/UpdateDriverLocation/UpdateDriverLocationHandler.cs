@@ -2,7 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Hub.Api.Shared;
-using MediatR;
+using Hikyaku;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Configuration;
 using NetTopologySuite.Geometries;
@@ -14,10 +14,10 @@ namespace Hub.Api.Features.UpdateDriverLocation;
 /// <summary>
 /// Update the driver's location, find their active ride, and push a location + ETA update to
 /// the rider — plus an arrival notification once within the configured threshold of pickup. No
-/// port for any of this — IMediator.Send reaches Driver/Ride remotely via Arbitrer, IHubContext
+/// port for any of this — IHikyaku.Send reaches Driver/Ride remotely via Kaido, IHubContext
 /// pushes over SignalR directly.
 /// </summary>
-public class UpdateDriverLocationHandler(IMediator mediator, IHubContext<VoyagerHub, IVoyagerShareClient> hub, IConfiguration configuration) : IRequestHandler<UpdateDriverLocation>
+public class UpdateDriverLocationHandler(IHikyaku mediator, IHubContext<VoyagerHub, IVoyagerShareClient> hub, IConfiguration configuration) : IRequestHandler<UpdateDriverLocation>
 {
   public async Task Handle(UpdateDriverLocation request, CancellationToken cancellationToken)
   {

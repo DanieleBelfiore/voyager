@@ -1,7 +1,7 @@
 using Common.Core.Exceptions;
 using Driver.Core.CQRS.Queries;
 using Driver.Core.Dtos;
-using MediatR;
+using Hikyaku;
 using Microsoft.Extensions.Configuration;
 using NetTopologySuite.Geometries;
 using NSubstitute;
@@ -13,7 +13,7 @@ namespace Ride.Tests.Handlers.Queries;
 
 public class GetRideETAHandlerTests
 {
-  private readonly IMediator _mediator;
+  private readonly IHikyaku _mediator;
   private readonly TestApplicationDbContext _context;
   private readonly IConfiguration _configuration;
 
@@ -32,7 +32,7 @@ public class GetRideETAHandlerTests
       ["LunchMultiplier"] = "1.2"
     }).Build();
 
-    var mediatorMock = Substitute.For<IMediator>();
+    var mediatorMock = Substitute.For<IHikyaku>();
     _mediator = mediatorMock;
 
     mediatorMock.Send(Arg.Any<GetRideETA>(), Arg.Any<CancellationToken>())

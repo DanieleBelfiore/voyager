@@ -1,6 +1,6 @@
 using Common.Core.Exceptions;
 using Identity.Core.CQRS.Commands;
-using MediatR;
+using Hikyaku;
 using NSubstitute;
 using Ride.Core.CQRS.Commands;
 using Ride.Core.CQRS.Events;
@@ -11,14 +11,14 @@ namespace Ride.Tests.Handlers.Commands;
 
 public class RateDriverHandlerTests
 {
-  private readonly IMediator _mediator;
+  private readonly IHikyaku _mediator;
   private readonly TestApplicationDbContext _context;
 
   public RateDriverHandlerTests()
   {
     _context = TestBase.CreateTestDbContext();
 
-    var mediatorMock = Substitute.For<IMediator>();
+    var mediatorMock = Substitute.For<IHikyaku>();
     _mediator = mediatorMock;
 
     mediatorMock.Send(Arg.Any<RateDriver>(), Arg.Any<CancellationToken>())

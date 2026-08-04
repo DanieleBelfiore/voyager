@@ -2,7 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Identity.Module.Persistence;
-using MediatR;
+using Hikyaku;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Voyager.Errors;
@@ -10,7 +10,7 @@ using UserEntity = Identity.Module.Entities.User;
 
 namespace Identity.Module.Features.RegisterUser;
 
-internal class RegisterUserHandler(IdentityDbContext db, PasswordHasher<object> passwordHasher, IMediator mediator) : IRequestHandler<RegisterUser>
+internal class RegisterUserHandler(IdentityDbContext db, PasswordHasher<object> passwordHasher, IHikyaku mediator) : IRequestHandler<RegisterUser>
 {
   public async Task Handle(RegisterUser request, CancellationToken cancellationToken)
   {

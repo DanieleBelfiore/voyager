@@ -11,7 +11,7 @@ namespace Hub.Api;
 
 /// <summary>
 /// Primary adapter over SignalR — injects IUpdateDriverLocationUseCase directly,
-/// no IMediator.Send. The same use case is still reachable remotely if ever needed, since it
+/// no IHikyaku.Send. The same use case is still reachable remotely if ever needed, since it
 /// implements IRequestHandler&lt;T&gt; too (see IUpdateDriverLocationUseCase).
 /// </summary>
 [Authorize]

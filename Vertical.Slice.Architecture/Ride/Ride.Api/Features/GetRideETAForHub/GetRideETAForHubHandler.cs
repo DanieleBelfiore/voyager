@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using MediatR;
+using Hikyaku;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Ride.Api.Persistence;
@@ -14,7 +14,7 @@ using SharedGetRideETA = Voyager.Contracts.Ride.GetRideETA;
 namespace Ride.Api.Features.GetRideETAForHub;
 
 /// <summary>Remote-only handler — see GetActiveRideForHub for why there's no local endpoint.</summary>
-public class GetRideETAForHubHandler(RideDbContext db, IMediator mediator, IOptions<EtaConfig> config) : IRequestHandler<SharedGetRideETA, RideETAInfo>
+public class GetRideETAForHubHandler(RideDbContext db, IHikyaku mediator, IOptions<EtaConfig> config) : IRequestHandler<SharedGetRideETA, RideETAInfo>
 {
   public async Task<RideETAInfo> Handle(SharedGetRideETA request, CancellationToken cancellationToken)
   {

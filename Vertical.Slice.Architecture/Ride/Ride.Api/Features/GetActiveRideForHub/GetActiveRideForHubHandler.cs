@@ -1,7 +1,7 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using MediatR;
+using Hikyaku;
 using Microsoft.EntityFrameworkCore;
 using Ride.Api.Entities;
 using Ride.Api.Persistence;
@@ -12,7 +12,7 @@ namespace Ride.Api.Features.GetActiveRideForHub;
 
 /// <summary>
 /// Handles the shared Voyager.Contracts.Ride.GetActiveRide contract directly — reachable only
-/// via Arbitrer's remote dispatch (Hub asking which ride group to notify), no local endpoint.
+/// via Kaido's remote dispatch (Hub asking which ride group to notify), no local endpoint.
 /// </summary>
 public class GetActiveRideForHubHandler(RideDbContext db) : IRequestHandler<SharedGetActiveRide, ActiveRideInfo>
 {

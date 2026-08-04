@@ -1,4 +1,4 @@
-using MediatR;
+using Hikyaku;
 
 namespace Identity.Application.CQRS.Commands;
 

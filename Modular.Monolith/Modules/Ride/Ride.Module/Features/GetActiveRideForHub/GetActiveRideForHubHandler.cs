@@ -1,7 +1,7 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using MediatR;
+using Hikyaku;
 using Microsoft.EntityFrameworkCore;
 using Ride.Module.Entities;
 using Ride.Module.Persistence;
@@ -12,7 +12,7 @@ namespace Ride.Module.Features.GetActiveRideForHub;
 
 /// <summary>
 /// Handles the shared Voyager.Contracts.Ride.GetActiveRide contract — no controller, only ever
-/// driven by Hub's module calling IMediator.Send in the same process (asking which ride group
+/// driven by Hub's module calling IHikyaku.Send in the same process (asking which ride group
 /// to notify).
 /// </summary>
 internal class GetActiveRideForHubHandler(RideDbContext db) : IRequestHandler<SharedGetActiveRide, ActiveRideInfo>

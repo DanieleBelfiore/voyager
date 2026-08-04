@@ -1,5 +1,5 @@
 using System;
-using MediatR;
+using Hikyaku;
 using NetTopologySuite.Geometries;
 
 namespace Ride.Application.CQRS.Commands;

@@ -15,8 +15,8 @@ namespace Driver.Api.Controllers;
 /// <summary>
 /// Primary adapter over HTTP. Unlike the Clean.Architecture variant's controller,
 /// this one injects each use case's primary port directly (IAddDriverUseCase, etc.) and calls
-/// .Handle(...) — no IMediator.Send indirection for local calls. The same use case classes are
-/// still reachable remotely via Arbitrer/MediatR (see Driver.Core/Ports/Primary), which is a
+/// .Handle(...) — no IHikyaku.Send indirection for local calls. The same use case classes are
+/// still reachable remotely via Kaido/Hikyaku (see Driver.Core/Ports/Primary), which is a
 /// different primary adapter entirely; this controller doesn't need to know that exists.
 /// </summary>
 [Authorize]

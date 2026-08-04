@@ -1,7 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using MediatR;
+using Hikyaku;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -11,7 +11,7 @@ namespace Driver.Module.Features.GetDriverStatus;
 [Authorize]
 [EnableRateLimiting("driver_api")]
 [Route("api/v1/drivers")]
-public class GetDriverStatusController(IMediator mediator) : ControllerBase
+public class GetDriverStatusController(IHikyaku mediator) : ControllerBase
 {
   [EnableRateLimiting("driver_status")]
   [HttpGet("{driverId:guid}")]

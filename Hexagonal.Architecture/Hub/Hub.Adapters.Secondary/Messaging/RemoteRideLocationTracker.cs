@@ -1,14 +1,14 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Hub.Application.Ports;
-using MediatR;
+using Hub.Core.Ports.Secondary;
+using Hikyaku;
 using NetTopologySuite.Geometries;
 using Voyager.Contracts.Ride;
 
-namespace Hub.Infrastructure.Messaging;
+namespace Hub.Adapters.Secondary.Messaging;
 
-public class ArbitrerRideLocationTracker(IMediator mediator) : IRideLocationTracker
+public class RemoteRideLocationTracker(IHikyaku mediator) : IRideLocationTracker
 {
   public async Task TrackAsync(Guid rideId, Point location, CancellationToken cancellationToken)
   {

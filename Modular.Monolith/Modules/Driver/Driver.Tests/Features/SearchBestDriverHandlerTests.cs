@@ -2,7 +2,7 @@ using Driver.Module.Entities;
 using DriverEntity = Driver.Module.Entities.Driver;
 using Driver.Module.Features.SearchBestDriver;
 using Driver.Module.Persistence;
-using MediatR;
+using Hikyaku;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using NetTopologySuite.Geometries;
@@ -20,7 +20,7 @@ namespace Driver.Tests.Features;
 /// </summary>
 public class SearchBestDriverHandlerTests
 {
-  private readonly IMediator _mediator = Substitute.For<IMediator>();
+  private readonly IHikyaku _mediator = Substitute.For<IHikyaku>();
   private readonly IOptions<MatchingWeights> _weights = Options.Create(new MatchingWeights
   {
     DistanceWeight = 0.5,

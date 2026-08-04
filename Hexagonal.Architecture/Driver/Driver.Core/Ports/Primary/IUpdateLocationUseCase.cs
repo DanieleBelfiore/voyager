@@ -1,4 +1,4 @@
-using MediatR;
+using Hikyaku;
 using Voyager.Contracts.Driver;
 
 namespace Driver.Core.Ports.Primary;

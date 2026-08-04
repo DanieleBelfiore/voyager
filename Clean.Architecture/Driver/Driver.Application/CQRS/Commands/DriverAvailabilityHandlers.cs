@@ -4,14 +4,14 @@ using System.Threading;
 using System.Threading.Tasks;
 using Driver.Application.Ports;
 using Driver.Domain.Enums;
-using MediatR;
+using Hikyaku;
 using Voyager.Contracts.Driver;
 
 namespace Driver.Application.CQRS.Commands;
 
 /// <summary>
 /// Remote-only handlers for Voyager.Contracts.Driver's availability commands — reachable
-/// exclusively via Arbitrer from Ride (Accept/Cancel/Complete), no local controller action.
+/// exclusively via Kaido from Ride (Accept/Cancel/Complete), no local controller action.
 /// </summary>
 public class MarkDriverOnRideHandler(IDriverRepository repository) : IRequestHandler<MarkDriverOnRide>
 {

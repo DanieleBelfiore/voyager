@@ -1,6 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
-using MediatR;
+using Hikyaku;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -11,7 +11,7 @@ namespace Driver.Module.Features.AddDriver;
 [Authorize]
 [EnableRateLimiting("driver_api")]
 [Route("api/v1/drivers")]
-public class AddDriverController(IMediator mediator) : ControllerBase
+public class AddDriverController(IHikyaku mediator) : ControllerBase
 {
   // Gated on the is_driver claim, not just authentication: a Driver row is what puts someone into
   // SearchBestDriver's candidate pool, so an unrestricted endpoint let any rider self-register,

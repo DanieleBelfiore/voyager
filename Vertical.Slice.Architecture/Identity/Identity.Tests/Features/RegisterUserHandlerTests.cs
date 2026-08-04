@@ -1,6 +1,6 @@
 using Identity.Api.Features.RegisterUser;
 using Identity.Api.Persistence;
-using MediatR;
+using Hikyaku;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using NSubstitute;
@@ -36,7 +36,7 @@ public class RegisterUserHandlerTests
   public async Task Register_ShouldPersistUser_WhenValid()
   {
     await using var db = NewContext();
-    var handler = new RegisterUserHandler(db, new PasswordHasher<object>(), Substitute.For<IMediator>());
+    var handler = new RegisterUserHandler(db, new PasswordHasher<object>(), Substitute.For<IHikyaku>());
 
     await handler.Handle(ValidCommand(), CancellationToken.None);
 
@@ -49,7 +49,7 @@ public class RegisterUserHandlerTests
   public async Task Register_ShouldNotifyDriverRegistration_WhenIsDriver()
   {
     await using var db = NewContext();
-    var mediator = Substitute.For<IMediator>();
+    var mediator = Substitute.For<IHikyaku>();
     var handler = new RegisterUserHandler(db, new PasswordHasher<object>(), mediator);
 
     await handler.Handle(ValidCommand(isDriver: true), CancellationToken.None);
@@ -67,7 +67,7 @@ public class RegisterUserHandlerTests
     db.Users.Add(new UserEntity(Guid.NewGuid(), "ada@example.com", "Ada", "Lovelace", null, "x", false));
     await db.SaveChangesAsync();
 
-    var handler = new RegisterUserHandler(db, new PasswordHasher<object>(), Substitute.For<IMediator>());
+    var handler = new RegisterUserHandler(db, new PasswordHasher<object>(), Substitute.For<IHikyaku>());
 
     var act = () => handler.Handle(ValidCommand(), CancellationToken.None);
 
@@ -82,7 +82,7 @@ public class RegisterUserHandlerTests
     // them. Leaving the user behind made the failure permanent: the caller was told registration
     // failed, but retrying hit "already_exist" and the driver was never matchable.
     await using var db = NewContext();
-    var mediator = Substitute.For<IMediator>();
+    var mediator = Substitute.For<IHikyaku>();
     mediator.Send(Arg.Any<AddDriver>(), Arg.Any<CancellationToken>())
       .Returns<object>(_ => throw new TimeoutException("driver service unreachable"));
     var handler = new RegisterUserHandler(db, new PasswordHasher<object>(), mediator);
@@ -97,7 +97,7 @@ public class RegisterUserHandlerTests
   public async Task Register_ShouldKeepUser_WhenDriverRegistrationSucceeds()
   {
     await using var db = NewContext();
-    var handler = new RegisterUserHandler(db, new PasswordHasher<object>(), Substitute.For<IMediator>());
+    var handler = new RegisterUserHandler(db, new PasswordHasher<object>(), Substitute.For<IHikyaku>());
 
     await handler.Handle(ValidCommand(isDriver: true), CancellationToken.None);
 

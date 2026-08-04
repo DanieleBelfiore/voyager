@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This is an **architecture portfolio**: the same ride-sharing domain (Identity/Driver/Ride/Hub services) implemented multiple times, once per architectural style, so each variant can be inspected in isolation. See [README.md](README.md) for the full rationale and a comparison table.
 
 ```
-Plugin.Microservices.CQRS/    → plugin-composed microservices + CQRS/MediatR (original implementation)
+Plugin.Microservices.CQRS/    → plugin-composed microservices + CQRS/Hikyaku (original implementation)
 Clean.Architecture/           → Domain/Application/Infrastructure/Presentation layering
 Hexagonal.Architecture/       → ports & adapters
 Vertical.Slice.Architecture/  → feature-folder slices, no horizontal layers

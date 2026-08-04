@@ -2,12 +2,12 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Hub.Core.Ports.Secondary;
-using MediatR;
+using Hikyaku;
 using Voyager.Contracts.Ride;
 
 namespace Hub.Adapters.Secondary.Messaging;
 
-public class ArbitrerRideEtaQuery(IMediator mediator) : IRideEtaQuery
+public class RemoteRideEtaQuery(IHikyaku mediator) : IRideEtaQuery
 {
   public async Task<RideEta> GetEtaAsync(Guid rideId, CancellationToken cancellationToken)
   {

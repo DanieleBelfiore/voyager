@@ -1,6 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
-using MediatR;
+using Hikyaku;
 using Ride.Core.Ports.Secondary;
 using SharedTrackRideLocation = Voyager.Contracts.Ride.TrackRideLocation;
 using Ride.Core.Validation;
@@ -12,7 +12,7 @@ namespace Ride.Core.UseCases;
 /// target Hub dispatches to on every driver position report, so the ride's own LastLocation
 /// tracks the trip instead of standing still at the pickup point between Start and Complete.
 ///
-/// No primary port: nothing local injects this, it is reachable only via Arbitrer — same shape
+/// No primary port: nothing local injects this, it is reachable only via Kaido — same shape
 /// as GetActiveRideForHubUseCase.
 /// </summary>
 public class TrackRideLocationUseCase(IRideRepository repository) : IRequestHandler<SharedTrackRideLocation>

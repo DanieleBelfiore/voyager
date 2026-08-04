@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using Ride.Application.Dtos;
 using Ride.Application.Mapping;
 using Ride.Application.Ports;
-using MediatR;
+using Hikyaku;
 using RideEntity = Ride.Domain.Entities.Ride;
 using Voyager.Errors;
 using Ride.Application.Validation;

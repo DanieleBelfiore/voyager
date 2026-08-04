@@ -1,4 +1,4 @@
-using MediatR;
+using Hikyaku;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using NetTopologySuite.Geometries;
@@ -15,7 +15,7 @@ namespace Ride.Tests.Features;
 
 public class GetRideETAForHubHandlerTests
 {
-  private readonly IMediator _mediator = Substitute.For<IMediator>();
+  private readonly IHikyaku _mediator = Substitute.For<IHikyaku>();
   private readonly IOptions<EtaConfig> _config = Options.Create(new EtaConfig { AverageSpeedKmh = 30.0 });
 
   private static RideDbContext NewContext()

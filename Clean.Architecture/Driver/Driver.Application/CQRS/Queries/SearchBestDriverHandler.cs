@@ -4,7 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Driver.Application.Dtos;
 using Driver.Application.Ports;
-using MediatR;
+using Hikyaku;
 using Driver.Application.Validation;
 using Voyager.Errors;
 

@@ -1,5 +1,5 @@
 using System;
-using MediatR;
+using Hikyaku;
 
 namespace Driver.Api.Features.GetDriverStatus;
 

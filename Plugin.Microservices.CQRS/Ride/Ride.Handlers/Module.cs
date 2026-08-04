@@ -33,7 +33,7 @@ public class Module : IModule
 
     services.AddSingleton<RideMapper>();
 
-    services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
+    services.AddHikyaku(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
   }
 
   public void OnStartup(IApplicationBuilder app)

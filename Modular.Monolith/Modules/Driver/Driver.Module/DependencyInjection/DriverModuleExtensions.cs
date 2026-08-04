@@ -10,7 +10,7 @@ namespace Driver.Module.DependencyInjection;
 
 /// <summary>
 /// The module's only public surface besides its controllers. Host calls AddDriverModule during
-/// composition and MigrateDriverDatabase at startup; MediatR/FluentValidation registration is
+/// composition and MigrateDriverDatabase at startup; Hikyaku/FluentValidation registration is
 /// centralized in Host (see Host/Program.cs) since there's one shared mediator across all
 /// modules in this single process — this method only wires this module's own infrastructure.
 /// </summary>

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using MediatR;
+using Hikyaku;
 using Microsoft.EntityFrameworkCore;
 using Ride.Api.Entities;
 using Ride.Api.Persistence;
@@ -14,8 +14,8 @@ using Voyager.Errors;
 
 namespace Ride.Api.Features.RequestRide;
 
-/// <summary>No IRideEventPublisher port — publishes the shared ride-lifecycle notification via IMediator directly; Arbitrer fans it out to Hub.</summary>
-public class RequestRideHandler(RideDbContext db, IMediator mediator) : IRequestHandler<RequestRide, RideDetailsResponse>
+/// <summary>No IRideEventPublisher port — publishes the shared ride-lifecycle notification via IHikyaku directly; Kaido fans it out to Hub.</summary>
+public class RequestRideHandler(RideDbContext db, IHikyaku mediator) : IRequestHandler<RequestRide, RideDetailsResponse>
 {
   public async Task<RideDetailsResponse> Handle(RequestRide request, CancellationToken cancellationToken)
   {

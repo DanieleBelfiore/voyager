@@ -4,17 +4,17 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
-    <Description>Single project, no horizontal layers: Entities/, Persistence/ and one Features/ folder per use case, each owning its own request, handler, validator and controller. Handlers depend on DriverDbContext, Voyager.Shared.Cache.ICacheService and IMediator directly — no repository or port abstraction.</Description>
+    <Description>Single project, no horizontal layers: Entities/, Persistence/ and one Features/ folder per use case, each owning its own request, handler, validator and controller. Handlers depend on DriverDbContext, Voyager.Shared.Cache.ICacheService and IHikyaku directly — no repository or port abstraction.</Description>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\Commons\Voyager.Shared\Voyager.Shared.csproj" />
     <ProjectReference Include="..\..\..\Commons\Voyager.Contracts\Voyager.Contracts.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Arbitrer" Version="12.5.0" />
-    <PackageReference Include="Arbitrer.RabbitMQ" Version="12.5.0" />
+    <PackageReference Include="Hikyaku.Kaido" Version="10.0.1" />
+    <PackageReference Include="Hikyaku.Kaido.RabbitMQ" Version="10.0.1" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.10" />
-    <PackageReference Include="MediatR" Version="12.5.0" />
+    <PackageReference Include="Hikyaku" Version="10.0.1" />
     <PackageReference Include="FluentValidation" Version="12.1.1" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="10.0.10" />

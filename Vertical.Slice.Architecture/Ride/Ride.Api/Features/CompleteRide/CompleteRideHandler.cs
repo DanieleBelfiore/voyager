@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using MediatR;
+using Hikyaku;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Ride.Api.Persistence;
@@ -12,7 +12,7 @@ using Voyager.Contracts.Ride;
 
 namespace Ride.Api.Features.CompleteRide;
 
-public class CompleteRideHandler(RideDbContext db, IMediator mediator, IOptions<FareConfig> fareConfig) : IRequestHandler<CompleteRide>
+public class CompleteRideHandler(RideDbContext db, IHikyaku mediator, IOptions<FareConfig> fareConfig) : IRequestHandler<CompleteRide>
 {
   public async Task Handle(CompleteRide request, CancellationToken cancellationToken)
   {

@@ -2,7 +2,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Driver.Application.Ports;
-using MediatR;
+using Hikyaku;
 using Voyager.Contracts.Driver;
 
 namespace Driver.Application.CQRS.Queries;

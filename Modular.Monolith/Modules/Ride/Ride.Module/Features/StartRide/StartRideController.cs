@@ -1,7 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using MediatR;
+using Hikyaku;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -12,7 +12,7 @@ namespace Ride.Module.Features.StartRide;
 [Authorize]
 [EnableRateLimiting("ride_api")]
 [Route("api/v1/rides")]
-public class StartRideController(IMediator mediator) : ControllerBase
+public class StartRideController(IHikyaku mediator) : ControllerBase
 {
   [HttpPut("{rideId:guid}/start")]
   public async Task<ActionResult> Start(Guid rideId, [FromBody] StartRideRequest request, CancellationToken cancellationToken)

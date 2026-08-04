@@ -1,4 +1,4 @@
-using MediatR;
+using Hikyaku;
 using Voyager.Contracts.Identity;
 
 namespace Identity.Core.Ports.Primary;

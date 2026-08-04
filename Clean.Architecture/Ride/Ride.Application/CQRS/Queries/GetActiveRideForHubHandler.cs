@@ -1,7 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Ride.Application.Ports;
-using MediatR;
+using Hikyaku;
 using ActiveRideInfo = Voyager.Contracts.Ride.ActiveRideInfo;
 using SharedGetActiveRide = Voyager.Contracts.Ride.GetActiveRide;
 
@@ -9,7 +9,7 @@ namespace Ride.Application.CQRS.Queries;
 
 /// <summary>
 /// Handles the shared Voyager.Contracts.Ride.GetActiveRide contract directly — this is the
-/// remote target Hub's VoyagerHub.UpdateDriverLocation dispatches to via Arbitrer, to know
+/// remote target Hub's VoyagerHub.UpdateDriverLocation dispatches to via Kaido, to know
 /// which ride group to push a driver's new location to.
 /// </summary>
 public class GetActiveRideForHubHandler(IRideRepository repository) : IRequestHandler<SharedGetActiveRide, ActiveRideInfo>

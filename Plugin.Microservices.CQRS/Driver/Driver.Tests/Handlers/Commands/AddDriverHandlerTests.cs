@@ -1,7 +1,7 @@
 using Driver.Core.CQRS.Commands;
 using Driver.Core.Enums;
 using Driver.Handlers.CQRS.Commands;
-using MediatR;
+using Hikyaku;
 using NSubstitute;
 using Xunit;
 
@@ -9,7 +9,7 @@ namespace Driver.Tests.Handlers.Commands;
 
 public class AddDriverHandlerTests
 {
-  private readonly IMediator _mediator;
+  private readonly IHikyaku _mediator;
   private readonly TestApplicationDbContext _context;
 
   public AddDriverHandlerTests()
@@ -17,7 +17,7 @@ public class AddDriverHandlerTests
     var (context, _) = TestBase.CreateTestServices();
     _context = context;
 
-    var mediatorMock = Substitute.For<IMediator>();
+    var mediatorMock = Substitute.For<IHikyaku>();
 
     _mediator = mediatorMock;
 

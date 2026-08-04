@@ -1,6 +1,6 @@
 using System;
 using Driver.Domain.Enums;
-using MediatR;
+using Hikyaku;
 
 namespace Driver.Application.CQRS.Commands;
 

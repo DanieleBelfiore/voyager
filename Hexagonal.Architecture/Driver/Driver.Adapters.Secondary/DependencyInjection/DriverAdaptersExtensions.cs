@@ -33,7 +33,7 @@ public static class DriverAdaptersExtensions
     services.AddRedisCache(configuration);
     services.AddScoped<CoreCache, CacheServiceAdapter>();
 
-    services.AddScoped<IRatingsQueryService, ArbitrerRatingsQueryService>();
+    services.AddScoped<IRatingsQueryService, RemoteRatingsQueryService>();
 
     services.AddSingleton<IMatchingWeights>(_ => new MatchingWeights
     {

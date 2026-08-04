@@ -6,7 +6,7 @@ namespace Ride.Application.Ports;
 
 /// <summary>
 /// Port for publishing ride lifecycle events for Hub to relay over SignalR. Infrastructure
-/// implements this via MediatR.Publish + Arbitrer's remote notification fan-out.
+/// implements this via IHikyaku.Publish + Kaido's remote notification fan-out.
 /// </summary>
 public interface IRideEventPublisher
 {

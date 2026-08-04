@@ -1,6 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
-using MediatR;
+using Hikyaku;
 using Ride.Application.Ports;
 using SharedTrackRideLocation = Voyager.Contracts.Ride.TrackRideLocation;
 using Ride.Application.Validation;

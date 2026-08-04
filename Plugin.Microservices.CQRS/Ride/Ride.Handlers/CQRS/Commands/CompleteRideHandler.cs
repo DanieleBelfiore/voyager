@@ -5,7 +5,7 @@ using Common.Core.Exceptions;
 using Common.Core.Validation;
 using Driver.Core.CQRS.Commands;
 using Driver.Core.Enums;
-using MediatR;
+using Hikyaku;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Ride.Core.CQRS.Commands;
@@ -15,7 +15,7 @@ using Ride.Handlers.Interfaces;
 
 namespace Ride.Handlers.CQRS.Commands;
 
-public class CompleteRideHandler(IRideContext db, IMediator mediator, IConfiguration configuration) : IRequestHandler<CompleteRide>
+public class CompleteRideHandler(IRideContext db, IHikyaku mediator, IConfiguration configuration) : IRequestHandler<CompleteRide>
 {
   public async Task Handle(CompleteRide request, CancellationToken cancellationToken)
   {

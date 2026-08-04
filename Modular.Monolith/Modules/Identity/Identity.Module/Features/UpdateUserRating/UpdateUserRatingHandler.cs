@@ -4,14 +4,14 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Identity.Module.Persistence;
-using MediatR;
+using Hikyaku;
 using Microsoft.EntityFrameworkCore;
 
 namespace Identity.Module.Features.UpdateUserRating;
 
 /// <summary>
 /// Handles the shared Voyager.Contracts.Identity.UpdateUserRating contract — no controller,
-/// only ever driven by Ride's module calling IMediator.Send in the same process.
+/// only ever driven by Ride's module calling IHikyaku.Send in the same process.
 /// </summary>
 internal class UpdateUserRatingHandler(IdentityDbContext db) : IRequestHandler<Voyager.Contracts.Identity.UpdateUserRating, double>
 {

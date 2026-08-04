@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using MediatR;
+using Hikyaku;
 
 namespace Voyager.Contracts.Identity;
 

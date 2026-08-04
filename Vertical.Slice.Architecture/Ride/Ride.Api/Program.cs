@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text.Json.Nodes;
-using Arbitrer;
+using Hikyaku.Kaido;
 using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -36,8 +36,8 @@ builder.Services.AddCors(options =>
 });
 
 // No repository, no event-publisher/rating/driver-location port: every feature's handler takes
-// RideDbContext and IMediator directly — cross-service calls and event publishing both go
-// through IMediator.Send/Publish, same object either way.
+// RideDbContext and IHikyaku directly — cross-service calls and event publishing both go
+// through IHikyaku.Send/Publish, same object either way.
 builder.Services.AddDbContext<RideDbContext>((provider, options) =>
 {
   options.UseSqlServer(configuration.GetConnectionString("RideContext"), a => a.UseNetTopologySuite());
@@ -121,21 +121,21 @@ builder.Services.AddSwaggerGenNewtonsoftSupport();
 
 var apiAssembly = Assembly.GetExecutingAssembly();
 
-builder.Services.AddMediatR(cfg =>
+builder.Services.AddHikyaku(cfg =>
 {
   cfg.RegisterServicesFromAssembly(apiAssembly);
   cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
 });
 builder.Services.AddValidatorsFromAssembly(apiAssembly);
 
-builder.Services.AddArbitrer(options =>
+builder.Services.AddKaido(options =>
 {
-  options.Behaviour = ArbitrerBehaviourEnum.ImplicitRemote;
+  options.Behaviour = HikyakuBehaviourEnum.ImplicitRemote;
   options.InferLocalRequests([apiAssembly]);
   options.InferLocalNotifications([apiAssembly]);
 });
 
-builder.Services.AddArbitrerRabbitMQMessageDispatcher(o =>
+builder.Services.AddHikyakuRabbitMQMessageDispatcher(o =>
 {
   configuration.GetSection("RabbitMQ").Bind(o);
   o.AutoDelete = false;

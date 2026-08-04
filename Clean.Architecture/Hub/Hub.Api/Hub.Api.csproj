@@ -11,9 +11,9 @@
     <ProjectReference Include="..\..\..\Commons\Voyager.Shared\Voyager.Shared.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Arbitrer" Version="12.5.0" />
-    <PackageReference Include="Arbitrer.RabbitMQ" Version="12.5.0" />
-    <PackageReference Include="MediatR" Version="12.5.0" />
+    <PackageReference Include="Hikyaku.Kaido" Version="10.0.1" />
+    <PackageReference Include="Hikyaku.Kaido.RabbitMQ" Version="10.0.1" />
+    <PackageReference Include="Hikyaku" Version="10.0.1" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="10.0.10" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.NewtonsoftJson" Version="10.0.10" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="10.0.10" />

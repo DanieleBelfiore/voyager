@@ -3,7 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Common.Core.Exceptions;
 using Driver.Core.CQRS.Queries;
-using MediatR;
+using Hikyaku;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Ride.Core.CQRS.Queries;
@@ -24,7 +24,7 @@ namespace Ride.Handlers.CQRS.Queries;
 /// - Night hours (22-5): 0.8x faster
 /// - Standard hours: 1.0x baseline
 /// </summary>
-public class GetRideETAHandler(IRideContext db, IMediator mediator, IConfiguration configuration) : IRequestHandler<GetRideETA, ETAResponse>
+public class GetRideETAHandler(IRideContext db, IHikyaku mediator, IConfiguration configuration) : IRequestHandler<GetRideETA, ETAResponse>
 {
   public async Task<ETAResponse> Handle(GetRideETA request, CancellationToken cancellationToken)
   {

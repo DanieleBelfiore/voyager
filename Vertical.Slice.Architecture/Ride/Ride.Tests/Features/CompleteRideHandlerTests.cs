@@ -1,4 +1,4 @@
-using MediatR;
+using Hikyaku;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using NetTopologySuite.Geometries;
@@ -39,7 +39,7 @@ public class CompleteRideHandlerTests
     ride.Start(SomePoint);
     db.Rides.Add(ride);
     await db.SaveChangesAsync();
-    var mediator = Substitute.For<IMediator>();
+    var mediator = Substitute.For<IHikyaku>();
     var handler = new CompleteRideHandler(db, mediator, FareConfig);
     var dropoff = new Point(0, 1);
 
@@ -65,7 +65,7 @@ public class CompleteRideHandlerTests
   {
     // Arrange
     await using var db = NewContext();
-    var handler = new CompleteRideHandler(db, Substitute.For<IMediator>(), FareConfig);
+    var handler = new CompleteRideHandler(db, Substitute.For<IHikyaku>(), FareConfig);
     var act = () => handler.Handle(new CompleteRide { Id = Guid.NewGuid(), Location = SomePoint }, CancellationToken.None);
 
     // Act & Assert

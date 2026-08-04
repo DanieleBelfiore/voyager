@@ -1,20 +1,13 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Ride.Application.Ports;
-using MediatR;
+using Ride.Core.Ports.Secondary;
+using Hikyaku;
 using Voyager.Contracts.Ride;
 
-namespace Ride.Infrastructure.Messaging;
+namespace Ride.Adapters.Secondary.Messaging;
 
-/// <summary>
-/// Publishes ride lifecycle events as MediatR notifications. No local handler exists in Ride
-/// itself, so Arbitrer's remote notification fan-out (InferLocalNotifications) delivers them
-/// to Hub over RabbitMQ — the service that actually owns connected SignalR clients. Replaces
-/// the Plugin.Microservices.CQRS variant's direct (and non-functional, cross-process)
-/// IHubContext&lt;VoyagerHub,...&gt; injection — see Voyager.Contracts/Ride/RideEvents.cs.
-/// </summary>
-public class ArbitrerRideEventPublisher(IMediator mediator) : IRideEventPublisher
+public class RemoteRideEventPublisher(IHikyaku mediator) : IRideEventPublisher
 {
   public Task NewRideRequestedAsync(Guid rideId, Guid driverId, CancellationToken cancellationToken) =>
     mediator.Publish(new NewRideRequested { RideId = rideId, DriverId = driverId }, cancellationToken);

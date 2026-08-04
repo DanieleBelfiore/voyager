@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Driver.Application.CQRS.Commands;
 using Driver.Application.CQRS.Queries;
 using Driver.Application.Dtos;
-using MediatR;
+using Hikyaku;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -22,7 +22,7 @@ namespace Driver.Api.Controllers;
 [Authorize]
 [EnableRateLimiting("driver_api")]
 [Route("api/v1/drivers")]
-public class DriversController(IMediator mediator) : ControllerBase
+public class DriversController(IHikyaku mediator) : ControllerBase
 {
   // Clamped the same way RideController clamps `take`: DistanceThresholdInKm is caller-supplied
   // and drives a spatial scan, so an absurd radius is capped rather than trusted. MaxCandidates

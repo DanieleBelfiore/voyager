@@ -2,7 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Hub.Application.Ports;
-using MediatR;
+using Hikyaku;
 using NetTopologySuite.Geometries;
 
 namespace Hub.Application.CQRS.Commands;

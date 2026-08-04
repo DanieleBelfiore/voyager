@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using Driver.Application.Dtos;
 using Driver.Application.Mapping;
 using Driver.Application.Ports;
-using MediatR;
+using Hikyaku;
 
 namespace Driver.Application.CQRS.Queries;
 

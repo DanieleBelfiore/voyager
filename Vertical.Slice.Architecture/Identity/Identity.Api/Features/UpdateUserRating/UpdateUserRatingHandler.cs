@@ -4,14 +4,14 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Identity.Api.Persistence;
-using MediatR;
+using Hikyaku;
 using Microsoft.EntityFrameworkCore;
 
 namespace Identity.Api.Features.UpdateUserRating;
 
 /// <summary>
 /// Handles the shared <see cref="Voyager.Contracts.Identity.UpdateUserRating"/> contract —
-/// no local endpoint, this is only ever driven remotely by Ride via Arbitrer after a completed
+/// no local endpoint, this is only ever driven remotely by Ride via Kaido after a completed
 /// ride is rated.
 /// </summary>
 public class UpdateUserRatingHandler(IdentityDbContext db) : IRequestHandler<Voyager.Contracts.Identity.UpdateUserRating, double>

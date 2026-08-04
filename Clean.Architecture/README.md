@@ -17,7 +17,7 @@ All four services — Identity, Driver, Ride, Hub — are implemented.
                              Commons/README.md), but nothing else outside itself and Domain.
       ↑
 {Service}.Infrastructure   ← implements every port: EF Core repository + migrations, Redis
-                             cache adapter, Arbitrer-based cross-service query/command/event
+                             cache adapter, Kaido-based cross-service query/command/event
                              clients, config-bound settings.
       ↑
 {Service}.Api               ← composition root. Wires Infrastructure implementations into
@@ -25,7 +25,7 @@ All four services — Identity, Driver, Ride, Hub — are implemented.
                              Program.cs, Dockerfile, appsettings.
 ```
 
-Arrows point toward Domain. `{Service}.Application` never references `{Service}.Infrastructure`, EF Core, or ASP.NET Core — only the ports it declared (plus Voyager.Contracts message shapes). `{Service}.Domain` never references EF Core, MediatR, or ASP.NET Core at all.
+Arrows point toward Domain. `{Service}.Application` never references `{Service}.Infrastructure`, EF Core, or ASP.NET Core — only the ports it declared (plus Voyager.Contracts message shapes). `{Service}.Domain` never references EF Core, Hikyaku, or ASP.NET Core at all.
 
 ## What's different from Plugin.Microservices.CQRS
 
@@ -40,14 +40,14 @@ Arrows point toward Domain. `{Service}.Application` never references `{Service}.
 
 ## Cross-service communication
 
-Same mechanism as every variant in this portfolio: **Arbitrer** gives MediatR implicit remote dispatch over RabbitMQ — `IMediator.Send(request)` runs locally if a handler is registered, otherwise Arbitrer routes it to whichever service does, keyed by the request type's full name. Wire contracts live in `Commons/Voyager.Contracts` (shared, message-shape-only) rather than a direct project reference to another service's internals — see [Commons/README.md](../Commons/README.md).
+Same mechanism as every variant in this portfolio: **Kaido** gives Hikyaku implicit remote dispatch over RabbitMQ — `IHikyaku.Send(request)` runs locally if a handler is registered, otherwise Kaido routes it to whichever service does, keyed by the request type's full name. Wire contracts live in `Commons/Voyager.Contracts` (shared, message-shape-only) rather than a direct project reference to another service's internals — see [Commons/README.md](../Commons/README.md).
 
 **Unification pattern**: when a command/query is genuinely called both locally (by its owning service's own controller) and remotely (by another service), the *owning service's* Application handler implements the shared `Voyager.Contracts` type directly instead of maintaining a separate local type — one canonical type, works identically whether dispatched in-process or over the wire. Used for `Driver.AddDriver`, `Driver.UpdateLocation`, `Identity.UpdateUserRating`, `Identity.GetUsersRatings`. Where the remote caller needs a slimmer response than the local one (e.g. Hub only needs a ride's pickup point, not its full detail payload), the owning service adds a second, purpose-fit handler for the shared contract alongside its richer local one (`Ride.GetActiveRide`, `Ride.GetRideETA`) rather than forcing one shape to serve both.
 
 Two deliberate corrections versus the Plugin variant, found while porting:
 
 - **Driver's convenience passthrough, dropped.** The Plugin variant's `DriverController` also exposes `GetActiveRide`/`GetRideDriverHistory` as a passthrough to Ride's data. This variant drops that — Ride already owns those endpoints, and duplicating them here would leak a foreign bounded context into a controller that's supposed to depend on nothing but its own Application layer.
-- **Ride→Hub real-time notifications, fixed.** The Plugin variant's Ride handlers inject `IHubContext<VoyagerHub, IVoyagerShareClient>` directly and call it in-process. But Ride and Hub are separate services with no SignalR backplane configured, so those calls only ever reach clients connected to Ride's own (client-less) SignalR endpoint — dead code. This variant publishes proper MediatR notifications instead (`Voyager.Contracts.Ride.RideAccepted`, `RideCancelled`, `RideCompleted`, `NewRideRequested`, `DriverRatingReceived`, `RiderRatingReceived`), which Arbitrer fans out to Hub — the service that actually owns connected SignalR clients — where they're relayed for real. See `Commons/Voyager.Contracts/Ride/RideEvents.cs`.
+- **Ride→Hub real-time notifications, fixed.** The Plugin variant's Ride handlers inject `IHubContext<VoyagerHub, IVoyagerShareClient>` directly and call it in-process. But Ride and Hub are separate services with no SignalR backplane configured, so those calls only ever reach clients connected to Ride's own (client-less) SignalR endpoint — dead code. This variant publishes proper Hikyaku notifications instead (`Voyager.Contracts.Ride.RideAccepted`, `RideCancelled`, `RideCompleted`, `NewRideRequested`, `DriverRatingReceived`, `RiderRatingReceived`), which Kaido fans out to Hub — the service that actually owns connected SignalR clients — where they're relayed for real. See `Commons/Voyager.Contracts/Ride/RideEvents.cs`.
 
 ## Why Hub has no Domain layer
 

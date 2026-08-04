@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Ride.Application.CQRS.Commands;
 using Ride.Application.CQRS.Queries;
 using Ride.Application.Dtos;
-using MediatR;
+using Hikyaku;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -15,7 +15,7 @@ namespace Ride.Api.Controllers;
 [Authorize]
 [EnableRateLimiting("ride_api")]
 [Route("api/v1/rides")]
-public class RidesController(IMediator mediator) : ControllerBase
+public class RidesController(IHikyaku mediator) : ControllerBase
 {
   [EnableRateLimiting("ride_request")]
   [HttpPost]

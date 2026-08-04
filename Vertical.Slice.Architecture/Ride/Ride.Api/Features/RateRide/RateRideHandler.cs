@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using MediatR;
+using Hikyaku;
 using Microsoft.EntityFrameworkCore;
 using Ride.Api.Persistence;
 using Voyager.Contracts.Identity;
@@ -10,8 +10,8 @@ using Voyager.Contracts.Ride;
 
 namespace Ride.Api.Features.RateRide;
 
-/// <summary>No IRatingUpdateService port — recomputes the rider's rating by sending the shared UpdateUserRating contract to Identity via IMediator directly.</summary>
-public class RateRideHandler(RideDbContext db, IMediator mediator) : IRequestHandler<RateRide>
+/// <summary>No IRatingUpdateService port — recomputes the rider's rating by sending the shared UpdateUserRating contract to Identity via IHikyaku directly.</summary>
+public class RateRideHandler(RideDbContext db, IHikyaku mediator) : IRequestHandler<RateRide>
 {
   public async Task Handle(RateRide request, CancellationToken cancellationToken)
   {

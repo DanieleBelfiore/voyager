@@ -3,7 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Common.Core.Exceptions;
 using Identity.Core.CQRS.Commands;
-using MediatR;
+using Hikyaku;
 using Microsoft.EntityFrameworkCore;
 using Ride.Core.CQRS.Commands;
 using Ride.Core.CQRS.Events;
@@ -12,7 +12,7 @@ using Ride.Handlers.Interfaces;
 
 namespace Ride.Handlers.CQRS.Commands;
 
-public class RateRideHandler(IRideContext db, IMediator mediator) : IRequestHandler<RateRide>
+public class RateRideHandler(IRideContext db, IHikyaku mediator) : IRequestHandler<RateRide>
 {
   // The value feeds Identity's running average, so an out-of-range or replayed rating
   // permanently skews the target's score and the driver-matching rank built on top of it.

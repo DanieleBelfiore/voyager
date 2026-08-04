@@ -2,7 +2,7 @@ using System.Composition;
 using System.Reflection;
 using Common.Core.Interfaces;
 using JetBrains.Annotations;
-using MediatR;
+using Hikyaku;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
@@ -18,8 +18,8 @@ public class Module : IModule
   public void ConfigureServices(IServiceCollection services, IConfiguration configuration, IHostEnvironment hostingEnvironment)
   {
     // Picks up RideEventHandlers (INotificationHandler<T> for Ride's lifecycle events) — the
-    // host's own AddMediatR call only scans its own assembly, not this dynamically loaded module.
-    services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
+    // host's own AddHikyaku call only scans its own assembly, not this dynamically loaded module.
+    services.AddHikyaku(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
   }
 
   public void OnStartup(IApplicationBuilder app)

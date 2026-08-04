@@ -1,7 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Hub.Api.Shared;
-using MediatR;
+using Hikyaku;
 using Microsoft.AspNetCore.SignalR;
 using Voyager.Contracts.Ride;
 
@@ -9,7 +9,7 @@ namespace Hub.Api.Features.RideEvents;
 
 /// <summary>
 /// Consumes ride lifecycle events Ride publishes (Voyager.Contracts/Ride/RideEvents.cs) and
-/// relays them to connected SignalR clients — no local endpoint, reachable only via Arbitrer's
+/// relays them to connected SignalR clients — no local endpoint, reachable only via Kaido's
 /// remote notification fan-out, same rationale as Ride's *ForHub handlers.
 /// </summary>
 public class NewRideRequestedHandler(IHubContext<VoyagerHub, IVoyagerShareClient> hub) : INotificationHandler<NewRideRequested>

@@ -4,7 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Driver.Module.Entities;
 using Driver.Module.Persistence;
-using MediatR;
+using Hikyaku;
 using Microsoft.EntityFrameworkCore;
 using Voyager.Contracts.Driver;
 
@@ -12,8 +12,8 @@ namespace Driver.Module.Features.MarkDriverAvailability;
 
 /// <summary>
 /// Handles the shared Voyager.Contracts.Driver availability commands directly. No remote hop
-/// here (single process) — Ride's module calls IMediator.Send(new MarkDriverOnRide{...}) on
-/// Accept/Cancel/Complete, and this internal handler is the one MediatR resolves.
+/// here (single process) — Ride's module calls IHikyaku.Send(new MarkDriverOnRide{...}) on
+/// Accept/Cancel/Complete, and this internal handler is the one Hikyaku resolves.
 /// </summary>
 internal class MarkDriverOnRideHandler(DriverDbContext db) : IRequestHandler<MarkDriverOnRide>
 {

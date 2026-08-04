@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using MediatR;
+using Hikyaku;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -13,7 +13,7 @@ namespace Ride.Module.Features.GetRideHistory;
 [Authorize]
 [EnableRateLimiting("ride_api")]
 [Route("api/v1/rides")]
-public class GetRideHistoryController(IMediator mediator) : ControllerBase
+public class GetRideHistoryController(IHikyaku mediator) : ControllerBase
 {
   [HttpGet("history")]
   public async Task<ActionResult<List<RideDetailsResponse>>> Get(CancellationToken cancellationToken, int take = 25, int page = 0)

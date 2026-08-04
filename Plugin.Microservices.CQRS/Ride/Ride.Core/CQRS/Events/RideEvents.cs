@@ -1,11 +1,11 @@
 using System;
-using MediatR;
+using Hikyaku;
 
 namespace Ride.Core.CQRS.Events
 {
   /// <summary>
   /// Ride lifecycle events, published by Ride.Handlers and consumed by Hub.API to relay over
-  /// SignalR to its own connected clients. Ride and Hub are separate processes, so Arbitrer's
+  /// SignalR to its own connected clients. Ride and Hub are separate processes, so Kaido's
   /// remote notification fan-out over RabbitMQ is what actually delivers these — the direct
   /// IHubContext&lt;VoyagerHub, IVoyagerShareClient&gt; injection this replaced only ever reached
   /// clients connected to Ride's own (client-less) SignalR endpoint.

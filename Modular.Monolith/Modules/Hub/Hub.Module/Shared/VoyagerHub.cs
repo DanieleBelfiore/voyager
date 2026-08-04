@@ -1,7 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using MediatR;
+using Hikyaku;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using NetTopologySuite.Geometries;
@@ -15,7 +15,7 @@ namespace Hub.Module.Shared;
 /// directly; Host just calls that extension method and never touches VoyagerHub itself.
 /// </summary>
 [Authorize]
-internal class VoyagerHub(IMediator mediator) : Hub<IVoyagerShareClient>
+internal class VoyagerHub(IHikyaku mediator) : Hub<IVoyagerShareClient>
 {
   /// <summary>Joins the caller's personal group so cross-service events targeting them by user
   /// id (e.g. NewRideRequested, before anyone can join ride_{RideId}) reach this connection.</summary>

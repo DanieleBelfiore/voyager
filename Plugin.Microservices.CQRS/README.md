@@ -1,6 +1,6 @@
 # Voyager — Plugin.Microservices.CQRS
 
-> Part of the [Voyager architecture portfolio](../README.md). This variant is the **original implementation**: microservices composed via a custom plugin/module loader, CQRS + MediatR inside each service.
+> Part of the [Voyager architecture portfolio](../README.md). This variant is the **original implementation**: microservices composed via a custom plugin/module loader, CQRS + Hikyaku inside each service.
 
 ## Architecture Overview
 
@@ -23,13 +23,13 @@ The dominant pattern is **Microservices + CQRS**, held together by a custom **pl
 Each service's `.Handlers`/`.API` project exposes an `IModule` (`ConfigureServices`, `OnStartup`, `UseEndpoints`). At startup, `Common.Core.Loader` scans configured directories, dynamically loads assemblies via `AssemblyLoadContext`, and composes DI registrations, DB migrations and route mappings without explicit project references between host and handler projects. See `Common/Common.Core/Loader.cs` and `{Service}/{Service}.Handlers/Module.cs`.
 
 ### CQRS + Mediator
-Commands and queries are defined in `.Core/CQRS/` and dispatched to handlers in `.Handlers/CQRS/` via **MediatR**. Controllers never contain business logic — they only call `IMediator.Send(...)`.
+Commands and queries are defined in `.Core/CQRS/` and dispatched to handlers in `.Handlers/CQRS/` via **[Hikyaku](https://github.com/ppossanzini/Hikyaku)** — a fork of MediatR 12.5.0 that this portfolio moved to when Arbitrer, the remote-dispatch library it depended on, was archived. Same type names as MediatR except `IMediator` → `IHikyaku`. Controllers never contain business logic — they only call `IHikyaku.Send(...)`.
 
 ### Cache-Aside
 Read-heavy queries (e.g. driver search, ratings) wrap DB access in `cache.GetOrCreateAsync(...)` with short TTLs, backed by Redis. See `Driver.Handlers/CQRS/Queries/SearchBestDriverHandler.cs`.
 
-### Distributed Mediator (Arbitrer)
-Cross-service queries don't go over HTTP or a shared database — **Arbitrer** (`ArbitrerBehaviourEnum.ImplicitRemote`) intercepts `IMediator.Send(...)` and, if no local handler is registered for that request type, transparently routes it to whichever service *does* register one, over RabbitMQ RPC, keyed by the request's full type name. `SearchBestDriverHandler` uses this to ask Identity for user ratings (`GetUsersRatings`) as if it were a local call. This is a more central pattern than plain pub/sub — see `Driver/Program.cs`'s `AddArbitrer`/`AddArbitrerRabbitMQMessageDispatcher` wiring.
+### Distributed Mediator (Kaido)
+Cross-service queries don't go over HTTP or a shared database — **Kaido** (Hikyaku's out-of-process half, and the successor to Arbitrer) in `HikyakuBehaviourEnum.ImplicitRemote` mode intercepts `IHikyaku.Send(...)` and, if no local handler is registered for that request type, transparently routes it to whichever service *does* register one, over RabbitMQ RPC, keyed by the request's full type name. `SearchBestDriverHandler` uses this to ask Identity for user ratings (`GetUsersRatings`) as if it were a local call. This is a more central pattern than plain pub/sub — see `Driver/Program.cs`'s `AddKaido`/`AddHikyakuRabbitMQMessageDispatcher` wiring.
 
 ### Publish-Subscribe / Observer
 Ride service publishes domain events to RabbitMQ; Hub service consumes them and pushes updates to connected clients over SignalR (`SendToRiderNewDriverLocation`, `SendToRiderRideAccepted`, etc.) — a real-time observer chain.

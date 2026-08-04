@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using MediatR;
+using Hikyaku;
 using NetTopologySuite.Geometries;
 
 namespace Driver.Api.Features.SearchBestDriver;

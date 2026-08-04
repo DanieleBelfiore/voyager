@@ -2,7 +2,7 @@ using System.Net.Http.Headers;
 using Driver.Handlers.Models;
 using Identity.Handlers.Interfaces;
 using Identity.Handlers.Models;
-using MediatR;
+using Hikyaku;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Xunit;
@@ -34,7 +34,7 @@ public abstract class BaseIntegrationTest : IClassFixture<IntegrationTestWebAppF
 
   private void InitializeServices(IServiceProvider services)
   {
-    services.GetRequiredService<IMediator>();
+    services.GetRequiredService<IHikyaku>();
     Context = services.GetRequiredService<DriverContext>();
     UserManager = services.GetRequiredService<IUserManager>();
     Client = _factory.CreateClient();

@@ -1,6 +1,6 @@
 # Voyager — Vertical Slice Architecture
 
-> Part of the [Voyager architecture portfolio](../README.md). This variant re-implements the same ride-sharing domain using **Vertical Slice Architecture**: instead of horizontal layers (Domain/Application/Infrastructure) or ports-and-adapters, each use case is a self-contained **feature folder** holding everything it needs — request, handler, validator, controller — and touches infrastructure (EF Core, cache, IMediator) directly. No repository, no port interfaces, no adapters project.
+> Part of the [Voyager architecture portfolio](../README.md). This variant re-implements the same ride-sharing domain using **Vertical Slice Architecture**: instead of horizontal layers (Domain/Application/Infrastructure) or ports-and-adapters, each use case is a self-contained **feature folder** holding everything it needs — request, handler, validator, controller — and touches infrastructure (EF Core, cache, IHikyaku) directly. No repository, no port interfaces, no adapters project.
 
 All four services — Identity, Driver, Ride, Hub — are implemented.
 
@@ -13,9 +13,9 @@ All four services — Identity, Driver, Ride, Hub — are implemented.
 ├── Shared/               ← cross-feature response shapes / helpers (kept minimal — see below)
 └── Features/
     ├── AddDriver/
-    │   ├── AddDriverHandler.cs        ← IRequestHandler<T>, injects DbContext/IMediator directly
-    │   ├── AddDriverValidator.cs      ← FluentValidation, runs via a MediatR pipeline behavior
-    │   └── AddDriverController.cs     ← one controller per feature, injects IMediator, calls .Send
+    │   ├── AddDriverHandler.cs        ← IRequestHandler<T>, injects DbContext/IHikyaku directly
+    │   ├── AddDriverValidator.cs      ← FluentValidation, runs via a Hikyaku pipeline behavior
+    │   └── AddDriverController.cs     ← one controller per feature, injects IHikyaku, calls .Send
     ├── UpdateLocation/
     │   └── ...
     └── ...                            ← one folder per use case, all siblings, no shared layer
@@ -28,14 +28,14 @@ Two projects per service — `{Service}.Api` and `{Service}.Tests` — versus Cl
 Compare this to [Hexagonal.Architecture](../Hexagonal.Architecture/README.md), which still has secondary *ports* (`IDriverRepository`, `ICacheService`, `IRideEventPublisher`, …) — interfaces the Core defines and Adapters.Secondary implements. This variant has **none of that**:
 
 - **No repository.** Every handler takes `{Service}DbContext` as a constructor dependency and queries it directly (`db.Drivers.FirstOrDefaultAsync(...)`). There's nothing to mock in a unit test except the `DbContext` itself, so tests use EF Core's InMemory provider instead of a hand-rolled fake or an NSubstitute mock.
-- **No event-publisher/cross-service-query port.** A handler that needs to notify Hub, ask Identity for ratings, or ask Driver for a location just calls `mediator.Send(...)` / `mediator.Publish(...)` directly — the exact same `IMediator` Arbitrer already uses for remote dispatch. There's no `IRideEventPublisher` wrapping that call.
+- **No event-publisher/cross-service-query port.** A handler that needs to notify Hub, ask Identity for ratings, or ask Driver for a location just calls `mediator.Send(...)` / `mediator.Publish(...)` directly — the exact same `IHikyaku` Kaido already uses for remote dispatch. There's no `IRideEventPublisher` wrapping that call.
 - **No `ICacheService` port** in Driver — handlers inject `Voyager.Shared.Cache.ICacheService` directly (that interface is already infra-agnostic, owned by Commons, so wrapping it again would be pure ceremony).
-- **Validation moved into the pipeline.** A `ValidationBehavior<TRequest,TResponse>` (in `Commons/Voyager.Shared/Validation`) runs every registered FluentValidation validator before a handler executes. `RegisterUser`, `UpdateLocation`, `UpdateAvailability` all have their own colocated `*Validator.cs`. Plugin, Clean and Hexagonal all do input validation with manual guard clauses inline in the handler; this variant introduced the MediatR-pipeline-behavior pattern instead, because it's the natural fit for feature folders — the validator lives right next to the request it validates. [Modular.Monolith](../Modular.Monolith/README.md) later adopted the same behavior (its own concession: every validator there is `internal`, so its `Host` must pass `includeInternalTypes: true` to `AddValidatorsFromAssemblies` or the behavior silently validates nothing).
-- **One controller per feature**, not one controller per resource. `Driver.Api/Features/AddDriver/AddDriverController.cs`, `UpdateLocation/UpdateLocationController.cs`, etc. — each a few lines, injecting `IMediator` and calling `.Send`. This is what makes the folder genuinely self-contained: nothing about a feature lives outside its own folder except the aggregate entity and the DbContext, both of which are shared by construction (every feature operates on the same table).
+- **Validation moved into the pipeline.** A `ValidationBehavior<TRequest,TResponse>` (in `Commons/Voyager.Shared/Validation`) runs every registered FluentValidation validator before a handler executes. `RegisterUser`, `UpdateLocation`, `UpdateAvailability` all have their own colocated `*Validator.cs`. Plugin, Clean and Hexagonal all do input validation with manual guard clauses inline in the handler; this variant introduced the Hikyaku-pipeline-behavior pattern instead, because it's the natural fit for feature folders — the validator lives right next to the request it validates. [Modular.Monolith](../Modular.Monolith/README.md) later adopted the same behavior (its own concession: every validator there is `internal`, so its `Host` must pass `includeInternalTypes: true` to `AddValidatorsFromAssemblies` or the behavior silently validates nothing).
+- **One controller per feature**, not one controller per resource. `Driver.Api/Features/AddDriver/AddDriverController.cs`, `UpdateLocation/UpdateLocationController.cs`, etc. — each a few lines, injecting `IHikyaku` and calling `.Send`. This is what makes the folder genuinely self-contained: nothing about a feature lives outside its own folder except the aggregate entity and the DbContext, both of which are shared by construction (every feature operates on the same table).
 
 ## Cross-service dispatch — identical mechanism, simpler plumbing
 
-Local and remote dispatch both go through `IMediator`, exactly like [Clean.Architecture](../Clean.Architecture/README.md) — a controller calls `mediator.Send(command)`, and if no local handler is registered for that exact type, Arbitrer routes it over RabbitMQ to whichever service does register one. The contract-unification pattern is unchanged: `AddDriver`, `UpdateLocation`, `UpdateUserRating`, `GetUsersRatings` are still the literal `Voyager.Contracts.*` types, handled directly with no local wrapper type. What's different is that in this variant there's no adapter class in between — a handler that needs a driver's rating just does `await mediator.Send(new GetUsersRatings { UserIds = [id] })` inline, because there's no port to hide it behind.
+Local and remote dispatch both go through `IHikyaku`, exactly like [Clean.Architecture](../Clean.Architecture/README.md) — a controller calls `mediator.Send(command)`, and if no local handler is registered for that exact type, Kaido routes it over RabbitMQ to whichever service does register one. The contract-unification pattern is unchanged: `AddDriver`, `UpdateLocation`, `UpdateUserRating`, `GetUsersRatings` are still the literal `Voyager.Contracts.*` types, handled directly with no local wrapper type. What's different is that in this variant there's no adapter class in between — a handler that needs a driver's rating just does `await mediator.Send(new GetUsersRatings { UserIds = [id] })` inline, because there's no port to hide it behind.
 
 ## `Shared/`
 
@@ -49,7 +49,7 @@ Anything that's genuinely single-feature stays inside that feature's own folder,
 
 ## Remote-only features
 
-Same pattern as Hexagonal: `GetActiveRideForHub` and `GetRideETAForHub` in Ride, plus `GetRideDriverHistory` (a pre-existing gap inherited from the original Plugin implementation, not something introduced here) have a handler but no controller — they're reached exclusively through Arbitrer's remote MediatR dispatch, driven by another service.
+Same pattern as Hexagonal: `GetActiveRideForHub` and `GetRideETAForHub` in Ride, plus `GetRideDriverHistory` (a pre-existing gap inherited from the original Plugin implementation, not something introduced here) have a handler but no controller — they're reached exclusively through Kaido's remote Hikyaku dispatch, driven by another service.
 
 ## Namespace collision gotcha
 
@@ -57,7 +57,7 @@ Same issue as Hexagonal, same fix: each service's root namespace segment matches
 
 ## Testing
 
-Unit tests spin up `{Service}DbContext` against EF Core's `UseInMemoryDatabase`, seed it directly, and call `handler.Handle(...)` — no repository to mock. Cross-service calls (`IMediator.Send`/`.Publish`) and `IHubContext` are mocked with NSubstitute where a handler depends on them. This is the most "integration-shaped" unit testing of any variant in the portfolio, because there's genuinely less to isolate — the whole point of dropping the repository port is that EF Core's InMemory provider *is* the seam now.
+Unit tests spin up `{Service}DbContext` against EF Core's `UseInMemoryDatabase`, seed it directly, and call `handler.Handle(...)` — no repository to mock. Cross-service calls (`IHikyaku.Send`/`.Publish`) and `IHubContext` are mocked with NSubstitute where a handler depends on them. This is the most "integration-shaped" unit testing of any variant in the portfolio, because there's genuinely less to isolate — the whole point of dropping the repository port is that EF Core's InMemory provider *is* the seam now.
 
 ## Running
 

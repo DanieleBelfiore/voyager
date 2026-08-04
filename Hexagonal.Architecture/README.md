@@ -14,7 +14,7 @@ All four services — Identity, Driver, Ride, Hub — are implemented.
                                       the point of hexagonal: one hexagon, ports on every side.
       ↑ implements
 {Service}.Adapters.Secondary       ← secondary adapters: EF Core repository + migrations, Redis
-                                      cache, Arbitrer-based cross-service clients. Symmetric with
+                                      cache, Kaido-based cross-service clients. Symmetric with
                                       the primary side below — both are just adapters plugged
                                       into the same ports.
       ↑ implements / injects
@@ -28,10 +28,10 @@ All four services — Identity, Driver, Ride, Hub — are implemented.
 
 Every use case implements a **primary port** shaped like `IXxxUseCase : IRequestHandler<Command>` (or `<Command, Response>`). That single interface makes the use case reachable two different ways at once, and neither one is aware of the other:
 
-1. **Locally** — `Driver.Api`'s `DriversController` takes `IAddDriverUseCase` as a constructor dependency and calls `.Handle(command, ct)` directly. No `IMediator.Send`, no dispatch layer — just an interface call, the same way you'd inject any other collaborator.
-2. **Remotely** — `AddDriverUseCase` is *also* discovered by MediatR's assembly scan (`RegisterServicesFromAssembly(coreAssembly)`), which is what makes it a valid Arbitrer target: when Identity calls the shared `Voyager.Contracts.Driver.AddDriver` command and no local handler exists in Identity's own process, Arbitrer routes it over RabbitMQ to Driver, where MediatR resolves the same `AddDriverUseCase` instance and invokes the identical `Handle` method.
+1. **Locally** — `Driver.Api`'s `DriversController` takes `IAddDriverUseCase` as a constructor dependency and calls `.Handle(command, ct)` directly. No `IHikyaku.Send`, no dispatch layer — just an interface call, the same way you'd inject any other collaborator.
+2. **Remotely** — `AddDriverUseCase` is *also* discovered by Hikyaku's assembly scan (`RegisterServicesFromAssembly(coreAssembly)`), which is what makes it a valid Kaido target: when Identity calls the shared `Voyager.Contracts.Driver.AddDriver` command and no local handler exists in Identity's own process, Kaido routes it over RabbitMQ to Driver, where Hikyaku resolves the same `AddDriverUseCase` instance and invokes the identical `Handle` method.
 
-Compare this to [Clean.Architecture](../Clean.Architecture/README.md), where **every** call — local or remote — goes through `IMediator.Send`. Here, the primary port *is* the seam: whether the caller is a REST controller in the same process or Arbitrer resolving a remote request, they're both just "something that drives the hexagon," and the hexagon doesn't need to know which.
+Compare this to [Clean.Architecture](../Clean.Architecture/README.md), where **every** call — local or remote — goes through `IHikyaku.Send`. Here, the primary port *is* the seam: whether the caller is a REST controller in the same process or Kaido resolving a remote request, they're both just "something that drives the hexagon," and the hexagon doesn't need to know which.
 
 A handful of use cases exist purely to serve a *remote* primary adapter and are never called locally — e.g. `GetActiveRideForHubUseCase`, which only Hub calls, over the wire, to find which ride group to notify. Those implement `IRequestHandler<T>` directly with no dedicated `IXxxUseCase` interface, since nothing local ever needs to inject one.
 
@@ -40,7 +40,7 @@ A handful of use cases exist purely to serve a *remote* primary adapter and are 
 | | Clean.Architecture | Hexagonal.Architecture |
 |---|---|---|
 | Core structure | `Domain` and `Application` are separate projects (onion layers) | `Core` is one project — entities, ports, and use cases together (one hexagon) |
-| Local dispatch | Controllers call `IMediator.Send(command)` | Controllers inject the use case's primary port directly and call `.Handle(...)` |
+| Local dispatch | Controllers call `IHikyaku.Send(command)` | Controllers inject the use case's primary port directly and call `.Handle(...)` |
 | Ports | Application defines only *secondary* ports (repository, cache, etc.) | Core defines both *primary* ports (`IXxxUseCase : IRequestHandler<T>`) and *secondary* ports, named accordingly |
 | Persistence/messaging adapters | One `Infrastructure` project | `Adapters.Secondary` — same content, named to make the ports-and-adapters framing explicit |
 | Vocabulary | Domain/Application/Infrastructure | Core/Ports.Primary/Ports.Secondary/Adapters.Secondary — hexagonal's own terms, not relabeled Clean Architecture |
@@ -55,7 +55,7 @@ One layering exception, structural not a shortcut: `SignalRHubRelay` (implements
 
 ## Testing
 
-Unit tests instantiate use case classes directly — `new AddDriverUseCase(mockRepository)` — and call `.Handle(...)`, exactly the way a primary adapter would. No EF Core, no message bus, no SignalR, no MediatR pipeline involved in the test at all; the primary port *is* the seam the test exploits.
+Unit tests instantiate use case classes directly — `new AddDriverUseCase(mockRepository)` — and call `.Handle(...)`, exactly the way a primary adapter would. No EF Core, no message bus, no SignalR, no Hikyaku pipeline involved in the test at all; the primary port *is* the seam the test exploits.
 
 ## Running
 

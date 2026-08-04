@@ -1,6 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
-using MediatR;
+using Hikyaku;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -11,7 +11,7 @@ namespace Ride.Api.Features.GetActiveRide;
 [Authorize]
 [EnableRateLimiting("ride_api")]
 [Route("api/v1/rides")]
-public class GetActiveRideController(IMediator mediator) : ControllerBase
+public class GetActiveRideController(IHikyaku mediator) : ControllerBase
 {
   [HttpGet("active")]
   public async Task<ActionResult<ActiveRideResponse>> Get(CancellationToken cancellationToken)

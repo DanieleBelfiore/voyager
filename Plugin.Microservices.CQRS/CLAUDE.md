@@ -58,7 +58,7 @@ Each service follows a strict four-project split:
 
 ```
 {Service}/              → ASP.NET Core web host (Program.cs, Dockerfile)
-{Service}.API/          → Controllers (dispatch to MediatR)
+{Service}.API/          → Controllers (dispatch to Hikyaku)
 {Service}.Core/         → CQRS commands/queries, DTOs, enums (no dependencies)
 {Service}.Handlers/     → Handlers, EF DbContext, repositories, Mapperly profiles, EF migrations
 ```
@@ -76,7 +76,7 @@ Test projects (`{Service}.Tests`, `{Service}.IntegrationTests`) sit alongside.
 
 ### CQRS Flow
 
-Controllers → `IMediator.Send(command/query)` → Handler in `.Handlers` → DbContext → Response.
+Controllers → `IHikyaku.Send(command/query)` → Handler in `.Handlers` → DbContext → Response.
 
 Commands and queries live in `.Core/CQRS/`; handlers live in `.Handlers/CQRS/`. Never put business logic in controllers.
 
@@ -102,7 +102,7 @@ Ride service publishes events to RabbitMQ → Hub service consumes and pushes to
 
 ## Key Notes
 
-- Uses **Newtonsoft.Json** on every wire path — HTTP, SignalR, and Arbitrer's RabbitMQ payloads — with geometry handled by NetTopologySuite's own `GeometryConverter` (`NetTopologySuite.IO.Converters`), not a hand-rolled one. The one exception is `Common.Core.Cache.RedisCacheService`, which serializes with `System.Text.Json` plus `GeoJsonConverterFactory` (`NetTopologySuite.IO.GeoJSON4STJ`). That converter is load-bearing, not decoration: plain STJ cannot write a `Point` at all (`Z`/`M` are `NaN`), so every cache write threw and was swallowed, leaving the cache permanently empty.
+- Uses **Newtonsoft.Json** on every wire path — HTTP, SignalR, and Kaido's RabbitMQ payloads — with geometry handled by NetTopologySuite's own `GeometryConverter` (`NetTopologySuite.IO.Converters`), not a hand-rolled one. The one exception is `Common.Core.Cache.RedisCacheService`, which serializes with `System.Text.Json` plus `GeoJsonConverterFactory` (`NetTopologySuite.IO.GeoJSON4STJ`). That converter is load-bearing, not decoration: plain STJ cannot write a `Point` at all (`Z`/`M` are `NaN`), so every cache write threw and was swallowed, leaving the cache permanently empty.
 - Integration tests (Testcontainers: MsSql/RabbitMq/Redis) exist for Driver and Ride only, and are excluded from CI (`--filter "FullyQualifiedName!~IntegrationTests"`) — run them locally.
 - Unit tests use `UseInMemoryDatabase`, **except** where the handler under test uses a relational-only EF feature (`ExecuteUpdate`/`ExecuteDelete`, raw SQL), which InMemory does not implement. Those open a `SqliteConnection("DataSource=:memory:")` held open for the fixture's lifetime plus `Database.EnsureCreated()` — see `Identity.Tests/Handlers/Commands/UpdateUserRatingHandlerTests.cs`. SQLite proves the logic and the atomicity, not SQL Server's own translation, so those fixes still want a pass against docker-compose.
 - CI enforces an **80% line-coverage gate** on business logic (`{Service}.Core`, `{Service}.Handlers`, `Hub.API`) via `scripts/check-coverage.py`. `Common.Core` (cache, rate limiting, the AssemblyLoadContext plugin loader) is infra shared across this variant's own services — same "no domain logic" role as the root `Commons/` folder — so it's excluded from the gate, same as Api/Controllers and generated EF migrations/DbContext/`Module` (`IModule` registration)/`UserManagerService` (thin `UserManager<T>` pass-through). The coverage collector only sees assemblies actually loaded by a test process — a service with no `{Service}.Tests` project silently vanishes from the gate's denominator instead of dragging the score down. Every service must have one, or its real coverage (likely near 0%) never gets measured at all.

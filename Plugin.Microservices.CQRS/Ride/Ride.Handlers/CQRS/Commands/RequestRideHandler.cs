@@ -6,7 +6,7 @@ using Common.Core.Exceptions;
 using Common.Core.Validation;
 using Driver.Core.CQRS.Queries;
 using Driver.Core.Enums;
-using MediatR;
+using Hikyaku;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using NetTopologySuite.IO;
@@ -18,7 +18,7 @@ using Ride.Handlers.Interfaces;
 
 namespace Ride.Handlers.CQRS.Commands;
 
-public class RequestRideHandler(IRideContext db, RideMapper mapper, IMediator mediator) : IRequestHandler<RequestRide, RideDetailsResponse>
+public class RequestRideHandler(IRideContext db, RideMapper mapper, IHikyaku mediator) : IRequestHandler<RequestRide, RideDetailsResponse>
 {
   public async Task<RideDetailsResponse> Handle(RequestRide request, CancellationToken cancellationToken)
   {

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using MediatR;
+using Hikyaku;
 using Microsoft.EntityFrameworkCore;
 using Ride.Module.Persistence;
 using Voyager.Contracts.Identity;
@@ -10,7 +10,7 @@ using Voyager.Contracts.Ride;
 
 namespace Ride.Module.Features.RateRide;
 
-internal class RateRideHandler(RideDbContext db, IMediator mediator) : IRequestHandler<RateRide>
+internal class RateRideHandler(RideDbContext db, IHikyaku mediator) : IRequestHandler<RateRide>
 {
   public async Task Handle(RateRide request, CancellationToken cancellationToken)
   {

@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Common.Core.Exceptions;
 using Driver.Core.CQRS.Commands;
 using Driver.Core.Enums;
-using MediatR;
+using Hikyaku;
 using Microsoft.EntityFrameworkCore;
 using Ride.Core.CQRS.Commands;
 using Ride.Core.CQRS.Events;
@@ -13,7 +13,7 @@ using Ride.Handlers.Interfaces;
 
 namespace Ride.Handlers.CQRS.Commands;
 
-public class AcceptRideHandler(IRideContext db, IMediator mediator) : IRequestHandler<AcceptRide>
+public class AcceptRideHandler(IRideContext db, IHikyaku mediator) : IRequestHandler<AcceptRide>
 {
   public async Task Handle(AcceptRide request, CancellationToken cancellationToken)
   {

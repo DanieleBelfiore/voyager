@@ -5,7 +5,7 @@ using Common.Core.Cache;
 using Common.Core.Exceptions;
 using Driver.Core.CQRS.Commands;
 using Driver.Handlers.Interfaces;
-using MediatR;
+using Hikyaku;
 using Microsoft.EntityFrameworkCore;
 
 namespace Driver.Handlers.CQRS.Commands;

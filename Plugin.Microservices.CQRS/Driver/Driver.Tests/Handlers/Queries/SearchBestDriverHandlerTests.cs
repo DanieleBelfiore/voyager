@@ -1,7 +1,7 @@
 using Driver.Core.CQRS.Queries;
 using Driver.Handlers.CQRS.Queries;
 using Identity.Core.CQRS.Queries;
-using MediatR;
+using Hikyaku;
 using Microsoft.Extensions.Configuration;
 using NetTopologySuite.Geometries;
 using NSubstitute;
@@ -19,7 +19,7 @@ namespace Driver.Tests.Handlers.Queries;
 /// </summary>
 public class SearchBestDriverHandlerTests
 {
-  private readonly IMediator _mediator;
+  private readonly IHikyaku _mediator;
   private readonly TestApplicationDbContext _context;
   private readonly IConfiguration _configuration;
 
@@ -35,7 +35,7 @@ public class SearchBestDriverHandlerTests
       ["UserMaxRating"] = "5"
     }).Build();
 
-    var mediatorMock = Substitute.For<IMediator>();
+    var mediatorMock = Substitute.For<IHikyaku>();
     _mediator = mediatorMock;
 
     mediatorMock.Send(Arg.Any<SearchBestDriver>(), Arg.Any<CancellationToken>())

@@ -18,11 +18,11 @@ Modular.Monolith/
     └── Hub/Hub.Module/               project, granted access via InternalsVisibleTo.
 ```
 
-Each module is a **separate class library project** — that's what makes the boundary real. If `Ride.Module` tried to reference `Driver.Module`'s `Driver` entity or `DriverDbContext` directly, it wouldn't compile: those types are `internal`, and internal means invisible outside the declaring assembly, full stop. The only way one module reaches another is through `Voyager.Contracts` + `IMediator` — the exact same contracts every other variant in this portfolio uses for cross-service calls, just dispatched in-process instead of over RabbitMQ.
+Each module is a **separate class library project** — that's what makes the boundary real. If `Ride.Module` tried to reference `Driver.Module`'s `Driver` entity or `DriverDbContext` directly, it wouldn't compile: those types are `internal`, and internal means invisible outside the declaring assembly, full stop. The only way one module reaches another is through `Voyager.Contracts` + `IHikyaku` — the exact same contracts every other variant in this portfolio uses for cross-service calls, just dispatched in-process instead of over RabbitMQ.
 
-## No Arbitrer, no RabbitMQ — and why that's not a simplification, it's the point
+## No Kaido, no RabbitMQ — and why that's not a simplification, it's the point
 
-Every other variant needs a message bus because a command sent from one service has to physically leave the process to reach another. Here there's only one process. `RegisterUserHandler` (Identity) calling `mediator.Send(new Voyager.Contracts.Driver.AddDriver { DriverId = user.Id })` resolves directly against `AddDriverHandler` (Driver) through the **same shared `IMediator`** registered once in `Host/Program.cs` — no serialization, no queue, no network round-trip. `RideEventHandlers` in Hub subscribe to the same `INotification` types Ride publishes; MediatR's own in-process fan-out is what used to require Arbitrer's RabbitMQ-backed notification relay in every other variant. Removing the message bus isn't a shortcut — it's the accurate consequence of the deployment model actually being one process. If this system ever needed to become physically distributed again, extracting a module means promoting its `Voyager.Contracts` calls to Arbitrer calls — see [Clean.Architecture](../Clean.Architecture/README.md) or [Hexagonal.Architecture](../Hexagonal.Architecture/README.md) for what that looks like on the other side of that extraction.
+Every other variant needs a message bus because a command sent from one service has to physically leave the process to reach another. Here there's only one process. `RegisterUserHandler` (Identity) calling `mediator.Send(new Voyager.Contracts.Driver.AddDriver { DriverId = user.Id })` resolves directly against `AddDriverHandler` (Driver) through the **same shared `IHikyaku`** registered once in `Host/Program.cs` — no serialization, no queue, no network round-trip. `RideEventHandlers` in Hub subscribe to the same `INotification` types Ride publishes; Hikyaku's own in-process fan-out is what used to require Kaido's RabbitMQ-backed notification relay in every other variant. Removing the message bus isn't a shortcut — it's the accurate consequence of the deployment model actually being one process. If this system ever needed to become physically distributed again, extracting a module means promoting its `Voyager.Contracts` calls to Kaido calls — see [Clean.Architecture](../Clean.Architecture/README.md) or [Hexagonal.Architecture](../Hexagonal.Architecture/README.md) for what that looks like on the other side of that extraction.
 
 ## The public/internal split follows the HTTP boundary, not the folder
 
@@ -34,7 +34,7 @@ This is the one genuinely subtle rule in this variant, and it's driven by the co
 | `Entities.DriverStatus` | **`public`** | Used by `DriverStatusResponse.Status` and `UpdateAvailabilityRequest.Status`, both public DTOs |
 | `Features.GetDriverStatus.GetDriverStatus` (the query) | `internal` | Constructed inside the controller body, never bound from the request |
 | `Features.GetDriverStatus.DriverStatusResponse` | **`public`** | Returned by a public controller action |
-| `Features.AddDriver.AddDriverHandler` | `internal` | Implementation detail, resolved by MediatR via DI, never referenced by name outside this assembly |
+| `Features.AddDriver.AddDriverHandler` | `internal` | Implementation detail, resolved by Hikyaku via DI, never referenced by name outside this assembly |
 | `Features.AddDriver.AddDriverController` | `public` | ASP.NET Core's `ControllerFeatureProvider` only discovers public controllers |
 
 The rule of thumb used throughout: **default everything to `internal`; flip a type to `public` only when the compiler says CS0050 forces it** (a `[FromBody]` parameter type or an `ActionResult<T>`/return type). Command/query envelope types, handlers, validators, `DbContext`s, and entities stay internal in every module.
@@ -45,7 +45,7 @@ In the multi-process variants, Identity issues tokens (`AddServer`) and every ot
 
 ## Persistence — still one database per module
 
-Each module keeps its own `DbContext` and its own SQL Server database (`identity`, `driver`, `ride` — Hub has no persistence, same as every other variant). This is deliberate: a modular monolith that shares one database across modules has already given up the thing that makes modules extractable later. `Host/Program.cs` calls each module's `Migrate*Database()` at startup; there's no cross-database join anywhere, by construction — a module can only read another module's data by asking it (`IMediator.Send`), same discipline as if it actually were a separate service.
+Each module keeps its own `DbContext` and its own SQL Server database (`identity`, `driver`, `ride` — Hub has no persistence, same as every other variant). This is deliberate: a modular monolith that shares one database across modules has already given up the thing that makes modules extractable later. `Host/Program.cs` calls each module's `Migrate*Database()` at startup; there's no cross-database join anywhere, by construction — a module can only read another module's data by asking it (`IHikyaku.Send`), same discipline as if it actually were a separate service.
 
 ## Testing
 

@@ -4,7 +4,7 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
-    <Description>Single project, no horizontal layers: Entities/, Persistence/ and one Features/ folder per use case. Handlers depend on IdentityDbContext, PasswordHasher&lt;object&gt; and IMediator directly — no repository, hasher or driver-registration port.</Description>
+    <Description>Single project, no horizontal layers: Entities/, Persistence/ and one Features/ folder per use case. Handlers depend on IdentityDbContext, PasswordHasher&lt;object&gt; and IHikyaku directly — no repository, hasher or driver-registration port.</Description>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup>
@@ -12,10 +12,10 @@
     <ProjectReference Include="..\..\..\Commons\Voyager.Contracts\Voyager.Contracts.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Arbitrer" Version="12.5.0" />
-    <PackageReference Include="Arbitrer.RabbitMQ" Version="12.5.0" />
+    <PackageReference Include="Hikyaku.Kaido" Version="10.0.1" />
+    <PackageReference Include="Hikyaku.Kaido.RabbitMQ" Version="10.0.1" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.10" />
-    <PackageReference Include="MediatR" Version="12.5.0" />
+    <PackageReference Include="Hikyaku" Version="10.0.1" />
     <PackageReference Include="FluentValidation" Version="12.1.1" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="10.0.10" />

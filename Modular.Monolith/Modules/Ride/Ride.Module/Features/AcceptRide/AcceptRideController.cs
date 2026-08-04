@@ -1,7 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using MediatR;
+using Hikyaku;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -12,7 +12,7 @@ namespace Ride.Module.Features.AcceptRide;
 [Authorize(Policy = "RequireDriver")]
 [EnableRateLimiting("ride_api")]
 [Route("api/v1/rides")]
-public class AcceptRideController(IMediator mediator) : ControllerBase
+public class AcceptRideController(IHikyaku mediator) : ControllerBase
 {
   [HttpPut("{rideId:guid}/accept")]
   public async Task<ActionResult> Accept(Guid rideId, CancellationToken cancellationToken)

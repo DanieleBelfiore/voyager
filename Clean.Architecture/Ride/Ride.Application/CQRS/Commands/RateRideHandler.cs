@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Ride.Application.Ports;
-using MediatR;
+using Hikyaku;
 
 namespace Ride.Application.CQRS.Commands;
 

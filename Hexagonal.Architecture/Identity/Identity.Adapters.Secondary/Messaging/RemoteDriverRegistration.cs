@@ -2,12 +2,12 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Identity.Core.Ports.Secondary;
-using MediatR;
+using Hikyaku;
 using Voyager.Contracts.Driver;
 
 namespace Identity.Adapters.Secondary.Messaging;
 
-public class ArbitrerDriverRegistration(IMediator mediator) : IDriverRegistration
+public class RemoteDriverRegistration(IHikyaku mediator) : IDriverRegistration
 {
   public async Task RegisterAsDriverAsync(Guid userId, CancellationToken cancellationToken)
   {

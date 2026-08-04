@@ -10,10 +10,10 @@ public static class HubInfrastructureExtensions
 {
   public static IServiceCollection AddHubInfrastructure(this IServiceCollection services, IConfiguration configuration)
   {
-    services.AddScoped<IDriverLocationUpdater, ArbitrerDriverLocationUpdater>();
-    services.AddScoped<IRideLocationTracker, ArbitrerRideLocationTracker>();
-    services.AddScoped<IActiveRideQuery, ArbitrerActiveRideQuery>();
-    services.AddScoped<IRideEtaQuery, ArbitrerRideEtaQuery>();
+    services.AddScoped<IDriverLocationUpdater, RemoteDriverLocationUpdater>();
+    services.AddScoped<IRideLocationTracker, RemoteRideLocationTracker>();
+    services.AddScoped<IActiveRideQuery, RemoteActiveRideQuery>();
+    services.AddScoped<IRideEtaQuery, RemoteRideEtaQuery>();
 
     services.AddSingleton<IHubConfig>(_ => new HubConfig
     {

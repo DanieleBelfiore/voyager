@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Reflection;
 using System.Text.Json.Nodes;
-using Arbitrer;
+using Hikyaku.Kaido;
 using FluentValidation;
 using Identity.Api.Persistence;
 using Microsoft.AspNetCore.Builder;
@@ -33,7 +33,7 @@ var configuration = builder.Configuration;
 builder.Services.AddForwardedHeaders(configuration);
 
 // No repository, no separate password-hasher/driver-registration port: every feature's handler
-// takes IdentityDbContext, PasswordHasher<object> and/or IMediator directly.
+// takes IdentityDbContext, PasswordHasher<object> and/or IHikyaku directly.
 builder.Services.AddDbContext<IdentityDbContext>((provider, options) =>
 {
   options.UseSqlServer(configuration.GetConnectionString("IdentityContext"));
@@ -151,21 +151,21 @@ builder.Services.AddSwaggerGenNewtonsoftSupport();
 
 var apiAssembly = Assembly.GetExecutingAssembly();
 
-builder.Services.AddMediatR(cfg =>
+builder.Services.AddHikyaku(cfg =>
 {
   cfg.RegisterServicesFromAssembly(apiAssembly);
   cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
 });
 builder.Services.AddValidatorsFromAssembly(apiAssembly);
 
-builder.Services.AddArbitrer(options =>
+builder.Services.AddKaido(options =>
 {
-  options.Behaviour = ArbitrerBehaviourEnum.ImplicitRemote;
+  options.Behaviour = HikyakuBehaviourEnum.ImplicitRemote;
   options.InferLocalRequests([apiAssembly]);
   options.InferLocalNotifications([apiAssembly]);
 });
 
-builder.Services.AddArbitrerRabbitMQMessageDispatcher(o =>
+builder.Services.AddHikyakuRabbitMQMessageDispatcher(o =>
 {
   configuration.GetSection("RabbitMQ").Bind(o);
   o.AutoDelete = false;

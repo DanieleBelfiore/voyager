@@ -2,7 +2,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Driver.Module.Entities;
 using Driver.Module.Persistence;
-using MediatR;
+using Hikyaku;
 using Microsoft.EntityFrameworkCore;
 using Voyager.Contracts.Driver;
 

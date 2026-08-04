@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using MediatR;
+using Hikyaku;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Ride.Api.Persistence;
@@ -11,8 +11,8 @@ using Voyager.Contracts.Driver;
 
 namespace Ride.Api.Features.GetRideETA;
 
-/// <summary>No IDriverLocationQuery port — asks Driver for the driver's location via IMediator.Send directly; Arbitrer resolves it remotely.</summary>
-public class GetRideETAHandler(RideDbContext db, IMediator mediator, IOptions<EtaConfig> config) : IRequestHandler<GetRideETA, ETAResponse>
+/// <summary>No IDriverLocationQuery port — asks Driver for the driver's location via IHikyaku.Send directly; Kaido resolves it remotely.</summary>
+public class GetRideETAHandler(RideDbContext db, IHikyaku mediator, IOptions<EtaConfig> config) : IRequestHandler<GetRideETA, ETAResponse>
 {
   public async Task<ETAResponse> Handle(GetRideETA request, CancellationToken cancellationToken)
   {

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Common.Core.Extensions;
-using MediatR;
+using Hikyaku;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -18,7 +18,7 @@ namespace Ride.API.Controllers;
 [Authorize]
 [EnableRateLimiting("ride_api")]
 [Route("api/v1/rides")]
-public class RidesController(IMediator mediator) : ControllerBase
+public class RidesController(IHikyaku mediator) : ControllerBase
 {
   /// <summary>
   /// Requests a ride.

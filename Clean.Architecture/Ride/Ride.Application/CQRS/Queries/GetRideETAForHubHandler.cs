@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Ride.Application.Ports;
-using MediatR;
+using Hikyaku;
 using RideETAInfo = Voyager.Contracts.Ride.RideETAInfo;
 using SharedGetRideETA = Voyager.Contracts.Ride.GetRideETA;
 
@@ -11,7 +11,7 @@ namespace Ride.Application.CQRS.Queries;
 
 /// <summary>
 /// Handles the shared Voyager.Contracts.Ride.GetRideETA contract directly — the remote target
-/// Hub's VoyagerHub.UpdateDriverLocation dispatches to via Arbitrer.
+/// Hub's VoyagerHub.UpdateDriverLocation dispatches to via Kaido.
 /// </summary>
 public class GetRideETAForHubHandler(IRideRepository repository, IDriverLocationQuery driverLocation, IEtaConfig config) : IRequestHandler<SharedGetRideETA, RideETAInfo>
 {

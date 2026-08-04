@@ -35,7 +35,7 @@ public class Module : IModule
 
     services.AddScoped<IUserManager, UserManagerService>();
 
-    services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
+    services.AddHikyaku(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
   }
 
   public void OnStartup(IApplicationBuilder app)

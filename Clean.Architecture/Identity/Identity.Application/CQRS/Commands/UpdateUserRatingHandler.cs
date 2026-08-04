@@ -3,14 +3,14 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Identity.Application.Ports;
-using MediatR;
+using Hikyaku;
 using Voyager.Contracts.Identity;
 
 namespace Identity.Application.CQRS.Commands;
 
 /// <summary>
 /// Handles the shared Voyager.Contracts.Identity.UpdateUserRating contract directly — this
-/// service is the remote target Ride's RateDriverHandler/RateRideHandler dispatch to via Arbitrer.
+/// service is the remote target Ride's RateDriverHandler/RateRideHandler dispatch to via Kaido.
 /// </summary>
 public class UpdateUserRatingHandler(IUserRepository repository) : IRequestHandler<UpdateUserRating, double>
 {

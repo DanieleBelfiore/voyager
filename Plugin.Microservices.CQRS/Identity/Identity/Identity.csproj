@@ -6,8 +6,8 @@
     <Nullable>disable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Arbitrer" Version="12.5.0" />
-    <PackageReference Include="Arbitrer.RabbitMQ" Version="12.5.0" />
+    <PackageReference Include="Hikyaku.Kaido" Version="10.0.1" />
+    <PackageReference Include="Hikyaku.Kaido.RabbitMQ" Version="10.0.1" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.10" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Facebook" Version="10.0.10" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="10.0.10" />

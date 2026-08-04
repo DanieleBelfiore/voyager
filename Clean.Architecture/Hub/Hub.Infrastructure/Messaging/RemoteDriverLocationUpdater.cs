@@ -2,13 +2,13 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Hub.Application.Ports;
-using MediatR;
+using Hikyaku;
 using NetTopologySuite.Geometries;
 using Voyager.Contracts.Driver;
 
 namespace Hub.Infrastructure.Messaging;
 
-public class ArbitrerDriverLocationUpdater(IMediator mediator) : IDriverLocationUpdater
+public class RemoteDriverLocationUpdater(IHikyaku mediator) : IDriverLocationUpdater
 {
   public async Task UpdateLocationAsync(Guid driverId, Point location, CancellationToken cancellationToken)
   {

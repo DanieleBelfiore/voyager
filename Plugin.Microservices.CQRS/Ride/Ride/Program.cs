@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
-using Arbitrer;
+using Hikyaku.Kaido;
 using Common.Core;
 using Common.Core.Cache;
 using Common.Core.Exceptions;
@@ -25,7 +25,7 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Ride.Handlers.Models;
 using Common.Core.Diagnostics;
 
-// Arbitrer serializes cross-process request/notification payloads over RabbitMQ using
+// Kaido serializes cross-process request/notification payloads over RabbitMQ using
 // Newtonsoft's process-wide JsonConvert.DefaultSettings — it exposes no per-call settings hook.
 // Without GeometryConverter here, any response carrying a Point (e.g. GetActiveRide/GetRideETA,
 // requested remotely by Hub's VoyagerHub) fails to serialize/deserialize correctly on the other
@@ -147,18 +147,18 @@ builder.Services.AddSwaggerGen(g =>
 
 builder.Services.AddSwaggerGenNewtonsoftSupport();
 
-builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
+builder.Services.AddHikyaku(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
 var assemblies = Loader.Current.Modules.Select(f => f.GetType().Assembly).ToList();
 assemblies.Add(Assembly.GetExecutingAssembly());
 
-builder.Services.AddArbitrer(options =>
+builder.Services.AddKaido(options =>
 {
-  options.Behaviour = ArbitrerBehaviourEnum.ImplicitRemote;
+  options.Behaviour = HikyakuBehaviourEnum.ImplicitRemote;
   options.InferLocalRequests(assemblies);
   options.InferLocalNotifications(assemblies);
 });
 
-builder.Services.AddArbitrerRabbitMQMessageDispatcher(o =>
+builder.Services.AddHikyakuRabbitMQMessageDispatcher(o =>
 {
   configuration.GetSection("RabbitMQ").Bind(o);
   o.AutoDelete = false;

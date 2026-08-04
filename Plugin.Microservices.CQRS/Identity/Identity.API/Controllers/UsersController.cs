@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using Driver.Core.CQRS.Commands;
 using Identity.Core.Dtos;
 using Identity.Handlers.Models;
-using MediatR;
+using Hikyaku;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -29,7 +29,7 @@ namespace Identity.API.Controllers;
 /// - Session management
 /// - Integration with driver registration workflow
 /// </summary>
-public partial class UsersController(IdentityContext db, SignInManager<VoyagerUser> signInManager, UserManager<VoyagerUser> userManager, IMediator mediator, ILogger<UsersController> logger) : Controller
+public partial class UsersController(IdentityContext db, SignInManager<VoyagerUser> signInManager, UserManager<VoyagerUser> userManager, IHikyaku mediator, ILogger<UsersController> logger) : Controller
 {
   /// <summary>
   /// Registers a new user.

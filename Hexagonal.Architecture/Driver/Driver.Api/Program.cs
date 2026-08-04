@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text.Json.Nodes;
-using Arbitrer;
+using Hikyaku.Kaido;
 using Driver.Adapters.Secondary.DependencyInjection;
 using Driver.Core.Ports.Primary;
 using Driver.Core.UseCases;
@@ -36,7 +36,7 @@ builder.Services.AddCors(options =>
 
 // Composition root: wires secondary adapters into Core's secondary ports, and primary ports
 // directly to their use case implementations. Controllers depend on the primary ports
-// (constructor injection), not on IMediator — see Driver.Api/Controllers/DriversController.cs.
+// (constructor injection), not on IHikyaku — see Driver.Api/Controllers/DriversController.cs.
 builder.Services.AddDriverSecondaryAdapters(configuration);
 
 builder.Services.AddScoped<IAddDriverUseCase, AddDriverUseCase>();
@@ -121,20 +121,20 @@ builder.Services.AddSwaggerGenNewtonsoftSupport();
 
 var coreAssembly = typeof(AddDriverUseCase).Assembly;
 
-// MediatR still scans Core for IRequestHandler<T> implementations — every use case implements
+// Hikyaku still scans Core for IRequestHandler<T> implementations — every use case implements
 // one via its primary port (IAddDriverUseCase : IRequestHandler<AddDriver>, etc.) — so this is
-// what makes them reachable as Arbitrer's remote entry point, independent of the direct
+// what makes them reachable as Kaido's remote entry point, independent of the direct
 // injection above.
-builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(coreAssembly));
+builder.Services.AddHikyaku(cfg => cfg.RegisterServicesFromAssembly(coreAssembly));
 
-builder.Services.AddArbitrer(options =>
+builder.Services.AddKaido(options =>
 {
-  options.Behaviour = ArbitrerBehaviourEnum.ImplicitRemote;
+  options.Behaviour = HikyakuBehaviourEnum.ImplicitRemote;
   options.InferLocalRequests([coreAssembly]);
   options.InferLocalNotifications([coreAssembly]);
 });
 
-builder.Services.AddArbitrerRabbitMQMessageDispatcher(o =>
+builder.Services.AddHikyakuRabbitMQMessageDispatcher(o =>
 {
   configuration.GetSection("RabbitMQ").Bind(o);
   o.AutoDelete = false;

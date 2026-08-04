@@ -5,7 +5,7 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
-    <Description>Driver module. Entities, persistence and feature handlers are internal — the only public surface is AddDriverModule/MapDriverModule (called by Host) and the controllers (public because ASP.NET Core's controller discovery requires it). Other modules can only reach in here through Voyager.Contracts.Driver.* requests dispatched via IMediator.</Description>
+    <Description>Driver module. Entities, persistence and feature handlers are internal — the only public surface is AddDriverModule/MapDriverModule (called by Host) and the controllers (public because ASP.NET Core's controller discovery requires it). Other modules can only reach in here through Voyager.Contracts.Driver.* requests dispatched via IHikyaku.</Description>
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
@@ -15,7 +15,7 @@
     <ProjectReference Include="..\..\..\..\Commons\Voyager.Contracts\Voyager.Contracts.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="MediatR" Version="12.5.0" />
+    <PackageReference Include="Hikyaku" Version="10.0.1" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.10" />
     <PackageReference Include="FluentValidation" Version="12.1.1" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
