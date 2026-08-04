@@ -45,3 +45,32 @@ No repository to mock — tests construct `{Service}DbContext` against `UseInMem
 **Exception — relational-only features need a relational provider.** `ExecuteUpdate`/`ExecuteDelete`, raw SQL, and anything else with no in-memory implementation throw `InvalidOperationException` ("not supported by the current database provider") under `UseInMemoryDatabase`. Those tests open a `SqliteConnection("DataSource=:memory:")`, keep it open for the fixture's lifetime, and call `Database.EnsureCreated()` — see `Identity.Tests/Features/UpdateUserRatingHandlerTests.cs`, where the handler folds a rating into a running average with one atomic `ExecuteUpdateAsync` so concurrent ratings can't lose each other.
 
 Reach for SQLite only when the handler under test genuinely needs it. InMemory stays the default everywhere else — it's faster and needs no schema. Note what SQLite does *not* buy you: it proves the logic and the atomicity, not that SQL Server translates the same expression, so a relational-behaviour fix still deserves a pass against the real docker-compose stack.
+
+## Integration tests
+
+`Voyager.IntegrationTests` boots all four services in one test process against Testcontainers
+(SQL Server, RabbitMQ, Redis) — the variant's real topology, since most of what distinguishes it
+from the modular monolith is what happens *between* services. Six concerns, one test class each:
+the auth gate, nearest-driver search, the Redis round trip, cross-service dispatch, a ride event
+reaching a SignalR client, and the ride lifecycle.
+
+```bash
+dotnet test Voyager.IntegrationTests/Voyager.IntegrationTests.csproj    # needs Docker
+```
+
+Three things about the harness are load-bearing — see [`Commons/Voyager.TestInfra`](../Commons/Voyager.TestInfra):
+
+- **Each host is behind an `extern alias`.** Four top-level-statement hosts each contribute a
+  `Program` to the global namespace, so referencing them from one assembly needs aliases.
+- **Driver/Ride/Hub validate tokens against Identity over HTTP**, and nothing listens on a real
+  socket under `WebApplicationFactory`. Their outbound HTTP is redirected to Identity's test server
+  with a `DelegatingHandler` — OpenIddict rejects a non-`HttpClientHandler` primary handler
+  outright, so it cannot be swapped at the primary. The shipped `SetIssuer` + `UseSystemNetHttp`
+  wiring stays exactly as deployed.
+- **Hosts run as `Production`.** In `Development` the pipeline installs the developer exception
+  page, which answers 500 for everything and hides the ProblemDetails mapping that turns
+  `KeyNotFoundException` into 404.
+
+Configuration reaches the hosts as environment variables rather than through
+`ConfigureAppConfiguration`: sources added there are merged when the host is built, which is too
+late for anything binding configuration eagerly at registration (`AddRedisCache` does).

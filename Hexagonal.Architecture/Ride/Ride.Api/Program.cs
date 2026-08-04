@@ -22,6 +22,10 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Ride.Adapters.Secondary.Persistence;
 using Voyager.Shared.Diagnostics;
 
+// Kaido puts cross-service payloads on RabbitMQ through Newtonsoft's process-wide settings, so
+// this has to be in place before the host starts — see KaidoJsonDefaults for what breaks without it.
+Voyager.Shared.Serialization.KaidoJsonDefaults.Apply();
+
 var builder = WebApplication.CreateBuilder(args);
 
 var configuration = builder.Configuration;

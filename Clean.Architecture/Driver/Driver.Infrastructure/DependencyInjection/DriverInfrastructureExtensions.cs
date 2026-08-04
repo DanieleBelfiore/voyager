@@ -43,6 +43,12 @@ public static class DriverInfrastructureExtensions
       MaxCandidates = configuration.GetValue<int?>("MaxCandidates") ?? 200
     });
 
+    // Mapperly generates a stateless mapper, but nothing was registering it: every handler that
+    // takes one failed to activate at request time with "Unable to resolve service for type
+    // DriverMapper" and answered 500. Invisible to the unit tests, which construct the handler
+    // themselves and pass a `new DriverMapper()`.
+    services.AddSingleton<Driver.Application.Mapping.DriverMapper>();
+
     return services;
   }
 

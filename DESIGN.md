@@ -13,8 +13,8 @@ rather than argue for one style in the abstract.
 This document describes the design decisions common to all five variants — the domain model,
 the matching algorithm, the real-time approach, and the technical trade-offs — and calls out
 where a specific variant diverges. **Plugin.Microservices.CQRS** is the *original* implementation
-— the one the other four were derived from, and the only one exercised end-to-end against a live
-Docker stack via Testcontainers integration tests. It is not the cleanest: it keeps an anemic
+— the one the other four were derived from, and the first to be exercised against a live Docker
+stack via Testcontainers integration tests. It is not the cleanest: it keeps an anemic
 domain model (see "Ride requests & driver availability") and its services reach each other's
 contract-only `.Core` projects directly rather than through a shared `Commons/Voyager.Contracts`.
 Read it as the baseline the later variants improve on, not as the exemplar. See each variant's
@@ -157,6 +157,31 @@ rich domain/EF entities across a service boundary.
   not `StartAsync`: `WebApplicationBuilder` registers the Kestrel-hosting service during `Build()`,
   *after* anything the application registered, so a plain `IHostedService` would still run first
   and block the port.
+
+## Testing
+
+Unit tests cover handler/use-case logic against an in-memory (or SQLite, where a relational-only
+EF feature is involved) provider, and carry an 80% line-coverage gate on the business-logic
+layers of every variant. They deliberately stop at the process boundary.
+
+Integration tests exist for the things that only fail once real infrastructure is in the loop,
+and are kept to one per concern rather than mirroring the unit suite:
+
+| Concern | Why a unit test cannot reach it |
+|---|---|
+| Auth gate on the HTTP pipeline | `[Authorize]`, scheme selection and token validation are middleware, not handler code |
+| Nearest-driver search | `STDistance` in real geodetic metres, and the spatial index that makes it usable — EF Core's InMemory provider emulates neither |
+| Redis cache round-trip | serializer behaviour on an NTS `Point`; the failure mode is a swallowed write, so the handler still "passes" |
+| Cross-service dispatch | Kaido routes by request type name over RabbitMQ — the same type has to exist on both ends of the wire |
+| Ride event → SignalR client | publish/fanout plus hub group membership, none of which exists in-process |
+| Ride lifecycle over HTTP | state transitions persisted across separate requests |
+
+Two caveats on what the harness proves. It substitutes the OpenIddict registration — the real
+one validates against a remote issuer, which a local test server cannot be — and injects a
+test-only `connect/token` endpoint, so the *shipped* auth wiring is covered by deployment, not by
+these tests. And the per-test reset truncates tables rather than recreating the schema, precisely
+so that migration-only artefacts such as the geospatial index stay in place; a reset that rebuilds
+from the EF model tests a schema no deployment ever produces.
 
 ## Known limitations
 

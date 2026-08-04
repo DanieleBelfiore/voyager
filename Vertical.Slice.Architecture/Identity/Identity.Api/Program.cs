@@ -22,6 +22,7 @@ using OpenIddict.Validation.AspNetCore;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using Voyager.Shared.RateLimiting;
+using Voyager.Shared.Security;
 using Voyager.Shared.Validation;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Voyager.Shared.Diagnostics;
@@ -189,6 +190,9 @@ builder.Services.AddStartupMigration(sp =>
 {
   using var scope = sp.CreateScope();
   scope.ServiceProvider.GetRequiredService<IdentityDbContext>().Database.Migrate();
+
+  // Without this the service cannot issue a token at all — see OpenIddictClientSeed.
+  scope.ServiceProvider.SeedVoyagerApplicationAsync().GetAwaiter().GetResult();
 });
 
 var app = builder.Build();

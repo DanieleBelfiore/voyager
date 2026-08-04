@@ -6,6 +6,7 @@ using Identity.Adapters.Secondary.Security;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Voyager.Shared.Security;
 using IUserRepository = Identity.Core.Ports.Secondary.IUserRepository;
 using IPasswordHasher = Identity.Core.Ports.Secondary.IPasswordHasher;
 using IDriverRegistration = Identity.Core.Ports.Secondary.IDriverRegistration;
@@ -37,5 +38,8 @@ public static class IdentityAdaptersExtensions
     using var scope = services.CreateScope();
     using var context = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
     context.Database.Migrate();
+
+    // Without this the service cannot issue a token at all — see OpenIddictClientSeed.
+    scope.ServiceProvider.SeedVoyagerApplicationAsync().GetAwaiter().GetResult();
   }
 }

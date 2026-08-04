@@ -61,4 +61,38 @@ docker-compose up -d
 dotnet run --project Demo/Demo.csproj
 ```
 
+Each variant ships its own `Demo/`, hardcoded to that variant's ports — it is a client, not a
+launcher, so the compose stack has to be up first.
+
 See the variant's own README for details, limitations, and test instructions.
+
+## Tests
+
+Unit tests cover handler/use-case logic per variant and carry an 80% line-coverage gate on the
+business-logic layers. Integration tests sit alongside them and are deliberately few: one per
+concern that only fails once real infrastructure is in the loop.
+
+| Variant | Integration suite | Hosts booted |
+|---|---|---|
+| `Plugin.Microservices.CQRS/` | `Driver.IntegrationTests`, `Ride.IntegrationTests` | one per suite |
+| `Clean.Architecture/` | `Voyager.IntegrationTests` | all four, side by side |
+| `Hexagonal.Architecture/` | `Voyager.IntegrationTests` | all four, side by side |
+| `Vertical.Slice.Architecture/` | `Voyager.IntegrationTests` | all four, side by side |
+| `Modular.Monolith/` | `Host.IntegrationTests` | one — the whole variant is one process |
+
+Six concerns: the auth gate, nearest-driver search against real geodetic distance and its spatial
+index, the Redis round trip, cross-service dispatch over RabbitMQ, a ride event reaching a
+connected SignalR client, and the ride lifecycle across separate requests.
+
+`Plugin.Microservices.CQRS/` covers four of them. The two it omits — the broker hop and the
+SignalR relay — both need two services running at once, and that variant cannot host two in one
+process: its plugin `Loader` is a process-wide singleton composing from the working directory, so
+co-hosted services share one module set and cross-service dispatch collapses into a local call.
+A property of the plugin design, and one the other four variants cover instead.
+
+They need Docker (Testcontainers brings up SQL Server, RabbitMQ and Redis) and run as their own CI
+job, outside the coverage gate. Shared harness: [`Commons/Voyager.TestInfra`](Commons/Voyager.TestInfra).
+
+```bash
+dotnet test Clean.Architecture/Voyager.IntegrationTests/Voyager.IntegrationTests.csproj
+```

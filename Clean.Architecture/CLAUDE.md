@@ -46,3 +46,32 @@ EF Core configuration is Fluent API only (`{Service}.Infrastructure/Persistence/
 Use the shared wire contract from `Commons/Voyager.Contracts` (not another service's Application/Domain project) and send/publish it via the local `IHikyaku` — Kaido routes it remotely if no local handler exists. See `Driver.Infrastructure/Messaging/RemoteRatingsQueryService.cs` (request/response) or `Ride.Infrastructure/Messaging/RemoteRideEventPublisher.cs` (notifications/events) for the pattern.
 
 **Unification rule**: if a command/query needs to be called both locally (by its owning service) and remotely (by another service), the owning service's Application handler should implement the `Voyager.Contracts` type directly rather than keeping a separate local type — see `AddDriver`, `UpdateLocation` (Driver), `UpdateUserRating`, `GetUsersRatings` (Identity) for the pattern. If the remote caller needs a different (usually slimmer) response shape than local callers, add a second handler for the shared contract rather than compromising the local one — see `GetActiveRide`/`GetRideETA` (Ride), which have both a rich local handler and a slim one for Hub.
+
+## Integration tests
+
+`Voyager.IntegrationTests` boots all four services in one test process against Testcontainers
+(SQL Server, RabbitMQ, Redis) — the variant's real topology, since most of what distinguishes it
+from the modular monolith is what happens *between* services. Six concerns, one test class each:
+the auth gate, nearest-driver search, the Redis round trip, cross-service dispatch, a ride event
+reaching a SignalR client, and the ride lifecycle.
+
+```bash
+dotnet test Voyager.IntegrationTests/Voyager.IntegrationTests.csproj    # needs Docker
+```
+
+Three things about the harness are load-bearing — see [`Commons/Voyager.TestInfra`](../Commons/Voyager.TestInfra):
+
+- **Each host is behind an `extern alias`.** Four top-level-statement hosts each contribute a
+  `Program` to the global namespace, so referencing them from one assembly needs aliases.
+- **Driver/Ride/Hub validate tokens against Identity over HTTP**, and nothing listens on a real
+  socket under `WebApplicationFactory`. Their outbound HTTP is redirected to Identity's test server
+  with a `DelegatingHandler` — OpenIddict rejects a non-`HttpClientHandler` primary handler
+  outright, so it cannot be swapped at the primary. The shipped `SetIssuer` + `UseSystemNetHttp`
+  wiring stays exactly as deployed.
+- **Hosts run as `Production`.** In `Development` the pipeline installs the developer exception
+  page, which answers 500 for everything and hides the ProblemDetails mapping that turns
+  `KeyNotFoundException` into 404.
+
+Configuration reaches the hosts as environment variables rather than through
+`ConfigureAppConfiguration`: sources added there are merged when the host is built, which is too
+late for anything binding configuration eagerly at registration (`AddRedisCache` does).

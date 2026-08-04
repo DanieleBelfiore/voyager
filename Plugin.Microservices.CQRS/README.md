@@ -259,14 +259,15 @@ Note: The solution includes example unit tests for:
   - `GetActiveRideHandlerTests`
 
 ### Integration Tests
-The solution includes integration test projects (`*.IntegrationTests`), they were set up to demonstrate the testing approach.
+`Driver.IntegrationTests` and `Ride.IntegrationTests` boot the real host with `WebApplicationFactory` against SQL Server, RabbitMQ and Redis containers. They cover only what unit tests structurally cannot reach — the geospatial query and its index, the Redis round-trip, cross-service dispatch over the bus, ride events reaching a SignalR client, the auth gate, and the ride lifecycle across separate HTTP requests.
+
+Two things worth knowing before reading them: the per-test reset truncates tables (Respawn) rather than recreating the schema, so migration-only artefacts such as `SIX_Drivers_LastLocation` survive; and the harness swaps the host's OpenIddict registration for a local server plus a test-only `connect/token`, because the shipped configuration validates against a remote issuer. The shipped auth wiring is not what these tests exercise.
 
 The test architecture uses:
 - xUnit as the testing framework
-- FluentAssertions for assertions
 - NSubstitute for mocking
-- InMemory database for unit tests
-- TestContainers for integration tests
+- InMemory database for unit tests (SQLite where a relational-only EF feature is involved)
+- Testcontainers + Respawn for integration tests
 
 ## How to Run the Project
 

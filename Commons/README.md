@@ -13,6 +13,15 @@ Generic ASP.NET Core / EF Core utilities with zero business meaning:
 - `Diagnostics/` — the problem-details exception handler, forwarded-headers wiring, and the `IHostedLifecycleService.StartedAsync` startup-migration hook plus the `/ready` health check that reports on it (see [DESIGN.md](../DESIGN.md) for why migrations run *after* the socket opens)
 - `Validation/` — `ValidationBehavior<TRequest,TResponse>`, a Hikyaku pipeline behavior that runs registered FluentValidation validators before the handler. Generic plumbing with no domain knowledge: it resolves `IValidator<TRequest>` out of DI and throws — it defines no rule of its own. Used by the Vertical Slice and Modular Monolith variants only
 
+- `Security/` — `OpenIddictClientSeed`, the idempotent registration of the public client the password grant is issued to. Without it OpenIddict rejects every token request with `invalid_client`, so no variant can authenticate at all
+- `Serialization/` — `KaidoJsonDefaults`, the Newtonsoft settings Kaido uses on the wire. Without the geometry converter registered there, any cross-service payload carrying a `Point` fails on the receiving end — which takes out the whole real-time path
+
+## Voyager.TestInfra
+
+Harness for the variants' integration suites: the Testcontainers fixture (SQL Server, RabbitMQ, Redis), a Respawn-backed reset, the registration/password-grant helper, the `WebApplicationFactory` wrapper, and the plumbing that lets one host's outbound HTTP reach another host's test server. Infrastructure only — no domain, CQRS or variant-specific logic, which is what makes it belong here under the same rule as the rest of `Commons/`.
+
+Not referenced by any production project. `Plugin.Microservices.CQRS/` keeps its own harness, as it keeps its own `Common/Common.Core`.
+
 ## Voyager.Contracts
 
 Message **shapes only** (no handlers, no logic) for cross-service RPC over the message bus (via Kaido/RabbitMQ). Every service in the portfolio uses **implicit remote dispatch**: `IHikyaku.Send(request)` runs locally if a handler is registered, otherwise Kaido routes it to whichever service does register one, using the request type's full name as the routing key.

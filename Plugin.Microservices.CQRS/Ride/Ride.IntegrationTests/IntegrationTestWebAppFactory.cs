@@ -8,10 +8,14 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OpenIddict.Abstractions;
 using OpenIddict.Validation.AspNetCore;
+using Respawn;
+using Respawn.Graph;
 using Ride.API.Controllers;
 using Ride.Handlers.Models;
+using Microsoft.Extensions.Hosting;
 using Testcontainers.MsSql;
 using Testcontainers.RabbitMq;
+using Testcontainers.Redis;
 using Xunit;
 
 namespace Ride.IntegrationTests;
@@ -30,18 +34,58 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsy
     .WithPassword("testpass")
     .Build();
 
+  // The Driver module composes into this host too (see the project reference), and its handlers
+  // take ICacheService — which Ride's own Program.cs backs with Redis.
+  private readonly RedisContainer _redisContainer = new RedisBuilder("redis:7").Build();
+
+  private Respawner _respawner;
+  private string _rideConnectionString;
+
+  public string RideConnectionString => _rideConnectionString ??=
+    new SqlConnectionStringBuilder(_dbContainer.GetConnectionString()) { InitialCatalog = "ride" }.ConnectionString;
+
+  public string DriverConnectionString =>
+    new SqlConnectionStringBuilder(_dbContainer.GetConnectionString()) { InitialCatalog = "driver" }.ConnectionString;
+
+  public string RedisConnectionString => _redisContainer.GetConnectionString();
+
+  /// <summary>
+  /// Truncates every table rather than dropping the database. The previous reset ran
+  /// <c>EnsureDeleted</c> + <c>EnsureCreated</c>, which rebuilds the schema from the EF model and
+  /// so discards everything a migration does outside it — indexes and constraints created by raw
+  /// SQL among them. Tests then ran against a schema no deployment ever produces.
+  /// </summary>
+  public async Task ResetDatabaseAsync()
+  {
+    await using var connection = new SqlConnection(RideConnectionString);
+    await connection.OpenAsync();
+
+    _respawner ??= await Respawner.CreateAsync(connection, new RespawnerOptions
+    {
+      DbAdapter = DbAdapter.SqlServer,
+      TablesToIgnore = [new Table("__EFMigrationsHistory")]
+    });
+
+    await _respawner.ResetAsync(connection);
+  }
+
   protected override void ConfigureWebHost(IWebHostBuilder builder)
   {
+    // Production, not the Development default: in Development the developer exception page answers
+    // 500 for everything and hides the ProblemDetails mapping the tests assert on.
+    builder.UseEnvironment(Environments.Production);
+
     var baseConnStr = _dbContainer.GetConnectionString();
-    var rideConnStr = new SqlConnectionStringBuilder(baseConnStr) { InitialCatalog = "ride" }.ConnectionString;
     var identityConnStr = new SqlConnectionStringBuilder(baseConnStr) { InitialCatalog = "identity" }.ConnectionString;
 
     builder.ConfigureAppConfiguration(cfg =>
     {
       cfg.AddInMemoryCollection(new Dictionary<string, string?>
       {
-        ["ConnectionStrings:RideContext"] = rideConnStr,
+        ["ConnectionStrings:RideContext"] = RideConnectionString,
+        ["ConnectionStrings:DriverContext"] = DriverConnectionString,
         ["ConnectionStrings:IdentityContext"] = identityConnStr,
+        ["Redis:ConnectionString"] = RedisConnectionString,
         ["RabbitMQ:HostName"] = _rabbitContainer.Hostname,
         ["RabbitMQ:Port"] = _rabbitContainer.GetMappedPublicPort(5672).ToString(),
         ["RabbitMQ:UserName"] = "testuser",
@@ -120,11 +164,17 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsy
 
   public async Task InitializeAsync()
   {
-    await Task.WhenAll(_dbContainer.StartAsync(), _rabbitContainer.StartAsync());
+    await Task.WhenAll(_dbContainer.StartAsync(), _rabbitContainer.StartAsync(), _redisContainer.StartAsync());
+
+    // Environment variables, not just ConfigureAppConfiguration: a source added there is merged
+    // when the host is built, too late for anything binding configuration eagerly at registration.
+    // AddRedisCache does exactly that, so the host would otherwise keep the compose hostname and
+    // every cache operation would quietly go nowhere.
+    Environment.SetEnvironmentVariable("Redis__ConnectionString", RedisConnectionString);
   }
 
   public new async Task DisposeAsync()
   {
-    await Task.WhenAll(_dbContainer.StopAsync(), _rabbitContainer.StopAsync());
+    await Task.WhenAll(_dbContainer.StopAsync(), _rabbitContainer.StopAsync(), _redisContainer.StopAsync());
   }
 }

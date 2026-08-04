@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Identity.Handlers.Models;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Identity;
@@ -30,7 +31,14 @@ public class TestTokenController(
 
     // OpenIddict requires explicit sub claim
     principal.SetClaim(OpenIddictConstants.Claims.Subject, user.Id.ToString());
+
+    // Mirrors UsersController.CreatePrincipalAsync, the endpoint this stands in for. Both lines
+    // matter: RequireDriver reads is_driver off the token, and a claim with no destination is
+    // attached to the principal but silently dropped from the issued token — so without the
+    // second line every claim added here would be invisible to the services validating it.
+    principal.Identities.First().AddClaim(new Claim(Constants.IS_DRIVER, user.IsDriver.ToString()));
     principal.SetScopes(req.GetScopes());
+    principal.SetDestinations(_ => [OpenIddictConstants.Destinations.AccessToken]);
 
     return SignIn(principal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
   }

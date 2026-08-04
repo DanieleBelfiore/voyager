@@ -41,3 +41,32 @@ Every service's root namespace segment matches its aggregate's name (`Driver.Cor
 ## Cross-service calls
 
 Same `Voyager.Contracts` + Kaido mechanism as every other variant — see [Commons/README.md](../Commons/README.md) and [Clean.Architecture/CLAUDE.md](../Clean.Architecture/CLAUDE.md)'s "unification rule". The wire contracts are shared across variants (Driver's `Voyager.Contracts.Driver.AddDriver` is the exact same type Clean.Architecture uses), so no new contracts were needed porting this variant — only the local plumbing around them changed.
+
+## Integration tests
+
+`Voyager.IntegrationTests` boots all four services in one test process against Testcontainers
+(SQL Server, RabbitMQ, Redis) — the variant's real topology, since most of what distinguishes it
+from the modular monolith is what happens *between* services. Six concerns, one test class each:
+the auth gate, nearest-driver search, the Redis round trip, cross-service dispatch, a ride event
+reaching a SignalR client, and the ride lifecycle.
+
+```bash
+dotnet test Voyager.IntegrationTests/Voyager.IntegrationTests.csproj    # needs Docker
+```
+
+Three things about the harness are load-bearing — see [`Commons/Voyager.TestInfra`](../Commons/Voyager.TestInfra):
+
+- **Each host is behind an `extern alias`.** Four top-level-statement hosts each contribute a
+  `Program` to the global namespace, so referencing them from one assembly needs aliases.
+- **Driver/Ride/Hub validate tokens against Identity over HTTP**, and nothing listens on a real
+  socket under `WebApplicationFactory`. Their outbound HTTP is redirected to Identity's test server
+  with a `DelegatingHandler` — OpenIddict rejects a non-`HttpClientHandler` primary handler
+  outright, so it cannot be swapped at the primary. The shipped `SetIssuer` + `UseSystemNetHttp`
+  wiring stays exactly as deployed.
+- **Hosts run as `Production`.** In `Development` the pipeline installs the developer exception
+  page, which answers 500 for everything and hides the ProblemDetails mapping that turns
+  `KeyNotFoundException` into 404.
+
+Configuration reaches the hosts as environment variables rather than through
+`ConfigureAppConfiguration`: sources added there are merged when the host is built, which is too
+late for anything binding configuration eagerly at registration (`AddRedisCache` does).

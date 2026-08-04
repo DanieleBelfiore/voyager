@@ -56,3 +56,31 @@ Same issue as every other variant, same fix: `Driver.Module.Entities.Driver` and
 Same shape as [Vertical.Slice.Architecture](../Vertical.Slice.Architecture/CLAUDE.md#testing): construct the module's `DbContext` against `UseInMemoryDatabase(Guid.NewGuid().ToString())`, seed it, call `handler.Handle(...)`, and mock `IHikyaku`/`IHubContext<...>` only where the handler actually depends on them.
 
 **Exception — relational-only features need a relational provider.** `ExecuteUpdate`/`ExecuteDelete` and raw SQL have no in-memory implementation and throw `InvalidOperationException` under `UseInMemoryDatabase`. Those tests open a `SqliteConnection("DataSource=:memory:")`, hold it open for the fixture's lifetime, and call `Database.EnsureCreated()` — see `Identity.Tests/Features/UpdateUserRatingHandlerTests.cs`. InMemory stays the default everywhere else, and SQLite proves the logic, not SQL Server's own translation of it.
+
+## Integration tests
+
+`Host.IntegrationTests` boots the one host against Testcontainers (SQL Server, RabbitMQ, Redis) —
+RabbitMQ only because the shared containers fixture starts it; this variant has no bus. Six
+concerns, one test class each: the auth gate, nearest-driver search, the Redis round trip,
+cross-module dispatch, a ride event reaching a SignalR client, and the ride lifecycle. Deliberately
+the same six as the service-per-process variants, so the suites line up.
+
+```bash
+dotnet test Host.IntegrationTests/Host.IntegrationTests.csproj    # needs Docker
+```
+
+Modules are `internal`, so these tests reach the system only over HTTP — no seeding a `DbContext`
+directly. That is the right constraint here, not a limitation to work around.
+
+Two things to know before changing the harness — see [`Commons/Voyager.TestInfra`](../Commons/Voyager.TestInfra):
+
+- **The SignalR test builds its own host.** A long-polling connection holds a request open on the
+  in-memory test server for as long as it lives; on the host every other test drives, that pins the
+  server and the suite stops making progress.
+- **Hosts run as `Production`.** In `Development` the developer exception page answers 500 for
+  everything and hides the ProblemDetails mapping that turns `KeyNotFoundException` into 404.
+
+Configuration reaches the host as environment variables rather than through
+`ConfigureAppConfiguration`: sources added there are merged when the host is built, too late for
+anything binding configuration eagerly at registration (`AddRedisCache` does — which is why the
+cache silently pointed at the compose hostname until this was fixed).

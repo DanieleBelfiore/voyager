@@ -1,5 +1,6 @@
 using System;
 using System.IdentityModel.Tokens.Jwt;
+using System.Threading.Tasks;
 using Identity.Module.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -8,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using OpenIddict.Abstractions;
 using OpenIddict.Validation.AspNetCore;
+using Voyager.Shared.Security;
 
 namespace Identity.Module.DependencyInjection;
 
@@ -109,5 +111,8 @@ public static class IdentityModuleExtensions
     using var scope = services.CreateScope();
     using var context = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
     context.Database.Migrate();
+
+    // Without this the variant cannot issue a token at all — see OpenIddictClientSeed.
+    scope.ServiceProvider.SeedVoyagerApplicationAsync().GetAwaiter().GetResult();
   }
 }

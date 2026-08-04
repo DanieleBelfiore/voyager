@@ -1,4 +1,5 @@
 using System.Net.Http.Headers;
+using Driver.Handlers.Models;
 using Identity.Handlers.Interfaces;
 using Identity.Handlers.Models;
 using Hikyaku;
@@ -9,11 +10,14 @@ using Xunit;
 
 namespace Ride.IntegrationTests;
 
-public abstract class BaseIntegrationTest : IClassFixture<IntegrationTestWebAppFactory>
+[Collection(IntegrationTestCollection.Name)]
+public abstract class BaseIntegrationTest
 {
   private readonly IntegrationTestWebAppFactory _factory;
   private IServiceScope? _scope;
+  protected IntegrationTestWebAppFactory Factory => _factory;
   protected RideContext Context;
+  protected DriverContext DriverContext;
   private IUserManager UserManager;
   protected HttpClient Client;
 
@@ -36,6 +40,7 @@ public abstract class BaseIntegrationTest : IClassFixture<IntegrationTestWebAppF
   {
     services.GetRequiredService<IHikyaku>();
     Context = services.GetRequiredService<RideContext>();
+    DriverContext = services.GetRequiredService<DriverContext>();
     UserManager = services.GetRequiredService<IUserManager>();
     Client = _factory.CreateClient();
   }
@@ -45,13 +50,9 @@ public abstract class BaseIntegrationTest : IClassFixture<IntegrationTestWebAppF
     CreateNewScope();
   }
 
-  protected async Task ResetDatabaseAsync()
+  protected Task ResetDatabaseAsync()
   {
-    using var scope = _factory.Services.CreateScope();
-    var scopedServices = scope.ServiceProvider;
-    var db = scopedServices.GetRequiredService<RideContext>();
-    await db.Database.EnsureDeletedAsync();
-    await db.Database.EnsureCreatedAsync();
+    return _factory.ResetDatabaseAsync();
   }
 
   private async Task<string> GetTokenAsync(string userName, string password)
@@ -74,15 +75,28 @@ public abstract class BaseIntegrationTest : IClassFixture<IntegrationTestWebAppF
     return tokenResponse == null ? throw new Exception("failed_to_get_token") : tokenResponse.AccessToken;
   }
 
-  protected async Task<Guid> InitializeAuthenticatedClient()
+  protected Task<Guid> InitializeAuthenticatedClient()
   {
+    return InitializeAuthenticatedClient(isDriver: false);
+  }
+
+  /// <summary>
+  /// Registers a fresh user and puts their bearer token on <see cref="Client"/>, returning the id.
+  /// The name is unique per call: the identity catalogue is never truncated between tests — it
+  /// carries the OpenIddict client registration the token endpoint needs — so a fixed name would
+  /// collide the moment a second test ran.
+  /// </summary>
+  protected async Task<Guid> InitializeAuthenticatedClient(bool isDriver)
+  {
+    var name = $"{(isDriver ? "driver" : "rider")}-{Guid.NewGuid():N}@voyager.test";
+
     var user = new VoyagerUser
     {
-      UserName = "user@test.it",
-      Email = "user@test.it",
-      FirstName = "User",
-      LastName = "Test",
-      IsDriver = false
+      UserName = name,
+      Email = name,
+      FirstName = "Test",
+      LastName = isDriver ? "Driver" : "Rider",
+      IsDriver = isDriver
     };
 
     const string password = "Aa123456!";
@@ -96,6 +110,22 @@ public abstract class BaseIntegrationTest : IClassFixture<IntegrationTestWebAppF
     Client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
     return user.Id;
+  }
+
+  /// <summary>
+  /// A second client on the same host, authenticated as a different user. The ride flow needs two
+  /// callers — the rider who requests and the driver who accepts — and each carries its own token.
+  /// </summary>
+  protected async Task<(HttpClient Client, Guid UserId)> NewAuthenticatedClientAsync(bool isDriver)
+  {
+    var client = _factory.CreateClient();
+
+    var current = Client;
+    Client = client;
+    var id = await InitializeAuthenticatedClient(isDriver);
+    Client = current;
+
+    return (client, id);
   }
 
   public class TokenResponse

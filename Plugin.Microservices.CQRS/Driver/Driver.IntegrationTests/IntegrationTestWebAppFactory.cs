@@ -8,8 +8,12 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using OpenIddict.Abstractions;
 using OpenIddict.Validation.AspNetCore;
+using Respawn;
+using Respawn.Graph;
+using StackExchange.Redis;
 using Testcontainers.MsSql;
 using Testcontainers.RabbitMq;
 using Testcontainers.Redis;
@@ -33,23 +37,70 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsy
 
   private readonly RedisContainer _redisContainer = new RedisBuilder("redis:7").Build();
 
+  private Respawner _respawner;
+  private string _driverConnectionString;
+
+  public string DriverConnectionString => _driverConnectionString ??=
+    new SqlConnectionStringBuilder(_dbContainer.GetConnectionString()) { InitialCatalog = "driver" }.ConnectionString;
+
+  public string RedisConnectionString => _redisContainer.GetConnectionString();
+
+  /// <summary>
+  /// The raw payload behind a cache key, or <c>null</c> if nothing was written. Read straight out
+  /// of Redis rather than through <c>ICacheService</c>: the failure this guards against is a write
+  /// that throws and gets swallowed, and the cache abstraction reports a miss either way.
+  /// </summary>
+  public async Task<string> ReadCacheEntry(string key)
+  {
+    using var redis = await ConnectionMultiplexer.ConnectAsync(RedisConnectionString);
+
+    return await redis.GetDatabase().StringGetAsync(key);
+  }
+
+  /// <summary>
+  /// Truncates every table rather than dropping the database. The previous reset ran
+  /// <c>EnsureDeleted</c> + <c>EnsureCreated</c>, which rebuilds the schema from the EF model and
+  /// so discards everything a migration does outside it — including
+  /// <c>SIX_Drivers_LastLocation</c>, created by raw SQL in
+  /// <c>20260731180239_AddDriverLastLocationSpatialIndex</c>. The geospatial query these tests
+  /// exist to prove was running unindexed, and the migration itself was covered by nothing.
+  /// </summary>
+  public async Task ResetDatabaseAsync()
+  {
+    await using var connection = new SqlConnection(DriverConnectionString);
+    await connection.OpenAsync();
+
+    _respawner ??= await Respawner.CreateAsync(connection, new RespawnerOptions
+    {
+      DbAdapter = DbAdapter.SqlServer,
+      TablesToIgnore = [new Table("__EFMigrationsHistory")]
+    });
+
+    await _respawner.ResetAsync(connection);
+  }
+
   protected override void ConfigureWebHost(IWebHostBuilder builder)
   {
+    // Production, not the Development default. In Development the pipeline installs the developer
+    // exception page, which answers 500 with a stack trace for everything — so the ProblemDetails
+    // mapping that turns NotFoundException into 404 is never exercised and a test asserting on
+    // status codes is asserting on behaviour no deployment has.
+    builder.UseEnvironment(Environments.Production);
+
     var baseConnStr = _dbContainer.GetConnectionString();
-    var driverConnStr = new SqlConnectionStringBuilder(baseConnStr) { InitialCatalog = "driver" }.ConnectionString;
     var identityConnStr = new SqlConnectionStringBuilder(baseConnStr) { InitialCatalog = "identity" }.ConnectionString;
 
     builder.ConfigureAppConfiguration(cfg =>
     {
       cfg.AddInMemoryCollection(new Dictionary<string, string?>
       {
-        ["ConnectionStrings:DriverContext"] = driverConnStr,
+        ["ConnectionStrings:DriverContext"] = DriverConnectionString,
         ["ConnectionStrings:IdentityContext"] = identityConnStr,
         ["RabbitMQ:HostName"] = _rabbitContainer.Hostname,
         ["RabbitMQ:Port"] = _rabbitContainer.GetMappedPublicPort(5672).ToString(),
         ["RabbitMQ:UserName"] = "testuser",
         ["RabbitMQ:Password"] = "testpass",
-        ["Redis:ConnectionString"] = _redisContainer.GetConnectionString()
+        ["Redis:ConnectionString"] = RedisConnectionString
       });
     });
 
@@ -125,6 +176,15 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsy
   public async Task InitializeAsync()
   {
     await Task.WhenAll(_dbContainer.StartAsync(), _rabbitContainer.StartAsync(), _redisContainer.StartAsync());
+
+    // Environment variables, not just ConfigureAppConfiguration. A source added there is merged
+    // when the host is built — after Program.cs has run its builder.Services.Add… calls. That is
+    // invisible to anything reading configuration inside a factory lambda (the DbContext
+    // registrations resolve their connection string per instance, so they see the override), and
+    // fatal for anything reading it eagerly at registration: AddRedisCache binds
+    // Redis:ConnectionString right there and hands the value to a singleton ConnectionMultiplexer,
+    // so the host stayed pointed at the compose hostname and every cache write went nowhere.
+    Environment.SetEnvironmentVariable("Redis__ConnectionString", RedisConnectionString);
   }
 
   public new async Task DisposeAsync()

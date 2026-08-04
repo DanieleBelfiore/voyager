@@ -53,6 +53,12 @@ public static class RideInfrastructureExtensions
       PerMinuteRate = configuration.GetValue<double>("PerMinuteRate")
     });
 
+    // Mapperly generates a stateless mapper, but nothing was registering it: every handler that
+    // takes one failed to activate at request time with "Unable to resolve service for type
+    // RideMapper" and answered 500. Invisible to the unit tests, which construct the handler
+    // themselves and pass a `new RideMapper()`.
+    services.AddSingleton<Ride.Application.Mapping.RideMapper>();
+
     return services;
   }
 
