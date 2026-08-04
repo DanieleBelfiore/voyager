@@ -40,13 +40,16 @@ jobs:
           # Same "wire shapes, no logic" category as Commons/Voyager.Contracts, already out of
           # scope everywhere. Business logic lives in {Service}.Handlers (and Hub.API).
           - name: Plugin.Microservices.CQRS
+            root: Plugin.Microservices.CQRS
             solution: Plugin.Microservices.CQRS/Voyager.sln
             coverage_packages: Driver.Handlers,Hub.API,Identity.Handlers,Ride.Handlers
             class_exclude: '\.Migrations\.|Context|SlowQueryInterceptor|^.*\.Module$|\.Module\.|\.Services\.'
           - name: Clean.Architecture
+            root: Clean.Architecture
             solution: Clean.Architecture/Voyager.CleanArchitecture.sln
             coverage_packages: Driver.Application,Driver.Domain,Hub.Application,Identity.Application,Identity.Domain,Ride.Application,Ride.Domain
           - name: Hexagonal.Architecture
+            root: Hexagonal.Architecture
             solution: Hexagonal.Architecture/Voyager.HexagonalArchitecture.sln
             coverage_packages: Driver.Core,Hub.Core,Identity.Core,Ride.Core
           # Vertical.Slice.Architecture and Modular.Monolith have no separate project
@@ -55,10 +58,12 @@ jobs:
           # filters those out by class name so the gate still measures business
           # logic only, same as the other three variants get via project boundaries.
           - name: Vertical.Slice.Architecture
+            root: Vertical.Slice.Architecture
             solution: Vertical.Slice.Architecture/Voyager.VerticalSliceArchitecture.sln
             coverage_packages: Driver.Api,Hub.Api,Identity.Api,Ride.Api
             class_exclude: '^Program|Controller|\.Migrations\.|\.Persistence\.|Validator$|VoyagerHub|Middleware|^AddPasswordGrantParams'
           - name: Modular.Monolith
+            root: Modular.Monolith
             solution: Modular.Monolith/Voyager.ModularMonolith.sln
             coverage_packages: Driver.Module,Hub.Module,Identity.Module,Ride.Module
             class_exclude: '^Program|Controller|\.Migrations\.|\.Persistence\.|Validator$|VoyagerHub|Middleware|^AddPasswordGrantParams|\.DependencyInjection\.'
@@ -84,16 +89,28 @@ jobs:
       - name: Build
         run: dotnet build "${{ matrix.solution }}" -c Release --no-restore
 
-      # Integration tests (Testcontainers: MsSql/RabbitMq/Redis) are excluded here and run in
-      # the `integration` job below: they are slow, they need a Docker daemon, and they must not
-      # feed the coverage gate, whose thresholds are calibrated on unit tests alone.
+      # Unit test projects only, discovered one by one. Integration tests run in the `integration`
+      # job below: they are slow, they need a Docker daemon, and they must not feed the coverage
+      # gate, whose thresholds are calibrated on unit tests alone.
+      #
+      # Selected by project rather than by `--filter "FullyQualifiedName!~IntegrationTests"` at
+      # solution level, which fails the run outright: `dotnet test` exits non-zero on any project
+      # the filter matches nothing in, and it matches nothing in every *.IntegrationTests project.
+      # The glob separates the two — `*.Tests.csproj` does not match `*.IntegrationTests.csproj`.
       - name: Test
-        run: >
-          dotnet test "${{ matrix.solution }}" -c Release --no-build
-          --filter "FullyQualifiedName!~IntegrationTests"
-          --logger trx
-          --collect:"Code Coverage;Format=cobertura"
-          --results-directory ./TestResults
+        env:
+          VARIANT_ROOT: ${{ matrix.root }}
+        run: |
+          projects=$(find "$VARIANT_ROOT" -name '*.Tests.csproj')
+          if [ -z "$projects" ]; then
+            echo "No unit test project found under $VARIANT_ROOT" >&2
+            exit 1
+          fi
+          for project in $projects; do
+            dotnet test "$project" -c Release --no-build \
+              --logger trx --collect:"Code Coverage;Format=cobertura" \
+              --results-directory ./TestResults
+          done
 
       - name: Coverage gate (80% on business-logic layers)
         run: >

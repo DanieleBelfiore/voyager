@@ -6,6 +6,12 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <IsPackable>false</IsPackable>
+    <!--
+      Referencing xunit is enough for `dotnet test` to treat this as a test project and try to run
+      it. It is a library of harness code with no tests of its own, and it has no test runner, so
+      the attempt fails outright and takes the whole run with it.
+    -->
+    <IsTestProject>false</IsTestProject>
     <Authors>Daniele Belfiore</Authors>
     <Description>Test-container and harness plumbing shared by the architecture variants' integration suites. Infrastructure only — no domain, CQRS or variant-specific logic.</Description>
   </PropertyGroup>
