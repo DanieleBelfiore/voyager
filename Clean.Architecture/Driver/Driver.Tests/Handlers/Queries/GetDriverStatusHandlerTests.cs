@@ -28,7 +28,7 @@ public class GetDriverStatusHandlerTests
     _repository.GetByIdAsync(id, Arg.Any<CancellationToken>()).Returns(new DriverEntity(id));
 
     // Act
-    var result = await _handler.Handle(new GetDriverStatus { Id = id }, CancellationToken.None);
+    var result = await _handler.Handle(new GetDriverStatus { Id = id, CallerId = id }, CancellationToken.None);
 
     // Assert
     Assert.NotNull(result);
@@ -49,15 +49,43 @@ public class GetDriverStatusHandlerTests
     _repository.GetByIdAsync(id, Arg.Any<CancellationToken>()).Returns(driver);
 
     // Act
-    var firstResult = await _handler.Handle(new GetDriverStatus { Id = id }, CancellationToken.None);
+    var firstResult = await _handler.Handle(new GetDriverStatus { Id = id, CallerId = id }, CancellationToken.None);
 
     driver.UpdateAvailability(Driver.Domain.Enums.DriverStatus.OnRide); // shouldn't affect cached result
 
-    var secondResult = await _handler.Handle(new GetDriverStatus { Id = id }, CancellationToken.None);
+    var secondResult = await _handler.Handle(new GetDriverStatus { Id = id, CallerId = id }, CancellationToken.None);
 
     // Assert
     Assert.Equivalent(firstResult, secondResult);
     Assert.Equal(Driver.Domain.Enums.DriverStatus.Available, secondResult.Status); // still the cached value
     await _repository.Received(1).GetByIdAsync(id, Arg.Any<CancellationToken>()); // repository hit only once
+  }
+
+  [Fact]
+  public async Task GetDriverStatus_ShouldRejectACallerReadingAnotherDriver()
+  {
+    // Arrange
+    var driverId = Guid.NewGuid();
+    _repository.GetByIdAsync(driverId, Arg.Any<CancellationToken>()).Returns(new DriverEntity(driverId));
+
+    // Act + Assert
+    await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+      _handler.Handle(new GetDriverStatus { Id = driverId, CallerId = Guid.NewGuid() }, CancellationToken.None));
+
+    await _repository.DidNotReceive().GetByIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+  }
+
+  [Fact]
+  public async Task GetDriverStatus_ShouldNotServeAForeignCallerFromAWarmCache()
+  {
+    // Arrange — the driver's own read populates the cache first, so this fails if the ownership
+    // check sits inside the cache factory rather than in front of it.
+    var driverId = Guid.NewGuid();
+    _repository.GetByIdAsync(driverId, Arg.Any<CancellationToken>()).Returns(new DriverEntity(driverId));
+    await _handler.Handle(new GetDriverStatus { Id = driverId, CallerId = driverId }, CancellationToken.None);
+
+    // Act + Assert
+    await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+      _handler.Handle(new GetDriverStatus { Id = driverId, CallerId = Guid.NewGuid() }, CancellationToken.None));
   }
 }

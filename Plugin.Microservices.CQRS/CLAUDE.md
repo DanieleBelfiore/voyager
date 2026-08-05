@@ -41,7 +41,7 @@ Services run on:
 
 ## Architecture
 
-**Voyager** is a ride-sharing backend built as four independent microservices on .NET 9, communicating via RabbitMQ and exposing real-time events through SignalR.
+**Voyager** is a ride-sharing backend built as four independent microservices on .NET 10, communicating via RabbitMQ and exposing real-time events through SignalR.
 
 ### Services
 
@@ -88,7 +88,7 @@ Commands and queries live in `.Core/CQRS/`; handlers live in `.Handlers/CQRS/`. 
 score = (distanceWeight × normalizedDistance) + (ratingWeight × (1 − normalizedRating))
 ```
 
-Results are cached in Redis. Location stored as `Point` (SRID 4326) via NetTopologySuite; SQL Server geospatial index is used for proximity queries.
+Results are intentionally **not** cached — driver location and availability change every few seconds, so a TTL-cached candidate list is either stale or constantly invalidated; the spatially-indexed query is both cheaper and more correct (see `DESIGN.md`). Location stored as `Point` (SRID 4326) via NetTopologySuite; SQL Server geospatial index is used for proximity queries.
 
 ### Real-time Flow
 
@@ -112,5 +112,5 @@ Ride service publishes events to RabbitMQ → Hub service consumes and pushes to
 - `Common.Core.Loader` is a process-wide singleton but `Compose()` runs once per host boot, so it is locked and idempotent per directory/assembly/module type. Two `WebApplicationFactory` instances in one test process used to make it throw `Collection was modified` — see `Driver.Tests/LoaderTests.cs` before changing it.
 - Unit tests use `UseInMemoryDatabase`, **except** where the handler under test uses a relational-only EF feature (`ExecuteUpdate`/`ExecuteDelete`, raw SQL), which InMemory does not implement. Those open a `SqliteConnection("DataSource=:memory:")` held open for the fixture's lifetime plus `Database.EnsureCreated()` — see `Identity.Tests/Handlers/Commands/UpdateUserRatingHandlerTests.cs`. SQLite proves the logic and the atomicity, not SQL Server's own translation, so those fixes still want a pass against docker-compose.
 - CI enforces an **80% line-coverage gate** on business logic (`{Service}.Core`, `{Service}.Handlers`, `Hub.API`) via `scripts/check-coverage.py`. `Common.Core` (cache, rate limiting, the AssemblyLoadContext plugin loader) is infra shared across this variant's own services — same "no domain logic" role as the root `Commons/` folder — so it's excluded from the gate, same as Api/Controllers and generated EF migrations/DbContext/`Module` (`IModule` registration)/`UserManagerService` (thin `UserManager<T>` pass-through). The coverage collector only sees assemblies actually loaded by a test process — a service with no `{Service}.Tests` project silently vanishes from the gate's denominator instead of dragging the score down. Every service must have one, or its real coverage (likely near 0%) never gets measured at all.
-- Nullable reference types are **disabled** in main projects, enabled only in test projects.
+- Nullable reference types are **disabled** in every project, tests included. `.editorconfig` additionally sets CS8618/CS8632/CS8600 to `none`, so turning nullable on in one project will not produce the signal you expect until those suppressions are lifted too.
 - `../.editorconfig` enforces 2-space indentation and LF line endings.

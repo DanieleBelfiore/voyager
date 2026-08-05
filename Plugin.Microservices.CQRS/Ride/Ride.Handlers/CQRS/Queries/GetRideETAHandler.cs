@@ -33,11 +33,11 @@ public class GetRideETAHandler(IRideContext db, IHikyaku mediator, IConfiguratio
     if (ride.UserId != request.CallerId && ride.DriverId != request.CallerId)
       throw new UnauthorizedAccessException("not_ride_participant");
 
-    var driver = await mediator.Send(new GetDriverStatus { Id = ride.DriverId }, cancellationToken) ?? throw new NotFoundException("driver_not_found");
+    var driver = await mediator.Send(new GetDriverLocation { DriverId = ride.DriverId }, cancellationToken);
 
-    // Once the trip is under way the driver is not heading to the pickup any more — and StartRide
-    // overwrote PickupLocation with the driver's own position at that moment, so measuring
-    // against it reports distance already travelled instead of distance still to go.
+    // Once the trip is under way the driver is heading for the dropoff, not the pickup, so the
+    // endpoint has to switch — measuring against the pickup from here on reports distance already
+    // travelled instead of distance still to go.
     var target = ride.Status == RideStatus.InProgress ? ride.DropoffLocation : ride.PickupLocation;
 
     if (target == null || driver.LastLocation == null)

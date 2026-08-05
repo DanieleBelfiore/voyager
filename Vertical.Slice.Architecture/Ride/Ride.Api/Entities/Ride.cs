@@ -93,7 +93,6 @@ public class Ride
       throw new ConflictException("operation_not_permitted");
 
     Status = RideStatus.InProgress;
-    PickupLocation = location;
     LastLocation = location;
     LastUpdateDate = DateTime.UtcNow;
     StartAt = LastUpdateDate;
@@ -108,9 +107,9 @@ public class Ride
   /// updates are fire-and-forget and can legitimately land just after a Complete or Cancel.
   /// </summary>
   /// <summary>
-  /// True once the trip itself is under way. Start overwrites PickupLocation with wherever the
-  /// driver actually was at that moment, so anything measuring "distance to pickup" has to stop
-  /// doing so from here on: it would be reporting distance already travelled, not distance left.
+  /// True once the trip itself is under way, which is when the driver stops heading for the
+  /// pickup and starts heading for the dropoff — anything measuring "distance to destination"
+  /// has to switch endpoints here.
   ///
   /// A method rather than a property so EF Core never tries to map it.
   /// </summary>
@@ -131,8 +130,7 @@ public class Ride
       throw new ConflictException("operation_not_permitted");
 
     Status = RideStatus.Completed;
-    DropoffLocation = location;
-    LastLocation = DropoffLocation;
+    LastLocation = location;
     LastUpdateDate = DateTime.UtcNow;
     EndAt = LastUpdateDate;
     Price = price;

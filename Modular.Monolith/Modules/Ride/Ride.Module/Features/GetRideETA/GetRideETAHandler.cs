@@ -24,9 +24,9 @@ internal class GetRideETAHandler(RideDbContext db, IHikyaku mediator, IOptions<E
     var driverLocation = await mediator.Send(new GetDriverLocation { DriverId = ride.DriverId }, cancellationToken);
     var location = driverLocation?.LastLocation;
 
-    // Once the trip is under way the driver is not heading to the pickup any more — and Start
-    // overwrote PickupLocation with the driver's own position at that moment, so measuring
-    // against it reports distance already travelled instead of distance still to go.
+    // Once the trip is under way the driver is heading for the dropoff, not the pickup, so the
+    // endpoint has to switch — measuring against the pickup from here on reports distance already
+    // travelled instead of distance still to go.
     var target = ride.HasStarted() ? ride.DropoffLocation : ride.PickupLocation;
 
     if (target == null || location == null)

@@ -21,7 +21,11 @@ internal class CompleteRideHandler(RideDbContext db, IHikyaku mediator, IOptions
     if (ride.DriverId != request.CallerId)
       throw new UnauthorizedAccessException("not_ride_participant");
 
-    var distanceInMeters = ride.PickupLocation != null ? RideEtaCalculator.DistanceInMeters(ride.PickupLocation, request.Location) : 0;
+    // Priced off the route the rider agreed to at request time, never off request.Location: that
+    // coordinate is asserted by the driver, who is the party being paid by the kilometre.
+    var distanceInMeters = ride.PickupLocation != null && ride.DropoffLocation != null
+      ? RideEtaCalculator.DistanceInMeters(ride.PickupLocation, ride.DropoffLocation)
+      : 0;
     var durationMinutes = ride.StartAt.HasValue ? (DateTime.UtcNow - ride.StartAt.Value).TotalMinutes : 0;
     var price = RideFareCalculator.Calculate(distanceInMeters, durationMinutes, fareConfig.Value);
 

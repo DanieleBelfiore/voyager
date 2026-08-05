@@ -53,7 +53,6 @@ public class SearchBestDriverHandler(
       select new SearchBestDriverResponse
       {
         DriverId = driver.Id,
-        LastLocation = driver.LastLocation,
         LastUpdateDate = driver.LastUpdateDate,
         Distance = nearby.DistanceInMeters,
         Score = score

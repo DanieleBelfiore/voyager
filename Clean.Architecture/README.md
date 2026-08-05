@@ -8,7 +8,9 @@ All four services — Identity, Driver, Ride, Hub — are implemented.
 
 ```
 {Service}.Domain          ← entities, enums. No package references except NetTopologySuite (a
-                             geometry primitive, not a framework) where relevant. Hub has no
+                             geometry primitive, not a framework) where relevant, plus
+                             Commons/Voyager.Errors in Ride.Domain only (two dependency-free
+                             exception types thrown by its invariants). Hub has no
                              Domain project at all — see "Why Hub has no Domain layer" below.
       ↑
 {Service}.Application      ← CQRS commands/queries/handlers, DTOs, Mapperly mapper, and the

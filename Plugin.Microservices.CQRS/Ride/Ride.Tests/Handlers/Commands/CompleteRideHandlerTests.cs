@@ -43,15 +43,15 @@ public class CompleteRideHandlerTests
     var rideId = Guid.NewGuid();
     var driverId = Guid.NewGuid();
     var pickup = new Point(0, 0);
-    _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, DriverId = driverId, Status = RideStatus.InProgress, PickupLocation = pickup, StartAt = DateTime.UtcNow.AddMinutes(-10) });
-    await _context.SaveChangesAsync();
     var dropoff = new Point(0, 1);
+    _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, DriverId = driverId, Status = RideStatus.InProgress, PickupLocation = pickup, DropoffLocation = dropoff, StartAt = DateTime.UtcNow.AddMinutes(-10) });
+    await _context.SaveChangesAsync();
 
     // Act
     await _mediator.Send(new CompleteRide { Id = rideId, CallerId = driverId, Location = dropoff });
 
-    // Assert: server computes price from distance (pickup at (0,0) to dropoff at (0,1) is
-    // ~111.2km) and elapsed time (~10 minutes) — never trusts a client-supplied value. Pin the
+    // Assert: server computes price from the agreed route (pickup at (0,0) to dropoff at (0,1)
+    // is ~111.2km) and elapsed time (~10 minutes) — never from a client-supplied value. Pin the
     // actual formula (not just "some positive amount above BaseFare") so a regression that drops
     // a term or swaps distance/duration would fail this test.
     var ride = await _context.Rides.FindAsync(rideId);
@@ -102,5 +102,35 @@ public class CompleteRideHandlerTests
     // Act & Assert
     var ex = await Assert.ThrowsAsync<ConflictException>(act);
     Assert.Equal("operation_not_permitted", ex.Message);
+  }
+
+  /// <summary>
+  /// The completion coordinate is supplied by the driver, who is the party being paid. Pricing it
+  /// let them name a point far past the agreed destination and charge for the difference, and
+  /// overwriting DropoffLocation with it destroyed the evidence — the ride then read as though
+  /// the rider had asked to go there. The fare comes off the route the rider agreed to; where the
+  /// driver actually stopped is recorded on LastLocation, which is not priced.
+  /// </summary>
+  [Fact]
+  public async Task Handle_PricesTheAgreedRoute_WhenTheDriverClaimsAFartherDropoff()
+  {
+    // Arrange
+    var rideId = Guid.NewGuid();
+    var driverId = Guid.NewGuid();
+    var pickup = new Point(0, 0);
+    var agreedDropoff = new Point(0, 1);
+    var claimed = new Point(0, 5);
+    _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, DriverId = driverId, Status = RideStatus.InProgress, PickupLocation = pickup, DropoffLocation = agreedDropoff, StartAt = DateTime.UtcNow });
+    await _context.SaveChangesAsync();
+
+    // Act
+    await _mediator.Send(new CompleteRide { Id = rideId, CallerId = driverId, Location = claimed });
+
+    // Assert
+    var ride = await _context.Rides.FindAsync(rideId);
+    var expectedPrice = 2.5 + 1.2 * (RideGeoCalculator.DistanceInMeters(pickup, agreedDropoff) / 1000);
+    Assert.InRange(ride!.Price!.Value, expectedPrice - 0.1, expectedPrice + 0.1);
+    Assert.Equal(agreedDropoff, ride.DropoffLocation);
+    Assert.Equal(claimed, ride.LastLocation);
   }
 }

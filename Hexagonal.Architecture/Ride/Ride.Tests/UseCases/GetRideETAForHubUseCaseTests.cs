@@ -31,7 +31,7 @@ public class GetRideETAForHubUseCaseTests
     _driverLocation.GetLocationAsync(ride.DriverId, Arg.Any<CancellationToken>()).Returns(new Point(0, 1));
 
     // Act
-    var result = await _useCase.Handle(new SharedGetRideETA { Id = ride.Id }, CancellationToken.None);
+    var result = await _useCase.Handle(new SharedGetRideETA { Id = ride.Id, CallerId = ride.DriverId }, CancellationToken.None);
 
     // Assert
     Assert.NotNull(result.DistanceKm);
@@ -47,7 +47,7 @@ public class GetRideETAForHubUseCaseTests
     _driverLocation.GetLocationAsync(ride.DriverId, Arg.Any<CancellationToken>()).Returns((Point?)null);
 
     // Act
-    var result = await _useCase.Handle(new SharedGetRideETA { Id = ride.Id }, CancellationToken.None);
+    var result = await _useCase.Handle(new SharedGetRideETA { Id = ride.Id, CallerId = ride.DriverId }, CancellationToken.None);
 
     // Assert
     Assert.Null(result.DistanceKm);
@@ -63,5 +63,25 @@ public class GetRideETAForHubUseCaseTests
     // Act & Assert
     var ex = await Assert.ThrowsAsync<KeyNotFoundException>(act);
     Assert.Equal("ride_not_found", ex.Message);
+  }
+
+  /// <summary>
+  /// Reachable only over the broker, which is exactly why it needs the check: without it any
+  /// caller that can put a message on the bus could ask for any ride by id and learn where that
+  /// driver is. Same rule as the local GET /rides/{id}/eta twin — participants only.
+  /// </summary>
+  [Fact]
+  public async Task Handle_Throws_WhenCallerIsNotARideParticipant()
+  {
+    // Arrange
+    var pickup = new Point(0, 0);
+    var ride = new RideEntity(Guid.NewGuid(), Guid.NewGuid(), pickup, pickup);
+    _repository.GetByIdReadOnlyAsync(ride.Id, Arg.Any<CancellationToken>()).Returns(ride);
+
+    // Act & Assert
+    await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+      _useCase.Handle(new SharedGetRideETA { Id = ride.Id, CallerId = Guid.NewGuid() }, CancellationToken.None));
+
+    await _driverLocation.DidNotReceive().GetLocationAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>());
   }
 }

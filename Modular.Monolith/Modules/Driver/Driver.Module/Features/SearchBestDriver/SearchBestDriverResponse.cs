@@ -1,5 +1,4 @@
 using System;
-using NetTopologySuite.Geometries;
 
 namespace Driver.Module.Features.SearchBestDriver;
 
@@ -7,7 +6,6 @@ namespace Driver.Module.Features.SearchBestDriver;
 public class SearchBestDriverResponse
 {
   public Guid DriverId { get; set; }
-  public Point LastLocation { get; set; }
   public DateTime LastUpdateDate { get; set; }
   public double Distance { get; set; }
   public double Score { get; set; }

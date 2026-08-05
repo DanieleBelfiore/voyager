@@ -56,7 +56,9 @@ builder.Services.AddAuthentication(options =>
 
 // "is_driver" is the custom claim Identity's AuthController stamps onto the access token
 // (see Constants.IsDriverClaimType) — AcceptRide is the only endpoint that needs it: without
-// this check any authenticated rider could accept their own (or anyone else's) pending ride.
+// this check a rider account could accept its own (or anyone else's) pending ride. It marks the
+// account type chosen at registration, not a privilege granted by anyone: registering as a driver
+// is self-service, so this separates the rider and driver flows rather than keeping anyone out.
 builder.Services.AddAuthorization(options =>
 {
   options.AddPolicy("RequireDriver", policy => policy.RequireClaim("is_driver", "True"));

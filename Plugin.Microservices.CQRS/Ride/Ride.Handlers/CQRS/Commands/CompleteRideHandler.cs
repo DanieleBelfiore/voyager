@@ -32,16 +32,19 @@ public class CompleteRideHandler(IRideContext db, IHikyaku mediator, IConfigurat
       throw new ConflictException("operation_not_permitted");
 
     // Price is computed here, never trusted from the client — a rider/driver-supplied Price
-    // would let either side under- or over-charge the other.
-    var distanceInMeters = ride.PickupLocation != null ? RideGeoCalculator.DistanceInMeters(ride.PickupLocation, request.Location) : 0;
+    // would let either side under- or over-charge the other. The same applies to the distance it
+    // is computed from: request.Location is asserted by the driver, who is the party being paid
+    // by the kilometre, so the fare is measured over the route the rider agreed to at request time.
+    var distanceInMeters = ride.PickupLocation != null && ride.DropoffLocation != null
+      ? RideGeoCalculator.DistanceInMeters(ride.PickupLocation, ride.DropoffLocation)
+      : 0;
     var durationMinutes = ride.StartAt.HasValue ? (DateTime.UtcNow - ride.StartAt.Value).TotalMinutes : 0;
     var price = configuration.GetValue<double>("BaseFare")
       + configuration.GetValue<double>("PerKmRate") * (distanceInMeters / 1000)
       + configuration.GetValue<double>("PerMinuteRate") * durationMinutes;
 
     ride.Status = RideStatus.Completed;
-    ride.DropoffLocation = request.Location;
-    ride.LastLocation = ride.DropoffLocation;
+    ride.LastLocation = request.Location;
     ride.LastUpdateDate = DateTime.UtcNow;
     ride.EndAt = ride.LastUpdateDate;
     ride.Price = Math.Round(price, 2);

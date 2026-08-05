@@ -49,7 +49,9 @@ Anything that's genuinely single-feature stays inside that feature's own folder,
 
 ## Remote-only features
 
-Same pattern as Hexagonal: `GetActiveRideForHub` and `GetRideETAForHub` in Ride, plus `GetRideDriverHistory` (a pre-existing gap inherited from the original Plugin implementation, not something introduced here) have a handler but no controller — they're reached exclusively through Kaido's remote Hikyaku dispatch, driven by another service.
+Same pattern as Hexagonal: `GetActiveRideForHub` and `GetRideETAForHub` in Ride have a handler but no controller — they're reached exclusively through Kaido's remote Hikyaku dispatch, driven by another service. Their request types live in `Voyager.Contracts.Ride`, which is what makes them constructible from another service.
+
+`GetRideDriverHistory` is a third handler with no controller, but it is **not** remotely dispatched and is currently unreachable: its request type lives in `Ride.Api`'s own assembly, so no other service can reference it, and `Ride.Api/Program.cs`'s `InferLocalRequests([apiAssembly])` marks it local-only. A pre-existing gap inherited from the original Plugin implementation, not something introduced here.
 
 ## Namespace collision gotcha
 

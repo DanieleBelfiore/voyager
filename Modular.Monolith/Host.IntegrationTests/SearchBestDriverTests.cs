@@ -41,6 +41,32 @@ public class SearchBestDriverTests(VoyagerAppFixture fixture) : VoyagerIntegrati
     Assert.InRange(match.Distance, 1100, 1120);
   }
 
+
+  /// <summary>
+  /// Search hands a rider the ids of every available driver within the radius, so whatever else
+  /// it returns about them is disclosed in bulk — up to MaxCandidates (200) in one call. Their
+  /// positions used to be in that payload, which let any account map the fleet from a single
+  /// request. Asserted against the raw JSON rather than the typed DTO: the DTO not having the
+  /// field is exactly what this guards, so deserialising into it would assert nothing.
+  /// </summary>
+  [Fact]
+  public async Task Search_DoesNotDiscloseDriverPositions()
+  {
+    await Fixture.ResetAsync();
+
+    await RegisterAvailableDriverAt(JustNorthOfRome);
+
+    var rider = await Fixture.NewAuthenticatedClientAsync(isDriver: false);
+    var response = await rider.PostAsync("api/v1/drivers/search",
+      VoyagerJson.Content(new SearchBestDriverRequest { Location = Rome, DistanceThresholdInKm = 5 })).ShouldSucceed();
+
+    var body = await response.Content.ReadAsStringAsync();
+
+    Assert.DoesNotContain("coordinates", body, StringComparison.OrdinalIgnoreCase);
+    Assert.DoesNotContain("lastLocation", body, StringComparison.OrdinalIgnoreCase);
+    Assert.DoesNotContain("41.91", body);
+  }
+
   /// <summary>
   /// The index is created by <c>migrationBuilder.Sql</c>, so it exists only if migrations ran and
   /// the per-test reset left them alone. A suite that recreates the schema from the EF model

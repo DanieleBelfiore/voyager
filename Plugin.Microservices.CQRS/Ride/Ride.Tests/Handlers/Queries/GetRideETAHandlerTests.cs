@@ -49,8 +49,8 @@ public class GetRideETAHandlerTests
     var pickup = new Point(0, 0);
     _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, DriverId = driverId, PickupLocation = pickup });
     await _context.SaveChangesAsync();
-    _mediator.Send(Arg.Any<GetDriverStatus>(), Arg.Any<CancellationToken>())
-      .Returns(new DriverStatusResponse { LastLocation = new Point(0, 1) });
+    _mediator.Send(Arg.Any<GetDriverLocation>(), Arg.Any<CancellationToken>())
+      .Returns(new DriverLocationInfo { LastLocation = new Point(0, 1) });
 
     // Act
     var result = await _mediator.Send(new GetRideETA { Id = rideId, CallerId = driverId });
@@ -72,8 +72,8 @@ public class GetRideETAHandlerTests
     var pickup = new Point(0, 0);
     _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, DriverId = driverId, PickupLocation = pickup });
     await _context.SaveChangesAsync();
-    _mediator.Send(Arg.Any<GetDriverStatus>(), Arg.Any<CancellationToken>())
-      .Returns(new DriverStatusResponse { LastLocation = null });
+    _mediator.Send(Arg.Any<GetDriverLocation>(), Arg.Any<CancellationToken>())
+      .Returns(new DriverLocationInfo { LastLocation = null });
 
     // Act
     var result = await _mediator.Send(new GetRideETA { Id = rideId, CallerId = driverId });
@@ -94,21 +94,30 @@ public class GetRideETAHandlerTests
     Assert.Equal("ride_not_found", ex.Message);
   }
 
+  /// <summary>
+  /// An unknown driver yields an empty ETA rather than a 404. The Driver service reports absence
+  /// by returning a null location, matching how it answers the availability query — and matching
+  /// the other four variants, which return an empty ETAResponse for a driver with no known
+  /// position. There is no way to distinguish "no such driver" from "driver has never reported a
+  /// position" here, and the caller does the same thing in both cases.
+  /// </summary>
   [Fact]
-  public async Task Handle_Throws_WhenDriverNotFound()
+  public async Task Handle_ReturnsEmptyETA_WhenDriverIsUnknown()
   {
     // Arrange
     var rideId = Guid.NewGuid();
     var driverId = Guid.NewGuid();
     _context.Rides.Add(new Ride.Handlers.Models.Ride { Id = rideId, DriverId = driverId });
     await _context.SaveChangesAsync();
-    _mediator.Send(Arg.Any<GetDriverStatus>(), Arg.Any<CancellationToken>())
-      .Returns((DriverStatusResponse?)null);
-    var act = () => _mediator.Send(new GetRideETA { Id = rideId, CallerId = driverId });
+    _mediator.Send(Arg.Any<GetDriverLocation>(), Arg.Any<CancellationToken>())
+      .Returns(new DriverLocationInfo { LastLocation = null });
 
-    // Act & Assert
-    var ex = await Assert.ThrowsAsync<NotFoundException>(act);
-    Assert.Equal("driver_not_found", ex.Message);
+    // Act
+    var result = await _mediator.Send(new GetRideETA { Id = rideId, CallerId = driverId });
+
+    // Assert
+    Assert.Null(result.DistanceKm);
+    Assert.Null(result.EstimatedArrivalMinutes);
   }
 
   [Fact]

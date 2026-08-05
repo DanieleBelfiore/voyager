@@ -36,13 +36,13 @@ public class UpdateDriverLocationHandler(
 
     await relay.SendToRiderNewDriverLocation(ride.Id, request.Location, cancellationToken);
 
-    var eta = await etaQuery.GetEtaAsync(ride.Id, cancellationToken);
+    var eta = await etaQuery.GetEtaAsync(ride.Id, request.DriverId, cancellationToken);
 
     await relay.SendToRiderNewETA(ride.Id, eta.EstimatedArrivalMinutes, eta.DistanceKm, cancellationToken);
 
-    // Only while the driver is still on their way. Once the trip starts, PickupLocation holds
-    // wherever the driver was at Start, so this distance measures how far they have driven —
-    // under the threshold for the first several hundred metres, which re-fired "driver has
+    // Only while the driver is still on their way. Once the trip is under way the driver is
+    // moving away from the pickup, so this distance stops meaning "how far until they arrive" —
+    // it drifts back under the threshold near the start of the trip and re-fired "driver has
     // arrived" over and over mid-trip.
     if (ride.HasStarted)
       return;

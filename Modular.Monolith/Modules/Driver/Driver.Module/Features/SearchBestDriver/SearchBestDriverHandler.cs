@@ -37,7 +37,7 @@ internal class SearchBestDriverHandler(
     var drivers = await db.Drivers.AsNoTracking()
       .Where(d => d.Status == DriverStatus.Available && d.LastLocation != null
         && d.LastLocation.Distance(request.Location) <= request.DistanceThresholdInMeters)
-      .Select(d => new { d.Id, d.LastLocation, d.LastUpdateDate, Distance = d.LastLocation!.Distance(request.Location) })
+      .Select(d => new { d.Id, d.LastUpdateDate, Distance = d.LastLocation!.Distance(request.Location) })
       // Nearest-first then capped: an unbounded threshold otherwise materialises every
       // available driver and feeds all their ids into GetUsersRatings as one IN (...).
       .OrderBy(d => d.Distance)
@@ -64,7 +64,6 @@ internal class SearchBestDriverHandler(
       select new SearchBestDriverResponse
       {
         DriverId = driver.Id,
-        LastLocation = driver.LastLocation,
         LastUpdateDate = driver.LastUpdateDate,
         Distance = driver.Distance,
         Score = score

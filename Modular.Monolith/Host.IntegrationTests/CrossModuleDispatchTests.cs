@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using NetTopologySuite.Geometries;
 using Driver.Module.Entities;
 using Driver.Module.Features.SearchBestDriver;
+using Ride.Module.Features.GetRideETA;
 using Ride.Module.Shared;
 using Voyager.Contracts.Identity;
 using Voyager.TestInfra;
@@ -21,6 +22,7 @@ namespace Voyager.Host.IntegrationTests;
 public class CrossModuleDispatchTests(VoyagerAppFixture fixture) : VoyagerIntegrationTest(fixture)
 {
   private static readonly Point Rome = new(12.4964, 41.9028) { SRID = 4326 };
+  private static readonly Point AcrossTown = new(12.5451, 41.8992) { SRID = 4326 };
 
   /// <summary>
   /// Routing on its own: an unregistered request type throws rather than returning empty, so a
@@ -72,5 +74,42 @@ public class CrossModuleDispatchTests(VoyagerAppFixture fixture) : VoyagerIntegr
     // Distance is ~0 for a driver sitting on the search point, so the score is carried entirely by
     // the rating term — a zero here means the ratings lookup came back empty.
     Assert.True(match.Score > 0, $"Candidate scored {match.Score}; the rating term contributed nothing.");
+  }
+
+  /// <summary>
+  /// The Ride module holds no driver location, so an ETA can only come back if its
+  /// GetDriverLocation request was routed to a handler in the Driver module. Unit tests inject a
+  /// mocked mediator, which is why a contract nobody handles stayed invisible until here.
+  /// </summary>
+  [Fact]
+  public async Task ARidesETA_IsAnsweredByTheDriverModule()
+  {
+    await Fixture.ResetAsync();
+
+    var driver = Fixture.NewClient();
+    var driverUser = await VoyagerAuth.RegisterAsync(driver, isDriver: true);
+    driver.Authenticate(driverUser);
+
+    await driver.PostAsync("api/v1/drivers", VoyagerJson.Content(new { })).ShouldSucceed();
+    await driver.PutAsync("api/v1/drivers/location", VoyagerJson.Content(new { Location = Rome })).ShouldSucceed();
+    await driver.PutAsync("api/v1/drivers/availability", VoyagerJson.Content(new { Status = DriverStatus.Available })).ShouldSucceed();
+
+    var rider = Fixture.NewClient();
+    var riderUser = await VoyagerAuth.RegisterAsync(rider, isDriver: false);
+    rider.Authenticate(riderUser);
+
+    var ride = await (await rider.PostAsync("api/v1/rides", VoyagerJson.Content(new
+    {
+      DriverId = driverUser.Id,
+      PickupLocation = AcrossTown,
+      DropoffLocation = Rome
+    })).ShouldSucceed()).ReadAsync<RideDetailsResponse>();
+
+    var eta = await (await rider.GetAsync($"api/v1/rides/{ride.Id}/eta").ShouldSucceed()).ReadAsync<ETAResponse>();
+
+    Assert.NotNull(eta.EstimatedArrivalMinutes);
+    // An unrouted query degrades to a null pair, and a driver sitting on the pickup would measure
+    // zero either way — this driver is a town away, so a positive distance is the actual proof.
+    Assert.True(eta.DistanceKm > 0, $"ETA came back with distance {eta.DistanceKm}; no driver location crossed the module boundary.");
   }
 }

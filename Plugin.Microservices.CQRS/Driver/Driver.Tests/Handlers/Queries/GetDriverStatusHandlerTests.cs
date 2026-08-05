@@ -43,7 +43,7 @@ public class GetDriverStatusHandlerTests
     await _context.SaveChangesAsync();
 
     // Act
-    var result = await _mediator.Send(new GetDriverStatus { Id = id });
+    var result = await _mediator.Send(new GetDriverStatus { Id = id, CallerId = id });
 
     // Assert
     Assert.NotNull(result);
@@ -66,17 +66,48 @@ public class GetDriverStatusHandlerTests
     await _context.SaveChangesAsync();
 
     // Act
-    var firstResult = await _mediator.Send(new GetDriverStatus { Id = id });
+    var firstResult = await _mediator.Send(new GetDriverStatus { Id = id, CallerId = id });
 
     // Modify DB (shouldn't affect cached result)
     var driver = await _context.Drivers.FindAsync(id);
     driver!.Status = DriverStatus.OnRide;
     await _context.SaveChangesAsync();
 
-    var secondResult = await _mediator.Send(new GetDriverStatus { Id = id });
+    var secondResult = await _mediator.Send(new GetDriverStatus { Id = id, CallerId = id });
 
     // Assert
     Assert.Equivalent(firstResult, secondResult);
     Assert.Equal(DriverStatus.Available, secondResult.Status); // Still has cached value
+  }
+
+  [Fact]
+  public async Task GetDriverStatus_ShouldRejectACallerReadingAnotherDriver()
+  {
+    // Arrange
+    var id = Guid.NewGuid();
+
+    _context.Drivers.Add(new Driver.Handlers.Models.Driver { Id = id });
+    await _context.SaveChangesAsync();
+
+    // Act + Assert
+    await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+      _mediator.Send(new GetDriverStatus { Id = id, CallerId = Guid.NewGuid() }));
+  }
+
+  [Fact]
+  public async Task GetDriverStatus_ShouldNotServeAForeignCallerFromAWarmCache()
+  {
+    // Arrange — the driver's own read populates the cache first, so this fails if the ownership
+    // check sits inside the cache factory rather than in front of it.
+    var id = Guid.NewGuid();
+
+    _context.Drivers.Add(new Driver.Handlers.Models.Driver { Id = id });
+    await _context.SaveChangesAsync();
+
+    await _mediator.Send(new GetDriverStatus { Id = id, CallerId = id });
+
+    // Act + Assert
+    await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+      _mediator.Send(new GetDriverStatus { Id = id, CallerId = Guid.NewGuid() }));
   }
 }

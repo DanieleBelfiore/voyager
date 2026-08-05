@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using NetTopologySuite.Geometries;
 using Voyager.TestInfra;
 using Xunit;
 
@@ -84,4 +85,53 @@ public class RideLifecycleTests(VoyagerStackFixture fixture) : VoyagerIntegratio
 
     return await response.ReadAsync<RideDetailsResult>();
   }
+
+  /// <summary>
+  /// The fare has to come off the route the rider agreed to, not off the coordinate the driver
+  /// posts at completion — the driver is the party being paid by the kilometre. Run as a
+  /// differential rather than a fixed number so it needs no knowledge of the fare configuration:
+  /// two identical rides, one completed honestly and one completed at a point far past the agreed
+  /// dropoff, must be charged the same. The lifecycle test above cannot catch this because it
+  /// completes at exactly the requested dropoff, where both implementations agree.
+  /// </summary>
+  [Fact]
+  public async Task TheFareIsUnchanged_WhenADriverCompletesFarPastTheAgreedDropoff()
+  {
+    await Fixture.ResetAsync();
+
+    var driverUser = await Fixture.RegisterAvailableDriverAsync(DriverWorkflow.Rome);
+    var driver = Fixture.ClientFor(VoyagerService.Ride, driverUser);
+
+    var honest = await RunRideAsync(driver, driverUser.Id, DriverWorkflow.AcrossTown);
+    var inflated = await RunRideAsync(driver, driverUser.Id, FarPastAcrossTown);
+
+    Assert.Equal(honest.Price!.Value, inflated.Price!.Value, precision: 2);
+    // The agreed destination also has to survive: overwriting it with the driver's coordinate
+    // destroyed the only record of what the rider actually asked for.
+    Assert.Equal(DriverWorkflow.AcrossTown.X, inflated.DropoffLocation.X, precision: 4);
+    Assert.Equal(DriverWorkflow.AcrossTown.Y, inflated.DropoffLocation.Y, precision: 4);
+  }
+
+  /// <summary>A full ride for a fresh rider, completed at <paramref name="completionPoint"/>.</summary>
+  private async Task<RideDetailsResult> RunRideAsync(HttpClient driver, Guid driverId, Point completionPoint)
+  {
+    var rider = Fixture.ClientFor(VoyagerService.Ride, await Fixture.RegisterAsync(isDriver: false));
+
+    var ride = await (await rider.PostAsync("api/v1/rides", VoyagerJson.Content(new RequestRidePayload
+    {
+      DriverId = driverId,
+      PickupLocation = DriverWorkflow.Rome,
+      DropoffLocation = DriverWorkflow.AcrossTown
+    })).ShouldSucceed()).ReadAsync<RideDetailsResult>();
+
+    await driver.PutAsync($"api/v1/rides/{ride.Id}/accept", JsonContent.Create(new { })).ShouldSucceed();
+    await driver.PutAsync($"api/v1/rides/{ride.Id}/start", VoyagerJson.Content(new { Location = DriverWorkflow.Rome })).ShouldSucceed();
+    await driver.PutAsync($"api/v1/rides/{ride.Id}/complete", VoyagerJson.Content(new { Location = completionPoint })).ShouldSucceed();
+
+    return await ReadRide(rider, ride.Id);
+  }
+
+  // Roughly 20km past the agreed dropoff: far enough that pricing it instead would move the fare
+  // by more than the assertion's tolerance.
+  private static readonly Point FarPastAcrossTown = new(12.5164, 42.1228) { SRID = 4326 };
 }

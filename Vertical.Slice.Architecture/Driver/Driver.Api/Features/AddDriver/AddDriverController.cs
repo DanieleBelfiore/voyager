@@ -14,8 +14,10 @@ namespace Driver.Api.Features.AddDriver;
 public class AddDriverController(IHikyaku mediator) : ControllerBase
 {
   // Gated on the is_driver claim, not just authentication: a Driver row is what puts someone into
-  // SearchBestDriver's candidate pool, so an unrestricted endpoint let any rider self-register,
-  // publish a location, and be matched to real ride requests they can never accept.
+  // SearchBestDriver's candidate pool, so an unrestricted endpoint let a rider account self-register,
+  // publish a location, and be matched to real ride requests it can never accept. The claim marks
+  // the account type chosen at registration, not a privilege granted by anyone — registering as a
+  // driver is self-service, so this separates the two flows rather than keeping anyone out.
   [Authorize(Policy = "RequireDriver")]
   [EnableRateLimiting("driver_registration")]
   [HttpPost]

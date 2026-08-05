@@ -21,7 +21,6 @@ public class SearchBestDriverPayload
 public class SearchBestDriverResult
 {
   public Guid DriverId { get; set; }
-  public Point LastLocation { get; set; }
   public double Distance { get; set; }
   public double Score { get; set; }
 }
@@ -44,6 +43,12 @@ public class RideDetailsResult
   public string Status { get; set; }
   public Point PickupLocation { get; set; }
   public Point DropoffLocation { get; set; }
+}
+
+public class ETAResult
+{
+  public int? EstimatedArrivalMinutes { get; set; }
+  public double? DistanceKm { get; set; }
 }
 
 /// <summary>

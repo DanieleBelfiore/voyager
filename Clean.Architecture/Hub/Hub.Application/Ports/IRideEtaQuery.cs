@@ -7,7 +7,9 @@ namespace Hub.Application.Ports;
 /// <summary>Port for the cross-service ETA lookup owned by the Ride bounded context.</summary>
 public interface IRideEtaQuery
 {
-  Task<RideEta> GetEtaAsync(Guid rideId, CancellationToken cancellationToken);
+  /// <summary>callerId is the driver Hub is acting for; Ride checks it against the ride's
+  /// participants before answering.</summary>
+  Task<RideEta> GetEtaAsync(Guid rideId, Guid callerId, CancellationToken cancellationToken);
 }
 
 public class RideEta

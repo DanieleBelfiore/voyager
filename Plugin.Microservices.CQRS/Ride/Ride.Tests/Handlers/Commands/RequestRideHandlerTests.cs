@@ -30,8 +30,8 @@ public class RequestRideHandlerTests
 
     // The handler now checks the driver exists and is free before creating the ride; default to
     // an available driver so the pre-existing cases keep asserting what they were written for.
-    mediatorMock.Send(Arg.Any<GetDriverStatus>(), Arg.Any<CancellationToken>())
-      .Returns(new DriverStatusResponse { Id = Guid.NewGuid(), Status = DriverStatus.Available });
+    mediatorMock.Send(Arg.Any<GetDriverAvailability>(), Arg.Any<CancellationToken>())
+      .Returns(new DriverAvailabilityInfo { Exists = true, IsAvailable = true });
 
     mediatorMock.Send(Arg.Any<RequestRide>(), Arg.Any<CancellationToken>())
       .Returns(c => new RequestRideHandler(_context, new RideMapper(), _mediator)
@@ -75,8 +75,8 @@ public class RequestRideHandlerTests
     // Arrange: DriverId is caller-supplied. A driver already committed to someone else's trip
     // must not have another ride pinned onto them.
     var mediatorMock = Substitute.For<IHikyaku>();
-    mediatorMock.Send(Arg.Any<GetDriverStatus>(), Arg.Any<CancellationToken>())
-      .Returns(new DriverStatusResponse { Id = Guid.NewGuid(), Status = DriverStatus.OnRide });
+    mediatorMock.Send(Arg.Any<GetDriverAvailability>(), Arg.Any<CancellationToken>())
+      .Returns(new DriverAvailabilityInfo { Exists = true, IsAvailable = false });
 
     var handler = new RequestRideHandler(_context, new RideMapper(), mediatorMock);
     var act = () => handler.Handle(new RequestRide { UserId = Guid.NewGuid(), DriverId = Guid.NewGuid(), PickupLocation = Pickup, DropoffLocation = Dropoff }, CancellationToken.None);

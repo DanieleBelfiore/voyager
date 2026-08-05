@@ -24,7 +24,10 @@ public class StartRideUseCaseTests
     await useCase.Handle(new StartRide { Id = ride.Id, Location = startLocation, CallerId = ride.DriverId }, CancellationToken.None);
 
     Assert.Equal(Ride.Core.Domain.RideStatus.InProgress, ride.Status);
-    Assert.Equal(startLocation, ride.PickupLocation);
+    // Where the driver reports starting from is recorded, but it does not become the pickup:
+    // PickupLocation is what the rider agreed to and what the fare is measured against, so
+    // letting Start move it let a driver stretch the priced segment before the trip even began.
+    Assert.Equal(new Point(0, 0), ride.PickupLocation);
     Assert.NotNull(ride.StartAt);
     await repository.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
   }

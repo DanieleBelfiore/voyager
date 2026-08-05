@@ -19,11 +19,14 @@ public class GetRideETAForHubHandler(IRideRepository repository, IDriverLocation
   {
     var ride = await repository.GetByIdReadOnlyAsync(request.Id, cancellationToken) ?? throw new KeyNotFoundException("ride_not_found");
 
+    if (ride.UserId != request.CallerId && ride.DriverId != request.CallerId)
+      throw new UnauthorizedAccessException("not_ride_participant");
+
     var location = await driverLocation.GetLocationAsync(ride.DriverId, cancellationToken);
 
-    // Once the trip is under way the driver is not heading to the pickup any more — and Start
-    // overwrote PickupLocation with the driver's own position at that moment, so measuring
-    // against it reports distance already travelled instead of distance still to go.
+    // Once the trip is under way the driver is heading for the dropoff, not the pickup, so the
+    // endpoint has to switch — measuring against the pickup from here on reports distance already
+    // travelled instead of distance still to go.
     var target = ride.HasStarted() ? ride.DropoffLocation : ride.PickupLocation;
 
     if (target == null || location == null)

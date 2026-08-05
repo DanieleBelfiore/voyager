@@ -62,4 +62,32 @@ public class CrossServiceDispatchTests(VoyagerStackFixture fixture) : VoyagerInt
     // by the rating term — zero here means the ratings request came back with nothing usable.
     Assert.True(match.Score > 0, $"Candidate scored {match.Score}; the rating term contributed nothing.");
   }
+
+  /// <summary>
+  /// Ride owns no driver location, so an ETA can only come back if its GetDriverLocation request
+  /// reached a handler in the Driver service. Every unit test substitutes that port, which is why
+  /// a contract with no handler on the other end stayed invisible until here.
+  /// </summary>
+  [Fact]
+  public async Task ARidesETA_IsAnsweredByTheDriverService_AcrossTheBroker()
+  {
+    await Fixture.ResetAsync();
+
+    var driverUser = await Fixture.RegisterAvailableDriverAsync(DriverWorkflow.Rome);
+    var rider = Fixture.ClientFor(VoyagerService.Ride, await Fixture.RegisterAsync(isDriver: false));
+
+    var ride = await (await rider.PostAsync("api/v1/rides", VoyagerJson.Content(new RequestRidePayload
+    {
+      DriverId = driverUser.Id,
+      PickupLocation = DriverWorkflow.AcrossTown,
+      DropoffLocation = DriverWorkflow.Rome
+    })).ShouldSucceed()).ReadAsync<RideDetailsResult>();
+
+    var eta = await (await rider.GetAsync($"api/v1/rides/{ride.Id}/eta").ShouldSucceed()).ReadAsync<ETAResult>();
+
+    Assert.NotNull(eta.EstimatedArrivalMinutes);
+    // An unanswered query degrades to a null pair, and a driver sitting on the pickup would score
+    // zero distance either way — this driver is a town away, so a positive distance is the proof.
+    Assert.True(eta.DistanceKm > 0, $"ETA came back with distance {eta.DistanceKm}; no driver location crossed the broker.");
+  }
 }

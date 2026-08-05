@@ -56,6 +56,14 @@ Unit tests live in each module's own `*.Tests` project, granted access to that m
 ```bash
 cd Modular.Monolith
 docker-compose up -d
+```
+
+`docker-compose up -d` starts the infra *and* the host — that is the app. `Host/Host.csproj` is the
+single deployable; to run it outside Docker use `dotnet run --project Host/Host.csproj`.
+`Demo/Demo.csproj` is optional and is **not** the app: it's a standalone console client with no
+project references that drives the running host over HTTP and SignalR as a walkthrough.
+
+```bash
 dotnet run --project Demo/Demo.csproj
 ```
 

@@ -29,7 +29,7 @@ public class UpdateDriverLocationHandlerTests
 
     activeRideQuery.GetActiveRideForDriverAsync(driverId, Arg.Any<CancellationToken>())
       .Returns(new ActiveRide { Id = rideId, PickupLocation = pickup });
-    etaQuery.GetEtaAsync(rideId, Arg.Any<CancellationToken>())
+    etaQuery.GetEtaAsync(rideId, Arg.Any<Guid>(), Arg.Any<CancellationToken>())
       .Returns(new RideEta { EstimatedArrivalMinutes = 5, DistanceKm = 1.2 });
 
     var handler = new UpdateDriverLocationHandler(locationUpdater, rideLocationTracker, activeRideQuery, etaQuery, relay, new TestHubConfig());
@@ -61,9 +61,9 @@ public class UpdateDriverLocationHandlerTests
     await relay.DidNotReceive().SendToRiderNewDriverLocation(Arg.Any<Guid>(), Arg.Any<Point>(), Arg.Any<CancellationToken>());
   }
 
-  // Arrival is a "still on my way" signal. Start overwrites PickupLocation with the driver's own
-  // position, so once the trip is under way this distance is how far they have driven — which
-  // stayed under the threshold for the first few hundred metres and re-fired the push mid-trip.
+  // Arrival is a "still on my way" signal. Once the trip is under way the driver is moving away
+  // from the pickup, so that distance stops meaning "how far until they arrive" — it stayed under
+  // the threshold for the first few hundred metres and re-fired the push mid-trip.
   [Fact]
   public async Task UpdateDriverLocation_ShouldNotAnnounceArrival_OnceTheTripHasStarted()
   {
@@ -79,7 +79,7 @@ public class UpdateDriverLocationHandlerTests
 
     activeRideQuery.GetActiveRideForDriverAsync(driverId, Arg.Any<CancellationToken>())
       .Returns(new ActiveRide { Id = rideId, PickupLocation = new Point(10, 10), HasStarted = true });
-    etaQuery.GetEtaAsync(rideId, Arg.Any<CancellationToken>())
+    etaQuery.GetEtaAsync(rideId, Arg.Any<Guid>(), Arg.Any<CancellationToken>())
       .Returns(new RideEta { EstimatedArrivalMinutes = 5, DistanceKm = 1.2 });
 
     var handler = new UpdateDriverLocationHandler(locationUpdater, rideLocationTracker, activeRideQuery, etaQuery, relay, new TestHubConfig());

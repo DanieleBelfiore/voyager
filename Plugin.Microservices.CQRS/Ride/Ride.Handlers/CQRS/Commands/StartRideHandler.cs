@@ -27,9 +27,10 @@ public class StartRideHandler(IRideContext db) : IRequestHandler<StartRide>
       throw new ConflictException("operation_not_permitted");
 
     ride.Status = RideStatus.InProgress;
-    ride.PickupLocation = request.Location;
-    ride.PickupLocationGeoJSON = new WKTWriter().Write(ride.PickupLocation);
-    ride.LastLocation = ride.PickupLocation;
+    // Where the driver says they are is recorded on LastLocation only. It used to overwrite
+    // PickupLocation, which is the point the rider agreed to and the endpoint the fare is
+    // measured from — letting a driver stretch the priced segment before the trip even began.
+    ride.LastLocation = request.Location;
     ride.LastLocationGeoJSON = new WKTWriter().Write(ride.LastLocation);
     ride.LastUpdateDate = DateTime.UtcNow;
     ride.StartAt = ride.LastUpdateDate;

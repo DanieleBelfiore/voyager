@@ -71,6 +71,49 @@ public class RideLifecycleTests(IntegrationTestWebAppFactory factory) : BaseInte
   }
 
   /// <summary>
+  /// The fare has to come off the route the rider agreed to, not off the coordinate the driver
+  /// posts at completion — the driver is the party being paid by the kilometre. Run as a
+  /// differential rather than a fixed number so it needs no knowledge of the fare configuration:
+  /// two identical rides, one completed honestly and one completed at a point far past the agreed
+  /// dropoff, must be charged the same. The lifecycle test above cannot catch this because it
+  /// completes at exactly the requested dropoff, where both implementations agree.
+  /// </summary>
+  [Fact]
+  public async Task TheFareIsUnchanged_WhenADriverCompletesFarPastTheAgreedDropoff()
+  {
+    var (driver, driverId) = await NewAuthenticatedClientAsync(isDriver: true);
+
+    await SeedAvailableDriver(driverId);
+
+    var honest = await RunRideAsync(driver, driverId, Dropoff);
+    var inflated = await RunRideAsync(driver, driverId, FarPastDropoff);
+
+    Assert.Equal(honest.Price!.Value, inflated.Price!.Value, precision: 2);
+    // The agreed destination also has to survive: overwriting it with the driver's coordinate
+    // destroyed the only record of what the rider actually asked for.
+    Assert.Equal(Dropoff.X, inflated.DropoffLocation.X, precision: 4);
+    Assert.Equal(Dropoff.Y, inflated.DropoffLocation.Y, precision: 4);
+  }
+
+  /// <summary>A full ride for a fresh rider, completed at <paramref name="completionPoint"/>.</summary>
+  private async Task<RideDetailsResponse> RunRideAsync(HttpClient driver, Guid driverId, Point completionPoint)
+  {
+    var (rider, _) = await NewAuthenticatedClientAsync(isDriver: false);
+
+    var ride = await RequestRide(rider, driverId);
+
+    await Put(driver, $"api/v1/rides/{ride.Id}/accept", new { });
+    await Put(driver, $"api/v1/rides/{ride.Id}/start", new { Location = Pickup });
+    await Put(driver, $"api/v1/rides/{ride.Id}/complete", new { Location = completionPoint });
+
+    return await ReadRide(rider, ride.Id);
+  }
+
+  // Roughly 20km past the agreed dropoff: far enough that pricing it instead would move the fare
+  // by more than the assertion's tolerance.
+  private static readonly Point FarPastDropoff = new(12.5164, 42.1228) { SRID = 4326 };
+
+  /// <summary>
   /// Seeded straight into the Driver catalogue rather than over HTTP: this host composes the
   /// Driver module but not its controllers, so there is no driver endpoint to call here.
   /// </summary>

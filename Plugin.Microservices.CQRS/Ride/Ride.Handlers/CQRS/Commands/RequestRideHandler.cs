@@ -31,10 +31,12 @@ public class RequestRideHandler(IRideContext db, RideMapper mapper, IHikyaku med
     // DriverId comes straight off the request body, so it is checked before a ride is created
     // against it — otherwise a rider can pin a ride onto any GUID at all, including one that
     // belongs to a non-driver or to a driver already committed to someone else's trip.
-    var driver = await mediator.Send(new GetDriverStatus { Id = request.DriverId }, cancellationToken)
-      ?? throw new NotFoundException("driver_not_found");
+    var driver = await mediator.Send(new GetDriverAvailability { DriverId = request.DriverId }, cancellationToken);
 
-    if (driver.Status != DriverStatus.Available)
+    if (!driver.Exists)
+      throw new NotFoundException("driver_not_found");
+
+    if (!driver.IsAvailable)
       throw new ConflictException("driver_not_available");
 
     var status = new List<RideStatus> { RideStatus.Requested, RideStatus.DriverAssigned, RideStatus.InProgress };

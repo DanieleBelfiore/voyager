@@ -34,6 +34,35 @@ public class SearchBestDriverTests(VoyagerStackFixture fixture) : VoyagerIntegra
     Assert.InRange(match.Distance, 1100, 1120);
   }
 
+
+  /// <summary>
+  /// Search hands a rider the ids of every available driver within the radius, so whatever else
+  /// it returns about them is disclosed in bulk — up to MaxCandidates (200) in one call. Their
+  /// positions used to be in that payload, which let any account map the fleet from a single
+  /// request. Asserted against the raw JSON rather than the typed DTO: the DTO not having the
+  /// field is exactly what this guards, so deserialising into it would assert nothing.
+  /// </summary>
+  [Fact]
+  public async Task Search_DoesNotDiscloseDriverPositions()
+  {
+    await Fixture.ResetAsync();
+
+    await Fixture.RegisterAvailableDriverAsync(DriverWorkflow.JustNorthOfRome);
+
+    var rider = Fixture.ClientFor(VoyagerService.Driver, await Fixture.RegisterAsync(isDriver: false));
+
+    var response = await rider.PostAsync("api/v1/drivers/search", VoyagerJson.Content(
+      new SearchBestDriverPayload { Location = DriverWorkflow.Rome, DistanceThresholdInKm = 5 })).ShouldSucceed();
+
+    var body = await response.Content.ReadAsStringAsync();
+
+    Assert.DoesNotContain("coordinates", body, StringComparison.OrdinalIgnoreCase);
+    Assert.DoesNotContain("lastLocation", body, StringComparison.OrdinalIgnoreCase);
+    // The driver really is a degree of longitude east of nothing in particular — if the payload
+    // carried the point at all, this fragment of it would show up.
+    Assert.DoesNotContain("41.91", body);
+  }
+
   [Fact]
   public async Task DriverLocations_AreBackedByTheSpatialIndex_TheMigrationCreates()
   {

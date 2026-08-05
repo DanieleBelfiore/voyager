@@ -5,6 +5,7 @@ using Hikyaku;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Voyager.Shared.Extensions;
 
 namespace Driver.Module.Features.GetDriverStatus;
 
@@ -17,6 +18,6 @@ public class GetDriverStatusController(IHikyaku mediator) : ControllerBase
   [HttpGet("{driverId:guid}")]
   public async Task<ActionResult<DriverStatusResponse>> Get(Guid driverId, CancellationToken cancellationToken)
   {
-    return Ok(await mediator.Send(new GetDriverStatus { Id = driverId }, cancellationToken));
+    return Ok(await mediator.Send(new GetDriverStatus { Id = driverId, CallerId = this.GetUserId() }, cancellationToken));
   }
 }

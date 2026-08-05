@@ -58,9 +58,12 @@ builder.Services.AddAuthentication(options =>
 
 // "is_driver" is the custom claim Identity stamps onto the access token principal. Registering
 // a driver is gated on it because a Driver row is what puts someone into SearchBestDriver's
-// candidate pool: without this any authenticated rider could self-register, publish a location,
-// and start being matched to real ride requests they can never accept (AcceptRide checks the
-// same claim), leaving those rides stuck with no offer timeout to recover them.
+// candidate pool: without this a rider account could self-register, publish a location, and start
+// being matched to real ride requests it can never accept (AcceptRide checks the same claim),
+// leaving those rides stuck with no offer timeout to recover them.
+// It marks the account type chosen at registration, not a privilege granted by anyone:
+// registering as a driver is self-service, so this separates the rider and driver flows
+// rather than keeping anyone out.
 builder.Services.AddAuthorization(options =>
 {
   options.AddPolicy("RequireDriver", policy => policy.RequireClaim("is_driver", "True"));

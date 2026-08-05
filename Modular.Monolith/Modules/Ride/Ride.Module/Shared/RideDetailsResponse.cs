@@ -5,7 +5,7 @@ using RideEntity = Ride.Module.Entities.Ride;
 
 namespace Ride.Module.Shared;
 
-/// <summary>Public — returned by GetRideDetails, RequestRide, GetRideHistory and GetRideDriverHistory, all public controller actions (CS0050).</summary>
+/// <summary>Public — returned by GetRideDetails, RequestRide and GetRideHistory, all public controller actions (CS0050).</summary>
 public class RideDetailsResponse
 {
   public Guid Id { get; set; }

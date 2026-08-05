@@ -18,7 +18,7 @@ public class ActiveRide
   public Point PickupLocation { get; set; }
 
   /// <summary>True once the trip itself is under way — see Voyager.Contracts.Ride.ActiveRideInfo.
-  /// Hub needs it to stop treating PickupLocation as a destination after Start overwrote it.
+  /// Hub needs it to stop treating PickupLocation as a destination once the trip is under way.
   /// </summary>
   public bool HasStarted { get; set; }
 }

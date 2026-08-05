@@ -37,17 +37,44 @@ public class AuthGateTests(IntegrationTestWebAppFactory factory) : BaseIntegrati
   public async Task ProtectedEndpoint_Accepts_AValidToken()
   {
     await ResetDatabaseAsync();
-    await InitializeAuthenticatedClient();
+    var userId = await InitializeAuthenticatedClient();
 
-    var response = await Client.GetAsync($"api/v1/drivers/{Guid.NewGuid()}");
+    // Own id: driver status is self-read only, so a random one now stops at the ownership check
+    // instead of reaching the handler. Still 404 — this harness boots Driver alone, so no driver
+    // row exists until a test posts one.
+    var response = await Client.GetAsync($"api/v1/drivers/{userId}");
 
     Assert.True(response.StatusCode == HttpStatusCode.NotFound,
       $"Expected 404 for an unknown driver, got {(int)response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
   }
 
   /// <summary>
-  /// "RequireDriver" gates driver self-registration on the <c>is_driver</c> claim. A rider getting
-  /// through would enter the matching pool and be offered rides they cannot accept.
+  /// A driver's live position is self-read only. Authentication alone used to be the whole gate,
+  /// so any account could walk driver ids and track the fleet in real time; the ids are not secret
+  /// either, since driver search hands them out. 403 because the caller is authenticated and the
+  /// driver exists — they simply do not own it.
+  /// </summary>
+  [Fact]
+  public async Task ProtectedEndpoint_Rejects_ACallerReadingAnotherDriversPosition()
+  {
+    await ResetDatabaseAsync();
+
+    var targetId = await InitializeAuthenticatedClient(isDriver: true);
+    (await Client.PostAsync("api/v1/drivers", JsonContent.Create(new { }))).EnsureSuccessStatusCode();
+
+    await InitializeAuthenticatedClient(isDriver: false);
+
+    var response = await Client.GetAsync($"api/v1/drivers/{targetId}");
+
+    Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+  }
+
+  /// <summary>
+  /// "RequireDriver" gates driver self-registration on the <c>is_driver</c> claim. A rider token
+  /// getting through would put that account into the matching pool and have it offered rides it
+  /// cannot accept. The claim marks the account type chosen at registration, not a privilege
+  /// granted by anyone: registering as a driver is self-service, so this separates the rider and
+  /// driver flows rather than keeping anyone out.
   /// </summary>
   [Fact]
   public async Task DriverOnlyEndpoint_Rejects_ARiderToken()
