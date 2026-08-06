@@ -55,7 +55,7 @@ Same issue as every other variant, same fix: `Driver.Module.Entities.Driver` and
 
 Same shape as [Vertical.Slice.Architecture](../Vertical.Slice.Architecture/CLAUDE.md#testing): construct the module's `DbContext` against `UseInMemoryDatabase(Guid.NewGuid().ToString())`, seed it, call `handler.Handle(...)`, and mock `IHikyaku`/`IHubContext<...>` only where the handler actually depends on them.
 
-**Exception — relational-only features need a relational provider.** `ExecuteUpdate`/`ExecuteDelete` and raw SQL have no in-memory implementation and throw `InvalidOperationException` under `UseInMemoryDatabase`. Those tests open a `SqliteConnection("DataSource=:memory:")`, hold it open for the fixture's lifetime, and call `Database.EnsureCreated()` — see `Identity.Tests/Features/UpdateUserRatingHandlerTests.cs`. InMemory stays the default everywhere else, and SQLite proves the logic, not SQL Server's own translation of it.
+**No SQLite — relational-only features are not unit-tested here.** `ExecuteUpdate`/`ExecuteDelete` and raw SQL have no in-memory implementation and throw `InvalidOperationException` under `UseInMemoryDatabase`. **Do not add a SQLite provider to work around that** — SQLite is deliberately not a dependency of this repo, and reintroducing it will be rejected. `UpdateUserRatingHandler` is the current example: one atomic `ExecuteUpdateAsync` folding a rating into a running average, with no unit test as a result. Prove that class of behaviour in `Host.IntegrationTests` against the real SQL Server instead — the only provider that says anything about the SQL actually shipped.
 
 ## Integration tests
 

@@ -42,9 +42,9 @@ Same `Voyager.Contracts` + Kaido mechanism as every other variant — see [Commo
 
 No repository to mock — tests construct `{Service}DbContext` against `UseInMemoryDatabase(Guid.NewGuid().ToString())`, seed it directly, and call `handler.Handle(...)`. Mock `IHikyaku`/`IHubContext<VoyagerHub, IVoyagerShareClient>` with NSubstitute only where a handler actually depends on them (cross-service calls, event publishing, SignalR push).
 
-**Exception — relational-only features need a relational provider.** `ExecuteUpdate`/`ExecuteDelete`, raw SQL, and anything else with no in-memory implementation throw `InvalidOperationException` ("not supported by the current database provider") under `UseInMemoryDatabase`. Those tests open a `SqliteConnection("DataSource=:memory:")`, keep it open for the fixture's lifetime, and call `Database.EnsureCreated()` — see `Identity.Tests/Features/UpdateUserRatingHandlerTests.cs`, where the handler folds a rating into a running average with one atomic `ExecuteUpdateAsync` so concurrent ratings can't lose each other.
+**No SQLite — relational-only features are not unit-tested here.** `ExecuteUpdate`/`ExecuteDelete`, raw SQL, and anything else with no in-memory implementation throw `InvalidOperationException` ("not supported by the current database provider") under `UseInMemoryDatabase`. **Do not add a SQLite provider to work around that** — SQLite is deliberately not a dependency of this repo, and reintroducing it will be rejected. `UpdateUserRatingHandler` is the current example: it folds a rating into a running average with one atomic `ExecuteUpdateAsync` so concurrent ratings can't lose each other, and it carries no unit test as a result.
 
-Reach for SQLite only when the handler under test genuinely needs it. InMemory stays the default everywhere else — it's faster and needs no schema. Note what SQLite does *not* buy you: it proves the logic and the atomicity, not that SQL Server translates the same expression, so a relational-behaviour fix still deserves a pass against the real docker-compose stack.
+Prove that class of behaviour in `Voyager.IntegrationTests` against the real SQL Server instead. That is also the more honest place for it: SQLite only ever proved the logic, never that SQL Server translates the same expression.
 
 ## Integration tests
 

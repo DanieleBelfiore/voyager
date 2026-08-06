@@ -8,14 +8,13 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OpenIddict.Abstractions;
 using OpenIddict.Validation.AspNetCore;
-using Respawn;
-using Respawn.Graph;
 using Ride.API.Controllers;
 using Ride.Handlers.Models;
 using Microsoft.Extensions.Hosting;
 using Testcontainers.MsSql;
 using Testcontainers.RabbitMq;
 using Testcontainers.Redis;
+using Voyager.TestInfra;
 using Xunit;
 
 namespace Ride.IntegrationTests;
@@ -38,7 +37,7 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsy
   // take ICacheService — which Ride's own Program.cs backs with Redis.
   private readonly RedisContainer _redisContainer = new RedisBuilder("redis:7").Build();
 
-  private Respawner _respawner;
+  private readonly DatabaseResetter _resetter = new();
   private string _rideConnectionString;
 
   public string RideConnectionString => _rideConnectionString ??=
@@ -55,19 +54,7 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsy
   /// so discards everything a migration does outside it — indexes and constraints created by raw
   /// SQL among them. Tests then ran against a schema no deployment ever produces.
   /// </summary>
-  public async Task ResetDatabaseAsync()
-  {
-    await using var connection = new SqlConnection(RideConnectionString);
-    await connection.OpenAsync();
-
-    _respawner ??= await Respawner.CreateAsync(connection, new RespawnerOptions
-    {
-      DbAdapter = DbAdapter.SqlServer,
-      TablesToIgnore = [new Table("__EFMigrationsHistory")]
-    });
-
-    await _respawner.ResetAsync(connection);
-  }
+  public Task ResetDatabaseAsync() => _resetter.ResetAsync(RideConnectionString);
 
   protected override void ConfigureWebHost(IWebHostBuilder builder)
   {

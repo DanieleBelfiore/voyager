@@ -18,8 +18,7 @@
     <PackageReference Include="NetTopologySuite" Version="2.6.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="NSubstitute" Version="6.0.0" />
-    <PackageReference Include="Respawn" Version="7.0.0" />
-    <PackageReference Include="StackExchange.Redis" Version="3.0.17" />
+    <PackageReference Include="StackExchange.Redis" Version="3.1.3" />
     <PackageReference Include="Testcontainers.MsSql" Version="4.13.0" />
     <PackageReference Include="Testcontainers.RabbitMq" Version="4.13.0" />
     <PackageReference Include="Testcontainers.Redis" Version="4.13.0" />
@@ -30,6 +29,7 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\Commons\Voyager.TestInfra\Voyager.TestInfra.csproj" />
     <ProjectReference Include="..\..\Identity\Identity.Handlers\Identity.Handlers.csproj" />
     <ProjectReference Include="..\Driver\Driver.csproj" />
   </ItemGroup>

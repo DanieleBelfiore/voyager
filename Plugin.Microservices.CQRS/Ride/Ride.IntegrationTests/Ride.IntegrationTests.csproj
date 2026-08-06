@@ -15,7 +15,6 @@
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.10" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.10" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
-    <PackageReference Include="Respawn" Version="7.0.0" />
     <PackageReference Include="NSubstitute" Version="6.0.0" />
     <PackageReference Include="Testcontainers.MsSql" Version="4.13.0" />
     <PackageReference Include="Testcontainers.RabbitMq" Version="4.13.0" />
@@ -36,6 +35,7 @@
       process the dispatch resolves locally, so this suite cannot prove the broker hop. See the
       variant CLAUDE.md.
     -->
+    <ProjectReference Include="..\..\..\Commons\Voyager.TestInfra\Voyager.TestInfra.csproj" />
     <ProjectReference Include="..\..\Driver\Driver.Handlers\Driver.Handlers.csproj" />
     <ProjectReference Include="..\..\Identity\Identity.Handlers\Identity.Handlers.csproj" />
     <ProjectReference Include="..\Ride\Ride.csproj" />

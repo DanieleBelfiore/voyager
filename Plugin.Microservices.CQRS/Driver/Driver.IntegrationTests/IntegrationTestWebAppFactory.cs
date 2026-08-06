@@ -11,12 +11,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using OpenIddict.Abstractions;
 using OpenIddict.Validation.AspNetCore;
-using Respawn;
-using Respawn.Graph;
 using StackExchange.Redis;
 using Testcontainers.MsSql;
 using Testcontainers.RabbitMq;
 using Testcontainers.Redis;
+using Voyager.TestInfra;
 using Xunit;
 
 namespace Driver.IntegrationTests;
@@ -37,7 +36,7 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsy
 
   private readonly RedisContainer _redisContainer = new RedisBuilder("redis:7").Build();
 
-  private Respawner _respawner;
+  private readonly DatabaseResetter _resetter = new();
   private string _driverConnectionString;
 
   public string DriverConnectionString => _driverConnectionString ??=
@@ -65,19 +64,7 @@ public class IntegrationTestWebAppFactory : WebApplicationFactory<Program>, IAsy
   /// <c>20260731180239_AddDriverLastLocationSpatialIndex</c>. The geospatial query these tests
   /// exist to prove was running unindexed, and the migration itself was covered by nothing.
   /// </summary>
-  public async Task ResetDatabaseAsync()
-  {
-    await using var connection = new SqlConnection(DriverConnectionString);
-    await connection.OpenAsync();
-
-    _respawner ??= await Respawner.CreateAsync(connection, new RespawnerOptions
-    {
-      DbAdapter = DbAdapter.SqlServer,
-      TablesToIgnore = [new Table("__EFMigrationsHistory")]
-    });
-
-    await _respawner.ResetAsync(connection);
-  }
+  public Task ResetDatabaseAsync() => _resetter.ResetAsync(DriverConnectionString);
 
   protected override void ConfigureWebHost(IWebHostBuilder builder)
   {

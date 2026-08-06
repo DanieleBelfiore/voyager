@@ -160,9 +160,11 @@ rich domain/EF entities across a service boundary.
 
 ## Testing
 
-Unit tests cover handler/use-case logic against an in-memory (or SQLite, where a relational-only
-EF feature is involved) provider, and carry an 80% line-coverage gate on the business-logic
-layers of every variant. They deliberately stop at the process boundary.
+Unit tests cover handler/use-case logic against the EF in-memory provider, and carry an 80%
+line-coverage gate on the business-logic layers of every variant. They deliberately stop at the
+process boundary. Handlers reaching for a relational-only EF feature (`ExecuteUpdate`,
+`ExecuteDelete`, raw SQL) have no in-memory implementation and are therefore left to the
+integration suites — no SQLite provider is used anywhere to paper over that gap.
 
 Integration tests exist for the things that only fail once real infrastructure is in the loop,
 and are kept to one per concern rather than mirroring the unit suite:

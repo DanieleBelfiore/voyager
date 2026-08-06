@@ -18,7 +18,7 @@ Generic ASP.NET Core / EF Core utilities with zero business meaning:
 
 ## Voyager.TestInfra
 
-Harness for the variants' integration suites: the Testcontainers fixture (SQL Server, RabbitMQ, Redis), a Respawn-backed reset, the registration/password-grant helper, the `WebApplicationFactory` wrapper, and the plumbing that lets one host's outbound HTTP reach another host's test server. Infrastructure only — no domain, CQRS or variant-specific logic, which is what makes it belong here under the same rule as the rest of `Commons/`.
+Harness for the variants' integration suites: the Testcontainers fixture (SQL Server, RabbitMQ, Redis), a truncating database reset, the registration/password-grant helper, the `WebApplicationFactory` wrapper, and the plumbing that lets one host's outbound HTTP reach another host's test server. Infrastructure only — no domain, CQRS or variant-specific logic, which is what makes it belong here under the same rule as the rest of `Commons/`.
 
 Not referenced by any production project. `Plugin.Microservices.CQRS/` keeps its own harness, as it keeps its own `Common/Common.Core`.
 
